@@ -1,4 +1,3 @@
-
 package main
 
 type Role string
@@ -48,4 +47,48 @@ type StatPoint struct {
 type DashboardStats struct {
 	AccuracyTrend   []StatPoint `json:"accuracyTrend"`
 	CompletionTrend []StatPoint `json:"completionTrend"`
+}
+
+// New Models
+
+type Reinforcement struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Type      string `json:"type"` // e.g., "sticker", "animation"
+	Image     string `json:"image,omitempty"`
+	Condition string `json:"condition"` // e.g., "streak_10"
+}
+
+type Paper struct {
+	ID        string     `json:"id"`
+	Name      string     `json:"name"`
+	Questions []Question `json:"questions"`
+	Total     int        `json:"total"`
+}
+
+type Homework struct {
+	ID        string `json:"id"`
+	PaperID   string `json:"paperId"`
+	Name      string `json:"name"`
+	ClassID   string `json:"classId"`
+	StartDate string `json:"startDate"`
+	EndDate   string `json:"endDate"`
+	Status    string `json:"status"` // "pending", "completed"
+	Completed int    `json:"completed"`
+	Total     int    `json:"total"`
+}
+
+type History struct {
+	ID           string   `json:"id"`
+	StudentID    string   `json:"studentId"`
+	HomeworkID   string   `json:"homeworkId"`
+	Type         string   `json:"type"` // "exam", "practice", "homework"
+	Name         string   `json:"name"`
+	NameEn       string   `json:"nameEn"`
+	Date         string   `json:"date"`
+	Score        string   `json:"score,omitempty"`
+	Total        string   `json:"total,omitempty"`
+	CorrectCount int      `json:"correctCount,omitempty"`
+	WrongCount   int      `json:"wrongCount,omitempty"`
+	Questions    []any    `json:"questions"` // Detail records
 }

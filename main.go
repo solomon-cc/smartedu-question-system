@@ -34,11 +34,19 @@ func main() {
 			protected.GET("/homeworks", GetHomeworks)
 			protected.POST("/homeworks/assign", AssignHomework)
 
+			// Reinforcements
+			protected.GET("/reinforcements", GetReinforcements)
+			protected.POST("/reinforcements", CreateReinforcement)
+			protected.DELETE("/reinforcements/:id", DeleteReinforcement)
+
 			// History
 			protected.GET("/history", GetHistory)
 
 			// Student Stats
 			protected.GET("/student/stats", GetStudentStats)
+			
+			// Teacher Stats
+			protected.GET("/teacher/stats", GetTeacherStats)
 
 			// Admin: User Management
 			admin := protected.Group("/admin")
@@ -46,6 +54,7 @@ func main() {
 				admin.GET("/users", GetUsers)
 				admin.POST("/users", CreateUser)
 				admin.PUT("/users/:id", UpdateUser)
+				admin.DELETE("/users/:id", DeleteUser)
 			}
 
 			// Analytics

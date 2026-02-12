@@ -132,21 +132,29 @@ const StudentDashboard: React.FC<DashboardProps> = ({ language }) => {
 
 const TeacherDashboard: React.FC<DashboardProps> = ({ language }) => {
   const navigate = useNavigate();
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    api.teacher.stats().then(setStats).catch(console.error);
+  }, []);
+
+  if (!stats) return <div className="p-8 text-center">Loading...</div>;
+
   return (
     <div className="p-4 space-y-6 animate-in slide-in-from-right-4 duration-500">
       <h1 className="text-2xl font-bold dark:text-white">{language === 'zh' ? '教师控制台' : 'Teacher Console'}</h1>
       <div className="grid md:grid-cols-3 gap-6">
         <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm">
           <h3 className="text-gray-500 text-sm mb-1">{language === 'zh' ? '今日批改' : 'Today Corrected'}</h3>
-          <p className="text-3xl font-bold dark:text-white">142</p>
+          <p className="text-3xl font-bold dark:text-white">{stats.todayCorrected}</p>
         </div>
         <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm">
           <h3 className="text-gray-500 text-sm mb-1">{language === 'zh' ? '待布置作业' : 'Assignments Pending'}</h3>
-          <p className="text-3xl font-bold dark:text-white">3</p>
+          <p className="text-3xl font-bold dark:text-white">{stats.pendingAssignments}</p>
         </div>
         <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm">
           <h3 className="text-gray-500 text-sm mb-1">{language === 'zh' ? '学生正确率' : 'Accuracy Rate'}</h3>
-          <p className="text-3xl font-bold dark:text-white text-green-500">87%</p>
+          <p className="text-3xl font-bold dark:text-white text-green-500">{stats.accuracyRate * 100}%</p>
         </div>
       </div>
       
@@ -168,16 +176,16 @@ const TeacherDashboard: React.FC<DashboardProps> = ({ language }) => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border dark:border-gray-700 shadow-sm">
           <h2 className="text-lg font-bold mb-4 dark:text-white">{language === 'zh' ? '最近作业情况' : 'Recent HW Status'}</h2>
           <div className="space-y-4">
-            {[1,2,3].map(i => (
+            {stats.recentHomeworks?.map((item: any, i: number) => (
               <div key={i} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
                  <div className="flex items-center gap-3">
                    <div className="w-10 h-10 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center font-bold">A</div>
                    <div>
-                      <p className="font-bold dark:text-white">{language === 'zh' ? '数学基础练习' : 'Basic Math Practice'} #{i}</p>
-                      <p className="text-xs text-gray-500">2024-03-2{i} 14:00</p>
+                      <p className="font-bold dark:text-white">{item.name}</p>
+                      <p className="text-xs text-gray-500">{item.date}</p>
                    </div>
                  </div>
-                 <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">{language === 'zh' ? '已完成' : 'Done'} 28/30</span>
+                 <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">{language === 'zh' ? '已完成' : 'Done'} {item.completed}/{item.total}</span>
               </div>
             ))}
           </div>

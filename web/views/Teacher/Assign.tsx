@@ -1,25 +1,82 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send, User, Book, Search, CheckCircle2, LayoutGrid, FileCheck, ChevronRight, UserCircle, Clock, ArrowLeft } from 'lucide-react';
+import { api } from '../../services/api.ts';
+import { Role } from '../../types';
 
 const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [activeTab, setActiveTab] = useState<'assign' | 'status'>('assign');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [selectedHw, setSelectedHw] = useState<any>(null);
+  
+  // Data State
+  const [students, setStudents] = useState<any[]>([]);
+  const [papers, setPapers] = useState<any[]>([]);
+  const [historicalHw, setHistoricalHw] = useState<any[]>([]);
+  
+  // Form State
+  const [selectedPaperId, setSelectedPaperId] = useState('');
+  const [deadline, setDeadline] = useState('');
 
-  const students = [
-    { id: '1', name: '王小明', grade: '3-1', completion: '80%' },
-    { id: '2', name: '李华', grade: '3-1', completion: '100%' },
-    { id: '3', name: '张三', grade: '3-2', completion: '0%' },
-    { id: '4', name: '赵六', grade: '3-2', completion: '50%' },
-    { id: '5', name: '孙七', grade: '3-1', completion: '100%' },
-  ];
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const historicalHw = [
-    { id: 'hw1', title: '2024春季摸底考', date: '2024-03-20', total: 50, submitted: 42 },
-    { id: 'hw2', title: '识字挑战-单元一', date: '2024-03-22', total: 50, submitted: 30 },
-    { id: 'hw3', title: '加减法口算练习', date: '2024-03-25', total: 50, submitted: 5 },
-  ];
+  const fetchData = async () => {
+    try {
+      const [usersData, papersData, hwData] = await Promise.all([
+        api.users.list(),
+        api.papers.list(),
+        api.homework.list()
+      ]);
+
+      setStudents(usersData.filter((u: any) => u.role === Role.STUDENT).map((u: any) => ({
+        id: u.id,
+        name: u.username, // Using username as name
+        grade: '3-1', // Mock grade as user model doesn't have it yet
+        completion: '0%' // Mock completion for now
+      })));
+
+      setPapers(papersData);
+      
+      setHistoricalHw(hwData.map((h: any) => ({
+        id: h.id,
+        title: h.name,
+        date: h.startDate,
+        total: h.total,
+        submitted: h.completed
+      })));
+
+      if (papersData.length > 0) {
+        setSelectedPaperId(papersData[0].id);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleAssign = async () => {
+    if (!selectedPaperId || !deadline || selectedStudents.length === 0) return;
+    
+    const paper = papers.find(p => p.id === selectedPaperId);
+    try {
+      await api.homework.assign({
+        paperId: selectedPaperId,
+        name: paper ? paper.name : 'Homework',
+        classId: '3-1', // Mock class
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: deadline,
+        studentIds: selectedStudents // Backend needs to handle this (currently AssignHomework takes generic 'h')
+      });
+      alert(language === 'zh' ? '发布成功' : 'Assigned successfully');
+      setSelectedStudents([]);
+      setDeadline('');
+      fetchData(); // Refresh list
+    } catch (e) {
+      console.error(e);
+      alert('Failed to assign');
+    }
+  };
 
   const toggleStudent = (id: string) => {
     setSelectedStudents(prev => 
@@ -49,7 +106,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
             </div>
             <div className="p-6 bg-green-50 dark:bg-green-900/20 rounded-2xl border border-green-100 dark:border-green-800">
                <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mb-1">{language === 'zh' ? '提交率' : 'Rate'}</p>
-               <p className="text-2xl font-black text-green-600">{Math.round((selectedHw.submitted / selectedHw.total) * 100)}%</p>
+               <p className="text-2xl font-black text-green-600">{selectedHw.total > 0 ? Math.round((selectedHw.submitted / selectedHw.total) * 100) : 0}%</p>
             </div>
           </div>
 
@@ -107,9 +164,13 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
               <label className="block text-xs font-black text-gray-400 uppercase mb-4 tracking-widest">
                 <Book className="w-4 h-4 inline mr-1" /> {language === 'zh' ? '1. 选择试卷' : '1. Select Paper'}
               </label>
-              <select className="w-full p-4 rounded-2xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 outline-none focus:ring-4 focus:ring-primary-500/20 dark:text-white font-bold">
-                <option>2024年春季数学摸底考试</option>
-                <option>识字大挑战-第一单元</option>
+              <select 
+                value={selectedPaperId}
+                onChange={(e) => setSelectedPaperId(e.target.value)}
+                className="w-full p-4 rounded-2xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 outline-none focus:ring-4 focus:ring-primary-500/20 dark:text-white font-bold"
+              >
+                {papers.length === 0 && <option value="">{language === 'zh' ? '暂无试卷' : 'No Papers'}</option>}
+                {papers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
 
@@ -119,12 +180,15 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
               </label>
               <input 
                 type="date" 
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
                 className="w-full p-4 rounded-2xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 outline-none focus:ring-4 focus:ring-primary-500/20 dark:text-white font-bold" 
               />
             </div>
 
             <div className="pt-4">
               <button 
+                onClick={handleAssign}
                 className="w-full py-5 bg-primary-600 text-white rounded-[2rem] font-black shadow-xl shadow-primary-600/20 flex items-center justify-center gap-2 hover:bg-primary-700 transition-all disabled:opacity-50" 
                 disabled={selectedStudents.length === 0}
               >
@@ -157,6 +221,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2 space-y-2">
+               {students.length === 0 && <div className="text-center text-gray-400 mt-10">No students found</div>}
                {students.map(s => (
                  <button 
                   key={s.id}
@@ -194,6 +259,9 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                  </tr>
               </thead>
               <tbody className="divide-y dark:divide-gray-700">
+                 {historicalHw.length === 0 && (
+                   <tr><td colSpan={4} className="px-8 py-6 text-center text-gray-400">{language === 'zh' ? '暂无作业记录' : 'No homeworks'}</td></tr>
+                 )}
                  {historicalHw.map(hw => (
                    <tr key={hw.id} className="group hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
                       <td className="px-8 py-6">
@@ -205,7 +273,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                             <div className="w-32 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                                <div 
                                 className="h-full bg-primary-600 rounded-full" 
-                                style={{ width: `${(hw.submitted/hw.total)*100}%` }}
+                                style={{ width: `${hw.total > 0 ? (hw.submitted/hw.total)*100 : 0}%` }}
                                ></div>
                             </div>
                             <span className="text-xs font-bold text-gray-500">{hw.submitted}/{hw.total}</span>

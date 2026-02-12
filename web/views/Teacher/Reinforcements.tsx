@@ -1,30 +1,146 @@
 
-import React, { useState } from 'react';
-import { PlayCircle, Image as ImageIcon, Plus, Trash2, X, UploadCloud, Info, CheckCircle, Users, Globe, UserCheck } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { PlayCircle, Image as ImageIcon, Plus, Trash2, X, UploadCloud, Info, CheckCircle, Users, Globe, UserCheck, Star, Zap, Gift, Trophy } from 'lucide-react';
+import { api } from '../../services/api.ts';
+import { Role } from '../../types';
+
+const BUILTIN_ASSETS = [
+  { id: 'dino', name: '快乐恐龙', nameEn: 'Happy Dino', icon: '🦕', color: 'bg-green-100 text-green-600' },
+  { id: 'fireworks', name: '绚丽烟花', nameEn: 'Fireworks', icon: '🎆', color: 'bg-purple-100 text-purple-600' },
+  { id: 'star', name: '超级星星', nameEn: 'Super Star', icon: '⭐', color: 'bg-yellow-100 text-yellow-600' },
+  { id: 'trophy', name: '冠军奖杯', nameEn: 'Trophy', icon: '🏆', color: 'bg-blue-100 text-blue-600' },
+  { id: 'rocket', name: '一飞冲天', nameEn: 'Rocket', icon: '🚀', color: 'bg-red-100 text-red-600' },
+  { id: 'party', name: '庆祝时刻', nameEn: 'Party', icon: '🎉', color: 'bg-pink-100 text-pink-600' },
+];
 
 const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [previewingItem, setPreviewingItem] = useState<any>(null);
   const [activeView, setActiveView] = useState<'global' | 'targeted'>('global');
-  
-  const [items, setItems] = useState([
-    { id: '1', name: '恐龙跳舞', type: 'animation', size: '2.4 MB', color: 'bg-green-500', target: 'ALL' },
-    { id: '2', name: '礼花特效', type: 'video', size: '1.1 MB', color: 'bg-purple-500', target: 'ALL' },
-    { id: '3', name: '奖励勋章动画', type: 'animation', size: '0.5 MB', color: 'bg-yellow-500', target: '王小明' },
-    { id: '4', name: '超级点赞动画', type: 'animation', size: '1.8 MB', color: 'bg-blue-500', target: '李华' },
-  ]);
+  const [items, setItems] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const students = ['王小明', '李华', '张三', '赵六'];
+  // Form State
+  const [formName, setFormName] = useState('');
+  const [formTarget, setFormTarget] = useState('ALL');
+  const [assetType, setAssetType] = useState<'builtin' | 'upload'>('builtin');
+  const [selectedBuiltin, setSelectedBuiltin] = useState<string>('');
+  const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleDelete = (id: string) => {
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [reinforcementsData, usersData] = await Promise.all([
+        api.reinforcements.list(),
+        api.users.list()
+      ]);
+
+      setItems(reinforcementsData.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        // If image field starts with 'data:', it's uploaded. If it matches a builtin ID, it's builtin.
+        image: item.image, 
+        size: '1.2 MB', // Mock
+        color: 'bg-primary-500', // Mock
+        target: item.condition === 'global' ? 'ALL' : item.condition
+      })));
+
+      setStudents(usersData.filter((u: any) => u.role === Role.STUDENT).map((u: any) => ({
+        id: u.username, // Using username as ID for simplicity in this mock
+        name: u.username
+      })));
+
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setUploadedFile(ev.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCreate = async () => {
+    let finalImage = '';
+    
+    if (assetType === 'builtin') {
+      if (!selectedBuiltin) {
+        alert(language === 'zh' ? '请选择一个动画' : 'Please select an animation');
+        return;
+      }
+      finalImage = selectedBuiltin; // Store ID
+    } else {
+      if (!uploadedFile) {
+        alert(language === 'zh' ? '请上传文件' : 'Please upload a file');
+        return;
+      }
+      finalImage = uploadedFile;
+    }
+
+    try {
+      await api.reinforcements.create({
+          name: formName || (assetType === 'builtin' ? BUILTIN_ASSETS.find(b => b.id === selectedBuiltin)?.name : 'Custom Asset'),
+          type: 'animation', 
+          condition: formTarget === 'ALL' ? 'global' : formTarget,
+          image: finalImage
+      });
+      setIsUploadModalOpen(false);
+      fetchData();
+      // Reset form
+      setFormName('');
+      setFormTarget('ALL');
+      setAssetType('builtin');
+      setSelectedBuiltin('');
+      setUploadedFile(null);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to create');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
     if (confirm(language === 'zh' ? '确定删除这个强化物资源吗？' : 'Delete this reinforcement?')) {
-      setItems(items.filter(i => i.id !== id));
+      try {
+        await api.reinforcements.delete(id);
+        fetchData();
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 
   const filteredItems = activeView === 'global' 
     ? items.filter(i => i.target === 'ALL')
     : items.filter(i => i.target !== 'ALL');
+
+  const getIconForAsset = (item: any) => {
+    // Check if it's a builtin asset
+    const builtin = BUILTIN_ASSETS.find(b => b.id === item.image);
+    if (builtin) {
+      return <div className="text-6xl">{builtin.icon}</div>;
+    }
+    // Check if it's an uploaded image (data URI)
+    if (item.image && item.image.startsWith('data:')) {
+      return <img src={item.image} alt={item.name} className="w-full h-full object-cover" />;
+    }
+    // Fallback
+    return <ImageIcon className="w-16 h-16 text-gray-300" />;
+  };
 
   return (
     <div className="space-y-6 relative animate-in fade-in duration-500">
@@ -69,11 +185,16 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {filteredItems.map(item => (
+        {loading ? (
+           <div className="col-span-4 text-center py-10 text-gray-500">Loading assets...</div>
+        ) : filteredItems.length === 0 ? (
+           <div className="col-span-4 text-center py-10 text-gray-400">{language === 'zh' ? '暂无资源' : 'No assets found'}</div>
+        ) : (
+        filteredItems.map(item => (
           <div key={item.id} className="bg-white dark:bg-gray-800 rounded-[2rem] overflow-hidden border dark:border-gray-700 group relative shadow-sm hover:shadow-2xl hover:translate-y-[-6px] transition-all duration-300">
              <div className="aspect-square bg-gray-50 dark:bg-gray-900 flex items-center justify-center relative overflow-hidden">
                <div className={`absolute inset-0 opacity-10 ${item.color}`}></div>
-               {item.type === 'animation' ? <ImageIcon className="w-16 h-16 text-gray-300 group-hover:scale-110 transition-transform" /> : <PlayCircle className="w-16 h-16 text-gray-300 group-hover:scale-110 transition-transform" />}
+               {getIconForAsset(item)}
                
                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                  <button 
@@ -105,7 +226,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                <Trash2 className="w-4 h-4" />
              </button>
           </div>
-        ))}
+        )))}
       </div>
 
       {previewingItem && (
@@ -113,9 +234,10 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
            <div className="w-full max-w-2xl text-center space-y-8 animate-in zoom-in-75 duration-500">
               <div className="relative mx-auto w-full aspect-video bg-gray-100 dark:bg-gray-900 rounded-[3rem] overflow-hidden border-8 border-white/10 shadow-2xl flex items-center justify-center">
                  <div className="text-center flex flex-col items-center gap-4">
-                    <div className="text-9xl animate-bounce">✨</div>
+                    <div className="text-9xl animate-bounce">
+                      {getIconForAsset(previewingItem)}
+                    </div>
                     <div className="flex gap-2">
-                       <div className={`w-4 h-4 rounded-full animate-ping ${previewingItem.color}`}></div>
                        <h2 className="text-4xl font-black text-white tracking-widest uppercase">{language === 'zh' ? '播放预览' : 'PREVIEW'}</h2>
                     </div>
                  </div>
@@ -133,9 +255,9 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in zoom-in-95 duration-300">
-           <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-[2.5rem] shadow-2xl p-10 border dark:border-gray-700">
+           <div className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[2.5rem] shadow-2xl p-10 border dark:border-gray-700 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-10 border-b dark:border-gray-700 pb-6">
-                 <h3 className="text-2xl font-black dark:text-white uppercase tracking-tight">{language === 'zh' ? '上传并配置' : 'Upload & Config'}</h3>
+                 <h3 className="text-2xl font-black dark:text-white uppercase tracking-tight">{language === 'zh' ? '添加强化物' : 'Add Reinforcement'}</h3>
                  <button onClick={() => setIsUploadModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
                     <X className="w-6 h-6 dark:text-gray-400" />
                  </button>
@@ -147,35 +269,95 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                       <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">{language === 'zh' ? '资源名称' : 'Asset Name'}</label>
                       <input 
                         type="text" 
+                        value={formName}
+                        onChange={(e) => setFormName(e.target.value)}
                         className="w-full p-4 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-xl border dark:border-gray-700 outline-none focus:ring-4 focus:ring-primary-500/20 font-bold"
-                        placeholder={language === 'zh' ? '例如：礼花动画' : 'e.g. Fireworks'}
+                        placeholder={language === 'zh' ? '自定义名称 (选填)' : 'Custom Name (Optional)'}
                       />
                    </div>
                    <div>
                       <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">{language === 'zh' ? '投放对象' : 'Target Object'}</label>
-                      <select className="w-full p-4 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-xl border dark:border-gray-700 outline-none focus:ring-4 focus:ring-primary-500/20 font-bold">
+                      <select 
+                        value={formTarget}
+                        onChange={(e) => setFormTarget(e.target.value)}
+                        className="w-full p-4 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-xl border dark:border-gray-700 outline-none focus:ring-4 focus:ring-primary-500/20 font-bold"
+                      >
                          <option value="ALL">{language === 'zh' ? '全局通用' : 'Global'}</option>
-                         {students.map(s => <option key={s} value={s}>{s}</option>)}
+                         {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
                    </div>
                  </div>
+                 
+                 <div>
+                   <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-2xl mb-6 w-fit">
+                      <button 
+                        onClick={() => setAssetType('builtin')} 
+                        className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${assetType === 'builtin' ? 'bg-white dark:bg-gray-600 shadow text-primary-600 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+                      >
+                        {language === 'zh' ? '内置动画' : 'Built-in'}
+                      </button>
+                      <button 
+                        onClick={() => setAssetType('upload')} 
+                        className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${assetType === 'upload' ? 'bg-white dark:bg-gray-600 shadow text-primary-600 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+                      >
+                        {language === 'zh' ? '自定义上传' : 'Upload'}
+                      </button>
+                   </div>
 
-                 <div className="group border-4 border-dashed dark:border-gray-700 rounded-[2.5rem] p-12 flex flex-col items-center justify-center gap-4 hover:border-primary-500 hover:bg-primary-50/20 transition-all cursor-pointer bg-gray-50/50 dark:bg-gray-900/50">
-                    <div className="bg-primary-100 dark:bg-primary-900/30 p-6 rounded-[2rem] group-hover:scale-110 transition-all shadow-sm">
-                       <UploadCloud className="w-10 h-10 text-primary-600" />
-                    </div>
-                    <div className="text-center">
-                       <p className="font-black dark:text-white text-lg">{language === 'zh' ? '点击或拖拽上传' : 'Click or Drop'}</p>
-                       <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-widest">Lottie JSON, MP4, GIF</p>
-                    </div>
+                   {assetType === 'builtin' ? (
+                     <div className="grid grid-cols-3 gap-4">
+                       {BUILTIN_ASSETS.map(asset => (
+                         <div 
+                           key={asset.id}
+                           onClick={() => setSelectedBuiltin(asset.id)}
+                           className={`cursor-pointer p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${selectedBuiltin === asset.id ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-transparent bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                         >
+                            <div className="text-4xl">{asset.icon}</div>
+                            <span className="text-xs font-bold dark:text-white">{language === 'zh' ? asset.name : asset.nameEn}</span>
+                         </div>
+                       ))}
+                     </div>
+                   ) : (
+                     <div 
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`group border-4 border-dashed rounded-[2.5rem] p-12 flex flex-col items-center justify-center gap-4 hover:border-primary-500 hover:bg-primary-50/20 transition-all cursor-pointer ${uploadedFile ? 'border-green-500 bg-green-50/20' : 'dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50'}`}
+                     >
+                        {uploadedFile ? (
+                           <div className="flex flex-col items-center">
+                              <img src={uploadedFile} alt="Preview" className="h-24 object-contain mb-4 rounded-lg" />
+                              <p className="text-green-600 font-bold">{language === 'zh' ? '已选择文件' : 'File Selected'}</p>
+                           </div>
+                        ) : (
+                           <>
+                              <div className="bg-primary-100 dark:bg-primary-900/30 p-6 rounded-[2rem] group-hover:scale-110 transition-all shadow-sm">
+                                 <UploadCloud className="w-10 h-10 text-primary-600" />
+                              </div>
+                              <div className="text-center">
+                                 <p className="font-black dark:text-white text-lg">{language === 'zh' ? '点击上传 GIF/图片' : 'Click to Upload GIF/Image'}</p>
+                                 <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-widest">Max 2MB</p>
+                              </div>
+                           </>
+                        )}
+                        <input 
+                           ref={fileInputRef}
+                           type="file" 
+                           hidden 
+                           accept="image/gif,image/jpeg,image/png"
+                           onChange={handleFileUpload}
+                        />
+                     </div>
+                   )}
                  </div>
 
                  <div className="flex gap-4 pt-4">
                     <button onClick={() => setIsUploadModalOpen(false)} className="flex-1 py-4 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 rounded-[1.5rem] font-black uppercase tracking-widest">
                       {language === 'zh' ? '取消' : 'Cancel'}
                     </button>
-                    <button onClick={() => setIsUploadModalOpen(false)} className="flex-1 py-4 bg-primary-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest shadow-xl shadow-primary-500/30 hover:bg-primary-700 transition-all">
-                      {language === 'zh' ? '立即应用' : 'Apply Now'}
+                    <button 
+                      onClick={handleCreate} 
+                      className="flex-1 py-4 bg-primary-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest shadow-xl shadow-primary-500/30 hover:bg-primary-700 transition-all"
+                    >
+                      {language === 'zh' ? '确认添加' : 'Confirm'}
                     </button>
                  </div>
               </div>

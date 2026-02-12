@@ -9,41 +9,18 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Mock Data
+// Mock Data (Initial Seed Users only)
 var mockUsers = []User{
 	{ID: "1", Username: "admin", Password: "123", Role: RoleAdmin, Status: "active"},
 	{ID: "2", Username: "teacher", Password: "123", Role: RoleTeacher, Status: "active"},
 	{ID: "3", Username: "student", Password: "123", Role: RoleStudent, Status: "active"},
 }
 
-var mockQuestions = []Question{
-	{
-		ID:        "1",
-		Subject:   "MATH",
-		Grade:     1,
-		Type:      "MULTIPLE_CHOICE",
-		StemText:  "1 + 1 = ?",
-		Answer:    "2",
-		Options: []Option{
-			{Text: "1", Value: "1"},
-			{Text: "2", Value: "2"},
-			{Text: "3", Value: "3"},
-			{Text: "4", Value: "4"},
-		},
-	},
-	{
-		ID:        "2",
-		Subject:   "MATH",
-		Grade:     1,
-		Type:      "CALCULATION",
-		StemText:  "5 - 2 = ?",
-		Answer:    "3",
-	},
-}
-
-var mockPapers = []any{}
-var mockHomeworks = []any{}
-var mockHistory = []any{}
+var mockQuestions = make([]Question, 0)
+var mockPapers = make([]Paper, 0)
+var mockHomeworks = make([]Homework, 0)
+var mockHistory = make([]History, 0)
+var mockReinforcements = make([]Reinforcement, 0)
 
 // Auth Handlers
 func LoginHandler(c *gin.Context) {
@@ -95,7 +72,7 @@ func CreateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	newUser.ID = "new-id" // In real app, use UUID or DB ID
+	newUser.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
 	mockUsers = append(mockUsers, newUser)
 	c.JSON(http.StatusCreated, newUser)
 }
@@ -123,17 +100,24 @@ func UpdateUser(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 }
 
+func DeleteUser(c *gin.Context) {
+	id := c.Param("id")
+	for i, u := range mockUsers {
+		if u.ID == id {
+			mockUsers = append(mockUsers[:i], mockUsers[i+1:]...)
+			c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
+			return
+		}
+	}
+	c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+}
+
 // Stats Handlers
 func GetDashboardStats(c *gin.Context) {
+	// TODO: Calculate from mockHistory
 	stats := DashboardStats{
-		AccuracyTrend: []StatPoint{
-			{Label: "Mon", Value: 65}, {Label: "Tue", Value: 78}, {Label: "Wed", Value: 82},
-			{Label: "Thu", Value: 75}, {Label: "Fri", Value: 88}, {Label: "Sat", Value: 92}, {Label: "Sun", Value: 85},
-		},
-		CompletionTrend: []StatPoint{
-			{Label: "Mon", Value: 45}, {Label: "Tue", Value: 52}, {Label: "Wed", Value: 60},
-			{Label: "Thu", Value: 48}, {Label: "Fri", Value: 70}, {Label: "Sat", Value: 85}, {Label: "Sun", Value: 78},
-		},
+		AccuracyTrend:   []StatPoint{},
+		CompletionTrend: []StatPoint{},
 	}
 	c.JSON(http.StatusOK, stats)
 }
@@ -143,7 +127,7 @@ func GetQuestions(c *gin.Context) {
 	subject := c.Query("subject")
 	gradeStr := c.Query("grade")
 	
-	var filtered []Question
+	filtered := make([]Question, 0)
 	for _, q := range mockQuestions {
 		matchSubject := subject == "" || q.Subject == subject
 		matchGrade := true
@@ -210,11 +194,12 @@ func GetPapers(c *gin.Context) {
 }
 
 func CreatePaper(c *gin.Context) {
-	var p any
+	var p Paper
 	if err := c.ShouldBindJSON(&p); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	p.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
 	mockPapers = append(mockPapers, p)
 	c.JSON(http.StatusCreated, p)
 }
@@ -225,11 +210,13 @@ func GetHomeworks(c *gin.Context) {
 }
 
 func AssignHomework(c *gin.Context) {
-	var h any
+	var h Homework
 	if err := c.ShouldBindJSON(&h); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
+	h.Status = "pending"
 	mockHomeworks = append(mockHomeworks, h)
 	c.JSON(http.StatusCreated, h)
 }
@@ -241,9 +228,86 @@ func GetHistory(c *gin.Context) {
 
 // Student Stats
 func GetStudentStats(c *gin.Context) {
+	// TODO: Calculate from history
 	c.JSON(http.StatusOK, gin.H{
-		"accuracy": 0.85,
-		"completed": 120,
-		"rank": 5,
+		"accuracy": 0.0,
+		"completed": 0,
+		"rank": 0,
 	})
+}
+
+func GetTeacherStats(c *gin.Context) {
+	pendingCount := 0
+	for _, h := range mockHomeworks {
+		if h.Status == "pending" {
+			pendingCount++
+		}
+	}
+
+	todayCorrected := 0 // Mock calculation, real logic would query History with today's date
+	
+	// Calculate Accuracy
+	totalCorrect := 0
+	totalQuestions := 0
+	for _, h := range mockHistory {
+		totalCorrect += h.CorrectCount
+		totalQuestions += (h.CorrectCount + h.WrongCount)
+	}
+	accuracy := 0.0
+	if totalQuestions > 0 {
+		accuracy = float64(totalCorrect) / float64(totalQuestions)
+	}
+
+	recent := make([]gin.H, 0)
+	// Return up to 3 recent homeworks
+	count := 0
+	for i := len(mockHomeworks) - 1; i >= 0; i-- {
+		h := mockHomeworks[i]
+		recent = append(recent, gin.H{
+			"id": h.ID,
+			"name": h.Name,
+			"date": h.StartDate,
+			"completed": h.Completed,
+			"total": h.Total,
+		})
+		count++
+		if count >= 3 {
+			break
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"todayCorrected": todayCorrected,
+		"pendingAssignments": pendingCount,
+		"accuracyRate": accuracy,
+		"recentHomeworks": recent,
+	})
+}
+
+// Reinforcement Handlers
+func GetReinforcements(c *gin.Context) {
+	c.JSON(http.StatusOK, mockReinforcements)
+}
+
+func CreateReinforcement(c *gin.Context) {
+	var r Reinforcement
+	if err := c.ShouldBindJSON(&r); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	r.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
+	mockReinforcements = append(mockReinforcements, r)
+	c.JSON(http.StatusCreated, r)
+}
+
+func DeleteReinforcement(c *gin.Context) {
+	id := c.Param("id")
+	for i, r := range mockReinforcements {
+		if r.ID == id {
+			mockReinforcements = append(mockReinforcements[:i], mockReinforcements[i+1:]...)
+			c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
+			return
+		}
+	}
+	c.JSON(http.StatusNotFound, gin.H{"error": "Reinforcement not found"})
 }

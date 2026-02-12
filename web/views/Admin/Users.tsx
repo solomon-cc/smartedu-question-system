@@ -1,24 +1,49 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserPlus, MoreHorizontal, User as UserIcon, X, Search, Filter, Edit2, Trash2, CheckCircle, XCircle, Lock, Key } from 'lucide-react';
 import { Role } from '../../types';
+import { api } from '../../services/api.ts';
 
 interface UserItem {
   id: string;
-  name: string;
+  name: string; // Map to username for now or add name field
+  username?: string;
   role: Role;
   status: 'active' | 'inactive';
-  lastLogin: string;
+  lastLogin?: string; // Not in backend model yet
   password?: string;
   grade?: string;
 }
 
 const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
-  const [users, setUsers] = useState<UserItem[]>([
-    { id: '1', name: '张老师', role: Role.TEACHER, status: 'active', lastLogin: '2024-03-25', password: '123' },
-    { id: '2', name: '李同学', role: Role.STUDENT, status: 'active', lastLogin: '2024-03-24', password: '123' },
-    { id: '3', name: '王管理员', role: Role.ADMIN, status: 'active', lastLogin: '2024-03-25', password: '123' },
-  ]);
+  const [users, setUsers] = useState<UserItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const data = await api.users.list();
+      // Map backend User to frontend UserItem
+      const mapped = data.map((u: any) => ({
+        id: u.id,
+        name: u.username,
+        username: u.username,
+        role: u.role,
+        status: u.status || 'active',
+        lastLogin: '-', // Placeholder
+        password: u.password // Backend shouldn't send password really but mock does
+      }));
+      setUsers(mapped);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
@@ -34,7 +59,7 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const handleOpenModal = (user: UserItem | null = null) => {
     if (user) {
       setEditingUser(user);
-      setFormData({ ...user });
+      setFormData({ ...user, name: user.name || user.username || '' });
     } else {
       setEditingUser(null);
       setFormData({
@@ -47,25 +72,38 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name || (editingUser === null && !formData.password)) return;
 
-    if (editingUser) {
-      setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...formData } as UserItem : u));
-    } else {
-      const newUser: UserItem = {
-        id: Math.random().toString(36).substr(2, 9),
-        lastLogin: '-',
-        ...(formData as UserItem)
-      };
-      setUsers([...users, newUser]);
+    const payload = {
+      username: formData.name,
+      role: formData.role,
+      status: formData.status,
+      password: formData.password
+    };
+
+    try {
+      if (editingUser) {
+        await api.users.update(editingUser.id, payload);
+      } else {
+        await api.users.create(payload);
+      }
+      setIsModalOpen(false);
+      fetchUsers();
+    } catch (error) {
+      console.error("Failed to save user", error);
+      alert(language === 'zh' ? '保存失败' : 'Failed to save');
     }
-    setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm(language === 'zh' ? '确定删除该用户吗？' : 'Are you sure you want to delete this user?')) {
-      setUsers(users.filter(u => u.id !== id));
+      try {
+        await api.users.delete(id);
+        fetchUsers();
+      } catch (error) {
+        console.error("Failed to delete", error);
+      }
     }
   };
 
