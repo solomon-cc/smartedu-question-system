@@ -40,8 +40,9 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     if (!paperTitle.trim()) return;
     try {
       await api.papers.create({
-        title: paperTitle,
-        questionIds: selectedIds
+        name: paperTitle,
+        questionIds: selectedIds,
+        total: selectedIds.length
       });
       setIsPaperModalOpen(false);
       fetchData();
@@ -85,10 +86,10 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
             <button className="absolute top-6 right-6 text-gray-400 hover:text-primary-600 transition-colors p-2">
               <MoreVertical className="w-5 h-5" />
             </button>
-            <h4 className="font-black text-lg dark:text-white mb-2 leading-tight">{p.title}</h4>
+            <h4 className="font-black text-lg dark:text-white mb-2 leading-tight">{p.name}</h4>
             <div className="flex justify-between text-xs text-gray-400 mt-6 font-bold uppercase tracking-widest">
-              <span>{p.qCount} {language === 'zh' ? '道题目' : 'Questions'}</span>
-              <span>{p.used} {language === 'zh' ? '次下发' : 'Assigned'}</span>
+              <span>{p.total || 0} {language === 'zh' ? '道题目' : 'Questions'}</span>
+              <span>{p.used || 0} {language === 'zh' ? '次下发' : 'Assigned'}</span>
             </div>
             <div className="mt-8 flex gap-2">
                <button onClick={() => setIsPaperModalOpen(true)} className="flex-1 py-3 text-xs font-black bg-gray-50 dark:bg-gray-700 rounded-xl dark:text-gray-300 hover:bg-primary-600 hover:text-white transition-all uppercase">
@@ -236,10 +237,11 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
               {previewQuestion.options && (
                 <div className="space-y-3 mb-8">
                    {previewQuestion.options.map((o: any, i: number) => {
-                     const optText = o.text || o;
-                     const optImage = o.image;
+                     const optText = typeof o === 'string' ? o : (o.text || o.value || '');
+                     const optImage = typeof o === 'object' ? o.image : undefined;
+                     const isCorrect = previewQuestion.answer.includes(typeof o === 'string' ? o : o.value);
                      return (
-                       <div key={i} className={`p-4 rounded-xl border-2 font-bold text-sm ${optText === previewQuestion.answer ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'border-gray-100 dark:border-gray-700 dark:text-gray-300'}`}>
+                       <div key={i} className={`p-4 rounded-xl border-2 font-bold text-sm ${isCorrect ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'border-gray-100 dark:border-gray-700 dark:text-gray-300'}`}>
                           <div className="flex items-center gap-3">
                             <span className="text-gray-400">{String.fromCharCode(65 + i)}.</span>
                             {optImage && <img src={optImage} className="w-10 h-10 object-cover rounded" />}

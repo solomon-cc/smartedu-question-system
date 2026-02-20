@@ -4,6 +4,84 @@ import { api } from '../../services/api.ts';
 import { Question, QuestionType } from '../../types.ts';
 import { GRADE_MAP, REVERSE_GRADE_MAP, TYPE_MAP, REVERSE_TYPE_MAP } from '../../utils.ts';
 
+interface OptionRowProps {
+  i: number;
+  opt: { text: string; image?: string; value: string };
+  formAnswer: string | string[];
+  formType: string;
+  language: string;
+  handleToggleAnswer: (val: string) => void;
+  setFormOptions: React.Dispatch<React.SetStateAction<{ text: string; image?: string; value: string }[]>>;
+  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>, type: 'stem' | number) => void;
+  formOptions: { text: string; image?: string; value: string }[];
+}
+
+const OptionRow: React.FC<OptionRowProps> = ({ 
+  i, opt, formAnswer, formType, language, handleToggleAnswer, setFormOptions, handleFileUpload, formOptions 
+}) => {
+  const isCorrect = Array.isArray(formAnswer) ? formAnswer.includes(opt.value) : formAnswer === opt.value;
+  const optionFileRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div key={i} className="bg-white dark:bg-gray-800 p-4 rounded-2xl border dark:border-gray-700 space-y-3">
+       <div className="flex gap-3 items-center">
+         <button 
+           onClick={() => handleToggleAnswer(opt.value)}
+           className={`p-2 rounded-lg transition-colors ${isCorrect ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}
+         >
+           {formType === '多选题' 
+             ? (isCorrect ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />)
+             : (isCorrect ? <CheckCircle className="w-5 h-5" /> : <Circle className="w-5 h-5" />)
+           }
+         </button>
+         <input 
+           type="text"
+           value={opt.text}
+           onChange={(e) => {
+             const next = [...formOptions];
+             next[i].text = e.target.value;
+             next[i].value = e.target.value;
+             setFormOptions(next);
+           }}
+           className="flex-1 p-2 border-b dark:border-gray-700 bg-transparent dark:text-white outline-none focus:border-primary-500 font-bold"
+           placeholder={`${language === 'zh' ? '选项文字' : 'Option Text'}`}
+         />
+       </div>
+       <div className="flex gap-2 items-center pl-10">
+         <button 
+           onClick={() => optionFileRef.current?.click()}
+           className="flex items-center gap-1 p-2 bg-gray-50 dark:bg-gray-900 text-[10px] font-black uppercase text-gray-500 border dark:border-gray-700 rounded-lg hover:bg-gray-100"
+         >
+           <ImageIcon className="w-3 h-3" />
+           {language === 'zh' ? '上传图片' : 'Upload Image'}
+         </button>
+         <input 
+           ref={optionFileRef}
+           type="file" 
+           hidden 
+           accept="image/*"
+           onChange={(e) => handleFileUpload(e, i)}
+         />
+         {opt.image && (
+           <div className="relative group">
+             <img src={opt.image} className="w-10 h-10 object-cover rounded shadow-sm border dark:border-gray-700" />
+             <button 
+               onClick={() => {
+                 const next = [...formOptions];
+                 next[i].image = '';
+                 setFormOptions(next);
+               }}
+               className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"
+             >
+               <X className="w-2 h-2" />
+             </button>
+           </div>
+         )}
+       </div>
+    </div>
+  );
+};
+
 const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
@@ -100,7 +178,7 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
           setFormStemImage(result);
         } else {
           const next = [...formOptions];
-          next[type].image = result;
+          next[type as number].image = result;
           setFormOptions(next);
         }
       };
@@ -305,68 +383,20 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                  {['单选题', '多选题'].includes(formType) && (
                    <div className="space-y-4 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-3xl border dark:border-gray-700">
                      <label className="block text-xs font-black text-gray-400 uppercase tracking-widest">{language === 'zh' ? '选项与答案设置' : 'Options & Answers'}</label>
-                     {formOptions.map((opt, i) => {
-                       const isCorrect = Array.isArray(formAnswer) ? formAnswer.includes(opt.value) : formAnswer === opt.value;
-                       const optionFileRef = React.useRef<HTMLInputElement>(null);
-                       return (
-                         <div key={i} className="bg-white dark:bg-gray-800 p-4 rounded-2xl border dark:border-gray-700 space-y-3">
-                            <div className="flex gap-3 items-center">
-                              <button 
-                                onClick={() => handleToggleAnswer(opt.value)}
-                                className={`p-2 rounded-lg transition-colors ${isCorrect ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}
-                              >
-                                {formType === '多选题' 
-                                  ? (isCorrect ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />)
-                                  : (isCorrect ? <CheckCircle className="w-5 h-5" /> : <Circle className="w-5 h-5" />)
-                                }
-                              </button>
-                              <input 
-                                type="text"
-                                value={opt.text}
-                                onChange={(e) => {
-                                  const next = [...formOptions];
-                                  next[i].text = e.target.value;
-                                  next[i].value = e.target.value;
-                                  setFormOptions(next);
-                                }}
-                                className="flex-1 p-2 border-b dark:border-gray-700 bg-transparent dark:text-white outline-none focus:border-primary-500 font-bold"
-                                placeholder={`${language === 'zh' ? '选项文字' : 'Option Text'}`}
-                              />
-                            </div>
-                            <div className="flex gap-2 items-center pl-10">
-                              <button 
-                                onClick={() => optionFileRef.current?.click()}
-                                className="flex items-center gap-1 p-2 bg-gray-50 dark:bg-gray-900 text-[10px] font-black uppercase text-gray-500 border dark:border-gray-700 rounded-lg hover:bg-gray-100"
-                              >
-                                <ImageIcon className="w-3 h-3" />
-                                {language === 'zh' ? '上传图片' : 'Upload Image'}
-                              </button>
-                              <input 
-                                ref={optionFileRef}
-                                type="file" 
-                                hidden 
-                                accept="image/*"
-                                onChange={(e) => handleFileUpload(e, i)}
-                              />
-                              {opt.image && (
-                                <div className="relative group">
-                                  <img src={opt.image} className="w-10 h-10 object-cover rounded shadow-sm border dark:border-gray-700" />
-                                  <button 
-                                    onClick={() => {
-                                      const next = [...formOptions];
-                                      next[i].image = '';
-                                      setFormOptions(next);
-                                    }}
-                                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"
-                                  >
-                                    <X className="w-2 h-2" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                         </div>
-                       );
-                     })}
+                     {formOptions.map((opt, i) => (
+                       <OptionRow 
+                         key={i} 
+                         i={i} 
+                         opt={opt} 
+                         formAnswer={formAnswer} 
+                         formType={formType} 
+                         language={language} 
+                         handleToggleAnswer={handleToggleAnswer}
+                         setFormOptions={setFormOptions}
+                         handleFileUpload={handleFileUpload}
+                         formOptions={formOptions}
+                       />
+                     ))}
                    </div>
                  )}
 

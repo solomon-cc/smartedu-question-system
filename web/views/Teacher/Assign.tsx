@@ -24,13 +24,13 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
   const fetchData = async () => {
     try {
-      const [usersData, papersData, hwData] = await Promise.all([
-        api.users.list(),
+      const [studentsData, papersData, hwData] = await Promise.all([
+        api.students.list(),
         api.papers.list(),
         api.homework.list()
       ]);
 
-      setStudents(usersData.filter((u: any) => u.role === Role.STUDENT).map((u: any) => ({
+      setStudents(studentsData.map((u: any) => ({
         id: u.id,
         name: u.username, // Using username as name
         grade: '3-1', // Mock grade as user model doesn't have it yet

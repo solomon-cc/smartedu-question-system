@@ -60,10 +60,11 @@ type Reinforcement struct {
 }
 
 type Paper struct {
-	ID        string     `json:"id"`
-	Name      string     `json:"name"`
-	Questions []Question `json:"questions"`
-	Total     int        `json:"total"`
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	Questions   []Question `json:"questions"`
+	QuestionIDs []string   `json:"questionIds,omitempty"` // For input binding
+	Total       int        `json:"total"`
 }
 
 type Homework struct {

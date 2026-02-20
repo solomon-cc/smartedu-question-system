@@ -7,6 +7,11 @@ import (
 func main() {
 	r := gin.Default()
 
+	// Load data from disk
+	if err := LoadData(); err != nil {
+		println("Failed to load data:", err.Error())
+	}
+
 	// Global Middlewares
 	r.Use(CORSMiddleware())
 
@@ -41,6 +46,9 @@ func main() {
 
 			// History
 			protected.GET("/history", GetHistory)
+
+			// Students
+			protected.GET("/students", GetStudents)
 
 			// Student Stats
 			protected.GET("/student/stats", GetStudentStats)

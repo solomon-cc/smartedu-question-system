@@ -36,9 +36,9 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [reinforcementsData, usersData] = await Promise.all([
+      const [reinforcementsData, studentsData] = await Promise.all([
         api.reinforcements.list(),
-        api.users.list()
+        api.students.list()
       ]);
 
       setItems(reinforcementsData.map((item: any) => ({
@@ -52,7 +52,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         target: item.condition === 'global' ? 'ALL' : item.condition
       })));
 
-      setStudents(usersData.filter((u: any) => u.role === Role.STUDENT).map((u: any) => ({
+      setStudents(studentsData.map((u: any) => ({
         id: u.username, // Using username as ID for simplicity in this mock
         name: u.username
       })));
@@ -230,23 +230,49 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       </div>
 
       {previewingItem && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
-           <div className="w-full max-w-2xl text-center space-y-8 animate-in zoom-in-75 duration-500">
-              <div className="relative mx-auto w-full aspect-video bg-gray-100 dark:bg-gray-900 rounded-[3rem] overflow-hidden border-8 border-white/10 shadow-2xl flex items-center justify-center">
-                 <div className="text-center flex flex-col items-center gap-4">
-                    <div className="text-9xl animate-bounce">
-                      {getIconForAsset(previewingItem)}
-                    </div>
-                    <div className="flex gap-2">
-                       <h2 className="text-4xl font-black text-white tracking-widest uppercase">{language === 'zh' ? '播放预览' : 'PREVIEW'}</h2>
-                    </div>
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-500">
+           {/* Decorative background elements */}
+           <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {[...Array(20)].map((_, i) => (
+                <div 
+                  key={i}
+                  className="absolute animate-bounce opacity-20"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 2}s`,
+                    fontSize: `${Math.random() * 20 + 20}px`
+                  }}
+                >
+                  {['✨', '🎈', '🎊', '🎉', '⭐'][Math.floor(Math.random() * 5)]}
+                </div>
+              ))}
+           </div>
+
+           <div className="w-full max-w-2xl text-center space-y-12 animate-in zoom-in-75 duration-500 relative">
+              <div className="relative mx-auto w-72 h-72 bg-gradient-to-b from-primary-400/20 to-transparent rounded-full flex items-center justify-center">
+                 <div className="absolute inset-0 bg-primary-500/10 blur-3xl rounded-full animate-pulse"></div>
+                 <div className="text-[12rem] animate-bounce filter drop-shadow-[0_20px_50px_rgba(255,255,255,0.3)]">
+                   {getIconForAsset(previewingItem)}
                  </div>
               </div>
 
-              <div className="flex justify-center gap-6">
-                 <button onClick={() => setPreviewingItem(null)} className="px-10 py-4 bg-white/10 text-white rounded-2xl font-black uppercase tracking-widest border border-white/20 transition-all flex items-center gap-2">
+              <div className="space-y-4">
+                 <h2 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-white to-yellow-200 tracking-tighter uppercase">
+                   {language === 'zh' ? '太棒了！' : 'EXCELLENT!'}
+                 </h2>
+                 <p className="text-xl text-primary-200 font-bold tracking-widest uppercase opacity-80">
+                   {previewingItem.name}
+                 </p>
+              </div>
+
+              <div className="flex justify-center pt-8">
+                 <button 
+                  onClick={() => setPreviewingItem(null)} 
+                  className="px-12 py-5 bg-white text-primary-900 rounded-full font-black uppercase tracking-widest shadow-[0_20px_50px_rgba(255,255,255,0.2)] hover:scale-110 active:scale-95 transition-all flex items-center gap-3"
+                 >
                    <X className="w-6 h-6" />
-                   {language === 'zh' ? '关闭' : 'Close'}
+                   {language === 'zh' ? '完成预览' : 'Done'}
                  </button>
               </div>
            </div>

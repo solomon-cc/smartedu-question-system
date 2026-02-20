@@ -2,6 +2,7 @@ import React, { useState, useEffect, createContext } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { User } from './types';
 import { api } from './services/api.ts';
+import { isTokenExpired } from './utils.ts';
 import Login from './views/Login';
 import Dashboard from './views/Dashboard';
 import PracticeSession from './views/Student/PracticeSession';
@@ -33,7 +34,13 @@ const App: React.FC = () => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
-         setUser(JSON.parse(savedUser));
+         const parsed = JSON.parse(savedUser);
+         if (isTokenExpired(parsed.token)) {
+           localStorage.removeItem('user');
+           setUser(null);
+         } else {
+           setUser(parsed);
+         }
       } catch (e) {
          localStorage.removeItem('user');
       }

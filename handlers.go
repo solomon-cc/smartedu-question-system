@@ -17,7 +17,11 @@ var mockUsers = []User{
 }
 
 var mockQuestions = make([]Question, 0)
-var mockPapers = make([]Paper, 0)
+var mockPapers = []Paper{
+	{ID: "p1", Name: "2024春季数学摸底卷", Total: 10, Questions: []Question{}},
+	{ID: "p2", Name: "一年级语文识字练习", Total: 15, Questions: []Question{}},
+	{ID: "p3", Name: "英语基础阅读理解", Total: 5, Questions: []Question{}},
+}
 var mockHomeworks = make([]Homework, 0)
 var mockHistory = make([]History, 0)
 var mockReinforcements = make([]Reinforcement, 0)
@@ -46,7 +50,7 @@ func LoginHandler(c *gin.Context) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userId": foundUser.ID,
 		"role":   foundUser.Role,
-		"exp":    time.Now().Add(time.Hour * 24).Unix(),
+		"exp":    time.Now().Add(tokenDuration).Unix(),
 	})
 
 	tokenString, _ := token.SignedString(jwtSecret)
@@ -66,6 +70,16 @@ func GetUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, mockUsers)
 }
 
+func GetStudents(c *gin.Context) {
+	students := make([]User, 0)
+	for _, u := range mockUsers {
+		if u.Role == RoleStudent {
+			students = append(students, u)
+		}
+	}
+	c.JSON(http.StatusOK, students)
+}
+
 func CreateUser(c *gin.Context) {
 	var newUser User
 	if err := c.ShouldBindJSON(&newUser); err != nil {
@@ -74,6 +88,7 @@ func CreateUser(c *gin.Context) {
 	}
 	newUser.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
 	mockUsers = append(mockUsers, newUser)
+	SaveData()
 	c.JSON(http.StatusCreated, newUser)
 }
 
@@ -93,6 +108,7 @@ func UpdateUser(c *gin.Context) {
 			mockUsers[i].Username = updateData.Username
 			mockUsers[i].Role = updateData.Role
 			mockUsers[i].Status = updateData.Status
+			SaveData()
 			c.JSON(http.StatusOK, mockUsers[i])
 			return
 		}
@@ -105,6 +121,7 @@ func DeleteUser(c *gin.Context) {
 	for i, u := range mockUsers {
 		if u.ID == id {
 			mockUsers = append(mockUsers[:i], mockUsers[i+1:]...)
+			SaveData()
 			c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
 			return
 		}
@@ -155,6 +172,7 @@ func CreateQuestion(c *gin.Context) {
 	}
 	q.ID = time.Now().Format("20060102150405")
 	mockQuestions = append(mockQuestions, q)
+	SaveData()
 	c.JSON(http.StatusCreated, q)
 }
 
@@ -169,6 +187,7 @@ func UpdateQuestion(c *gin.Context) {
 		if existing.ID == id {
 			mockQuestions[i] = q
 			mockQuestions[i].ID = id
+			SaveData()
 			c.JSON(http.StatusOK, mockQuestions[i])
 			return
 		}
@@ -181,6 +200,7 @@ func DeleteQuestion(c *gin.Context) {
 	for i, q := range mockQuestions {
 		if q.ID == id {
 			mockQuestions = append(mockQuestions[:i], mockQuestions[i+1:]...)
+			SaveData()
 			c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
 			return
 		}
@@ -200,7 +220,23 @@ func CreatePaper(c *gin.Context) {
 		return
 	}
 	p.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
+	
+	// Populate Questions from IDs if provided
+	if len(p.QuestionIDs) > 0 {
+		p.Questions = make([]Question, 0)
+		for _, qID := range p.QuestionIDs {
+			for _, q := range mockQuestions {
+				if q.ID == qID {
+					p.Questions = append(p.Questions, q)
+					break
+				}
+			}
+		}
+	}
+	p.Total = len(p.Questions)
+
 	mockPapers = append(mockPapers, p)
+	SaveData()
 	c.JSON(http.StatusCreated, p)
 }
 
@@ -218,6 +254,7 @@ func AssignHomework(c *gin.Context) {
 	h.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
 	h.Status = "pending"
 	mockHomeworks = append(mockHomeworks, h)
+	SaveData()
 	c.JSON(http.StatusCreated, h)
 }
 
@@ -230,9 +267,12 @@ func GetHistory(c *gin.Context) {
 func GetStudentStats(c *gin.Context) {
 	// TODO: Calculate from history
 	c.JSON(http.StatusOK, gin.H{
-		"accuracy": 0.0,
-		"completed": 0,
-		"rank": 0,
+		"accuracy": "92%",
+		"completed": 15,
+		"rank": 5,
+		"time": "12h 30m",
+		"achievements": 8,
+		"trends": []int{65, 70, 75, 72, 85, 88, 92},
 	})
 }
 
@@ -297,6 +337,7 @@ func CreateReinforcement(c *gin.Context) {
 	}
 	r.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
 	mockReinforcements = append(mockReinforcements, r)
+	SaveData()
 	c.JSON(http.StatusCreated, r)
 }
 
@@ -305,6 +346,7 @@ func DeleteReinforcement(c *gin.Context) {
 	for i, r := range mockReinforcements {
 		if r.ID == id {
 			mockReinforcements = append(mockReinforcements[:i], mockReinforcements[i+1:]...)
+			SaveData()
 			c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
 			return
 		}
