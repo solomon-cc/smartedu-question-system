@@ -5,6 +5,7 @@ import { Role, Subject } from '../types';
 import { api } from '../services/api.ts';
 import { useNavigate } from 'react-router-dom';
 import { PlayCircle, FileText, ChevronRight, BarChart2, Users, TrendingUp, Activity } from 'lucide-react';
+import Loading from '../components/Loading';
 
 interface DashboardProps {
   language: 'zh' | 'en';
@@ -15,11 +16,19 @@ const StudentDashboard: React.FC<DashboardProps> = ({ language }) => {
   const [hwCount, setHwCount] = useState<number>(0);
   const [historyCount, setHistoryCount] = useState<number>(0);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.homework.list().then(data => setHwCount(data.filter((h: any) => h.status === 'pending').length)).catch(console.error);
-    api.history.list().then(data => setHistoryCount(data.length)).catch(console.error);
+    setLoading(true);
+    Promise.all([
+      api.homework.list().then(data => setHwCount(data.filter((h: any) => h.status === 'pending').length)),
+      api.history.list().then(data => setHistoryCount(data.length))
+    ])
+    .catch(console.error)
+    .finally(() => setLoading(false));
   }, []);
+
+  if (loading) return <Loading />;
 
   const subjects = [
     { id: Subject.MATH, name: '数学', enName: 'Math', color: 'bg-blue-500', icon: '➗' },
@@ -30,24 +39,26 @@ const StudentDashboard: React.FC<DashboardProps> = ({ language }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <section className="bg-primary-600 rounded-3xl p-8 text-white relative overflow-hidden shadow-2xl shadow-primary-600/20">
-        <div className="relative z-10">
-          <h2 className="text-2xl font-bold mb-4">{language === 'zh' ? '今日家庭作业' : "Today's Homework"}</h2>
-          <p className="opacity-90 mb-6 max-w-md">
-            {language === 'zh' ? `老师为你布置了 ${hwCount} 道新题目。加油！` : `${hwCount} new tasks assigned. Good luck!`}
-          </p>
-          <button 
-            onClick={() => navigate('/practice')}
-            className="bg-white text-primary-600 px-8 py-3 rounded-xl font-bold hover:bg-gray-100 transition-colors flex items-center gap-2"
-          >
-            <PlayCircle className="w-5 h-5" />
-            {language === 'zh' ? '开始作业' : 'Start Now'}
-          </button>
-        </div>
-        <div className="absolute right-[-20px] bottom-[-20px] text-white/10 text-9xl font-bold rotate-12">
-          HW
-        </div>
-      </section>
+      {hwCount > 0 && (
+        <section className="bg-primary-600 rounded-3xl p-8 text-white relative overflow-hidden shadow-2xl shadow-primary-600/20">
+          <div className="relative z-10">
+            <h2 className="text-2xl font-bold mb-4">{language === 'zh' ? '今日学习概览' : "Today's Learning"}</h2>
+            <p className="opacity-90 mb-6 max-w-md">
+              {language === 'zh' ? `老师为你布置了 ${hwCount} 道新题目。加油！` : `${hwCount} new tasks assigned. Good luck!`}
+            </p>
+            <button 
+              onClick={() => navigate('/homework')}
+              className="bg-white text-primary-600 px-8 py-3 rounded-xl font-bold hover:bg-gray-100 transition-all flex items-center gap-2"
+            >
+              <PlayCircle className="w-5 h-5" />
+              {language === 'zh' ? '开始作业' : 'Start Now'}
+            </button>
+          </div>
+          <div className="absolute right-[-20px] bottom-[-20px] text-white/10 text-9xl font-bold rotate-12">
+            HW
+          </div>
+        </section>
+      )}
 
       <section>
         <h3 className="text-xl font-bold mb-4 dark:text-white">{language === 'zh' ? '按科目练习' : 'Practice by Subject'}</h3>
@@ -138,7 +149,7 @@ const TeacherDashboard: React.FC<DashboardProps> = ({ language }) => {
     api.teacher.stats().then(setStats).catch(console.error);
   }, []);
 
-  if (!stats) return <div className="p-8 text-center">Loading...</div>;
+  if (!stats) return <Loading />;
 
   return (
     <div className="p-4 space-y-6 animate-in slide-in-from-right-4 duration-500">
@@ -197,28 +208,55 @@ const TeacherDashboard: React.FC<DashboardProps> = ({ language }) => {
 
 const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<{ accuracyTrend: any[], completionTrend: any[] } | null>(null);
+  const [stats, setStats] = useState<{ 
+    accuracyTrend: any[], 
+    completionTrend: any[],
+    totalUsers: number,
+    totalQuestions: number,
+    onlineUsers: number
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchStats = async () => {
+    try {
+      const data = await api.dashboard.stats();
+      setStats(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    api.dashboard.stats().then(setStats).catch(console.error);
+    fetchStats();
+    // Real-time auto update every 5 seconds
+    const interval = setInterval(fetchStats, 5000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Mock data for trends (Fallback or mapped from API)
+  if (loading || !stats) return <Loading />;
+
   const days = language === 'zh' ? ['周一', '周二', '周三', '周四', '周五', '周六', '周日'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  // Map API data if available, otherwise fallback (or empty)
-  const accuracyData = stats?.accuracyTrend?.map(s => s.value) || [65, 78, 82, 75, 88, 92, 85];
-  const hwCompletionData = stats?.completionTrend?.map(s => s.value) || [45, 52, 60, 48, 70, 85, 78];
+  const accuracyData = stats?.accuracyTrend?.length ? stats.accuracyTrend.map(s => s.value) : [0, 0, 0, 0, 0, 0, 0];
+  const hwCompletionData = stats?.completionTrend?.length ? stats.completionTrend.map(s => s.value) : [0, 0, 0, 0, 0, 0, 0];
 
   return (
     <div className="p-4 space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-black dark:text-white">{language === 'zh' ? '系统管理中心' : 'Admin Center'}</h1>
-        <div className="text-xs font-black uppercase tracking-widest text-gray-400 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full">
-          {new Date().toLocaleDateString()}
+        <div className="flex items-center gap-3">
+           <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 text-green-600 rounded-full border border-green-100 dark:border-green-800 animate-pulse">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-[10px] font-black uppercase">{stats.onlineUsers} {language === 'zh' ? '人在线' : 'Online'}</span>
+           </div>
+           <div className="text-xs font-black uppercase tracking-widest text-gray-400 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full">
+            {new Date().toLocaleDateString()}
+           </div>
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-3 gap-6">
         <div 
           onClick={() => navigate('/users')}
           className="p-8 bg-white dark:bg-gray-800 rounded-[2.5rem] border dark:border-gray-700 shadow-sm cursor-pointer hover:border-primary-400 transition-all group"
@@ -226,26 +264,38 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
           <div className="flex justify-between items-start">
             <div>
               <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{language === 'zh' ? '平台总用户' : 'Total Users'}</h3>
-              <p className="text-4xl font-black dark:text-white group-hover:text-primary-600 transition-colors">1,248</p>
-              <p className="text-[10px] text-green-500 font-bold mt-2">+12% Since last month</p>
+              <p className="text-4xl font-black dark:text-white group-hover:text-primary-600 transition-colors">{stats.totalUsers}</p>
             </div>
             <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-2xl text-primary-600 group-hover:scale-110 transition-transform">
               <Users className="w-8 h-8" />
             </div>
           </div>
         </div>
+        
+        <div className="p-8 bg-white dark:bg-gray-800 rounded-[2.5rem] border dark:border-gray-700 shadow-sm relative overflow-hidden group">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{language === 'zh' ? '实时在线' : 'Active Sessions'}</h3>
+              <p className="text-4xl font-black text-green-500">{stats.onlineUsers}</p>
+            </div>
+            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-2xl text-green-600">
+              <Activity className="w-8 h-8" />
+            </div>
+          </div>
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-green-500 animate-shimmer"></div>
+        </div>
+
         <div 
           onClick={() => navigate('/stats')}
           className="p-8 bg-white dark:bg-gray-800 rounded-[2.5rem] border dark:border-gray-700 shadow-sm cursor-pointer hover:border-purple-400 transition-all group"
         >
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{language === 'zh' ? '全局答题量' : 'Global Questions'}</h3>
-              <p className="text-4xl font-black dark:text-white group-hover:text-purple-600 transition-colors">45,892</p>
-              <p className="text-[10px] text-purple-500 font-bold mt-2">Active now: 124 users</p>
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{language === 'zh' ? '全局题目量' : 'Global Questions'}</h3>
+              <p className="text-4xl font-black dark:text-white group-hover:text-purple-600 transition-colors">{stats.totalQuestions}</p>
             </div>
             <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-2xl text-purple-600 group-hover:scale-110 transition-transform">
-              <Activity className="w-8 h-8" />
+              <BarChart2 className="w-8 h-8" />
             </div>
           </div>
         </div>
@@ -321,34 +371,17 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
               </div>
               <h3 className="font-black dark:text-white uppercase tracking-tight">{language === 'zh' ? '家庭作业完成趋势' : 'HW Completion'}</h3>
             </div>
-            <div className="flex gap-2">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                <span className="text-[8px] font-bold text-gray-400">DONE</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-gray-200 dark:bg-gray-700"></div>
-                <span className="text-[8px] font-bold text-gray-400">ASSIGNED</span>
-              </div>
-            </div>
           </div>
 
           <div className="h-64 flex items-end justify-between gap-4">
             {hwCompletionData.map((d, i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-3 h-full justify-end">
                 <div className="w-full relative group">
-                  {/* Tooltip on hover */}
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap">
-                    {d}% Completed
-                  </div>
-                  {/* Background bar */}
                   <div className="w-full h-48 bg-gray-100 dark:bg-gray-700 rounded-t-2xl relative overflow-hidden">
-                    {/* Progress bar */}
                     <div 
                       className="absolute bottom-0 left-0 w-full bg-purple-600 rounded-t-2xl transition-all duration-1000 ease-out shadow-lg"
                       style={{ height: `${d}%` }}
                     >
-                      <div className="absolute top-0 left-0 w-full h-4 bg-white/20 blur-sm"></div>
                     </div>
                   </div>
                 </div>
@@ -356,26 +389,6 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
               </div>
             ))}
           </div>
-        </div>
-      </div>
-      
-      <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-8 border dark:border-gray-700 shadow-sm">
-        <h2 className="text-lg font-black mb-6 dark:text-white uppercase tracking-tight">{language === 'zh' ? '实时系统日志' : 'Live System Logs'}</h2>
-        <div className="space-y-4 max-h-64 overflow-y-auto pr-4 scrollbar-thin">
-          {[1,2,3,4,5,6].map(i => (
-            <div key={i} className="flex gap-4 p-4 border-b dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-900/30 rounded-2xl transition-colors">
-               <div className="w-2 h-2 rounded-full bg-primary-500 mt-2 shrink-0 animate-pulse"></div>
-               <div className="flex-1">
-                 <p className="text-sm font-medium dark:text-gray-200 leading-relaxed">
-                   {i % 3 === 0 ? '教师 "teacher_zhang" 导出了本周统计报表' : i % 3 === 1 ? '系统完成了 10,000 道题目的缓存预热' : '发现 2 个重复题目项，已自动执行归档操作'}
-                 </p>
-                 <div className="flex justify-between mt-2">
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">2024-03-2{i} 10:45:00</p>
-                    <span className="text-[8px] font-black text-primary-500 bg-primary-50 dark:bg-primary-900/20 px-2 py-0.5 rounded uppercase">Success</span>
-                 </div>
-               </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>

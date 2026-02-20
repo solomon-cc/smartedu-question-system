@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Award, Clock } from 'lucide-react';
 import { api } from '../../services/api.ts';
+import Loading from '../../components/Loading';
 
 const Stats: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [stats, setStats] = useState<any>(null);
@@ -10,7 +11,7 @@ const Stats: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     api.student.stats().then(setStats).catch(console.error);
   }, []);
 
-  if (!stats) return <div className="p-8 text-center text-gray-400">Loading...</div>;
+  if (!stats) return <Loading />;
 
   const trends = stats.trends || [];
 

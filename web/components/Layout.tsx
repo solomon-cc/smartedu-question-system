@@ -3,7 +3,7 @@ import React, { useState, useContext } from 'react';
 import { AuthContext } from '../App';
 import { Role } from '../types';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, BookOpen, Clock, BarChart2, PlusCircle, Settings, Users, ClipboardList, Sun, Moon, Languages } from 'lucide-react';
+import { Menu, X, Home, BookOpen, Clock, BarChart2, PlusCircle, Settings, Users, ClipboardList, Sun, Moon, Languages, ShieldCheck } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -36,11 +36,14 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, darkMo
         { icon: Settings, label: '强化物管理', labelEn: 'Reinforcements', path: '/reinforcements' },
       ];
     }
-    return [
-      { icon: Home, label: '控制台', labelEn: 'Dashboard', path: '/' },
-      { icon: Users, label: '用户管理', labelEn: 'Users', path: '/users' },
-      { icon: Settings, label: '权限设置', labelEn: 'Permissions', path: '/permissions' },
-    ];
+    if (auth?.user?.role === Role.ADMIN) {
+      return [
+        { icon: Home, label: '控制台', labelEn: 'Dashboard', path: '/' },
+        { icon: Users, label: '用户管理', labelEn: 'Users', path: '/users' },
+        { icon: ShieldCheck, label: '审计日志', labelEn: 'Audit Logs', path: '/logs' },
+        { icon: Settings, label: '权限设置', labelEn: 'Permissions', path: '/permissions' },
+      ];
+    }
   };
 
   const menuItems = getMenuItems();

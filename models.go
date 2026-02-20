@@ -44,9 +44,23 @@ type StatPoint struct {
 	Value float64 `json:"value"`
 }
 
+type Response struct {
+	Code      int         `json:"code"`
+	Err       string      `json:"err"`
+	Data      interface{} `json:"data"`
+	Page      int         `json:"page,omitempty"`
+	PageSize  int         `json:"pageSize,omitempty"`
+	Total     int         `json:"total,omitempty"`
+	RequestId string      `json:"requestId,omitempty"`
+	Timestamp int64       `json:"timestamp"`
+}
+
 type DashboardStats struct {
 	AccuracyTrend   []StatPoint `json:"accuracyTrend"`
 	CompletionTrend []StatPoint `json:"completionTrend"`
+	TotalUsers      int         `json:"totalUsers"`
+	TotalQuestions  int         `json:"totalQuestions"`
+	OnlineUsers     int         `json:"onlineUsers"`
 }
 
 // New Models
@@ -92,4 +106,13 @@ type History struct {
 	CorrectCount int      `json:"correctCount,omitempty"`
 	WrongCount   int      `json:"wrongCount,omitempty"`
 	Questions    []any    `json:"questions"` // Detail records
+}
+
+type AuditLog struct {
+	ID        string `json:"id"`
+	UserID    string `json:"userId"`
+	Username  string `json:"username"`
+	Action    string `json:"action"`      // "LOGIN", "LOGOUT", "CREATE_QUESTION", etc.
+	Details   string `json:"details"`     // "Created question: 1+1=?"
+	Timestamp string `json:"timestamp"`
 }

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Filter, Edit2, Trash2, X, Image as ImageIcon, CheckCircle, Circle, CheckSquare, Square, Upload } from 'lucide-react';
+import { Plus, Search, Filter, Edit2, Trash2, X, Image as ImageIcon, CheckCircle, Circle, CheckSquare, Square, Upload, Eye } from 'lucide-react';
 import { api } from '../../services/api.ts';
 import { Question, QuestionType } from '../../types.ts';
 import { GRADE_MAP, REVERSE_GRADE_MAP, TYPE_MAP, REVERSE_TYPE_MAP } from '../../utils.ts';
+import Loading from '../../components/Loading';
 
 interface OptionRowProps {
   i: number;
@@ -84,11 +85,27 @@ const OptionRow: React.FC<OptionRowProps> = ({
 
 const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Form State
+  // ... (keeping existing states)
+
+  const handlePreviewCurrent = () => {
+    const currentData: Question = {
+      id: 'preview',
+      subject: formSubject,
+      grade: GRADE_MAP[formGrade] || 3,
+      type: TYPE_MAP[formType] || QuestionType.MULTIPLE_CHOICE,
+      stemText: formStem,
+      stemImage: formStemImage,
+      options: formOptions.filter(o => o.text.trim() !== '' || o.image),
+      answer: Array.isArray(formAnswer) ? formAnswer.join(',') : formAnswer
+    };
+    setPreviewQuestion(currentData);
+  };
   const [formSubject, setFormSubject] = useState('数学');
   const [formGrade, setFormGrade] = useState('三年级');
   const [formType, setFormType] = useState('单选题');
@@ -187,13 +204,15 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   };
 
   const handleSave = async () => {
+    const validOptions = formOptions.filter(opt => opt.text.trim() !== '' || (opt.image && opt.image.trim() !== ''));
+
     const questionData: Partial<Question> = {
       subject: formSubject,
       grade: GRADE_MAP[formGrade] || 3,
       type: TYPE_MAP[formType] || QuestionType.MULTIPLE_CHOICE,
       stemText: formStem,
       stemImage: formStemImage,
-      options: ['单选题', '多选题'].includes(formType) ? formOptions : undefined,
+      options: ['单选题', '多选题'].includes(formType) ? validOptions : undefined,
       answer: Array.isArray(formAnswer) ? formAnswer.join(',') : formAnswer
     };
 
@@ -255,7 +274,7 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
       <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden border dark:border-gray-700 shadow-sm">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Loading...</div>
+          <Loading />
         ) : (
           questions.map((q, idx) => {
             return (
@@ -275,6 +294,9 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                   </div>
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                   <button onClick={() => setPreviewQuestion(q)} className="p-3 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-2xl transition-all">
+                     <Eye className="w-5 h-5" />
+                   </button>
                    <button onClick={() => handleOpenModal(q)} className="p-3 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-2xl transition-all">
                      <Edit2 className="w-5 h-5" />
                    </button>
@@ -437,12 +459,59 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                       {language === 'zh' ? '取消' : 'Cancel'}
                     </button>
                     <button 
+                      onClick={handlePreviewCurrent}
+                      className="flex-1 py-4 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-blue-100"
+                    >
+                      {language === 'zh' ? '效果预览' : 'Preview'}
+                    </button>
+                    <button 
                       onClick={handleSave}
                       className="flex-1 py-4 bg-primary-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest shadow-xl shadow-primary-500/30 hover:bg-primary-700 transition-all"
                     >
                       {language === 'zh' ? '立即保存' : 'Save'}
                     </button>
                  </div>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {previewQuestion && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in zoom-in-95">
+           <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-[2.5rem] shadow-2xl p-10 relative border dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+              <button onClick={() => setPreviewQuestion(null)} className="absolute top-6 right-6 p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-red-500 hover:text-white transition-all">
+                 <X className="w-5 h-5" />
+              </button>
+              <div className="mb-6">
+                <span className="px-3 py-1 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-full text-[10px] font-black uppercase tracking-widest">
+                  {previewQuestion.subject} · {REVERSE_TYPE_MAP[previewQuestion.type as string] || previewQuestion.type}
+                </span>
+              </div>
+              {previewQuestion.stemImage && <img src={previewQuestion.stemImage} className="w-full h-40 object-cover rounded-2xl mb-4 border dark:border-gray-700" alt="stem" />}
+              <h3 className="text-xl font-black dark:text-white mb-8 leading-relaxed">
+                {previewQuestion.stemText}
+              </h3>
+              {previewQuestion.options && previewQuestion.options.length > 0 && (
+                <div className="space-y-3 mb-8">
+                   {previewQuestion.options.map((o: any, i: number) => {
+                     const optText = typeof o === 'string' ? o : (o.text || o.value || '');
+                     const optImage = typeof o === 'object' ? o.image : undefined;
+                     const isCorrect = previewQuestion.answer.split(',').includes(typeof o === 'string' ? o : o.value);
+                     return (
+                       <div key={i} className={`p-4 rounded-xl border-2 font-bold text-sm ${isCorrect ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'border-gray-100 dark:border-gray-700 dark:text-gray-300'}`}>
+                          <div className="flex items-center gap-3">
+                            <span className="text-gray-400">{String.fromCharCode(65 + i)}.</span>
+                            {optImage && <img src={optImage} className="w-10 h-10 object-cover rounded" />}
+                            <span>{optText}</span>
+                          </div>
+                       </div>
+                     );
+                   })}
+                </div>
+              )}
+              <div className="p-6 bg-primary-50 dark:bg-primary-900/10 rounded-2xl border-2 border-primary-200 dark:border-primary-800">
+                 <p className="text-[10px] font-black text-primary-600 uppercase mb-1 tracking-widest">{language === 'zh' ? '标准答案' : 'Solution'}</p>
+                 <p className="text-primary-700 dark:text-primary-400 font-black text-lg">{previewQuestion.answer}</p>
               </div>
            </div>
         </div>

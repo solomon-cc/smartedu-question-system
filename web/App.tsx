@@ -15,6 +15,7 @@ import Assign from './views/Teacher/Assign';
 import Reinforcements from './views/Teacher/Reinforcements';
 import Users from './views/Admin/Users';
 import Permissions from './views/Admin/Permissions';
+import AuditLogs from './views/Admin/AuditLogs';
 import Layout from './components/Layout';
 
 interface AuthContextType {
@@ -95,6 +96,7 @@ const App: React.FC = () => {
                   <Route path="/assign" element={<Assign language={language} />} />
                   <Route path="/reinforcements" element={<Reinforcements language={language} />} />
                   <Route path="/users" element={<Users language={language} />} />
+                  <Route path="/logs" element={<AuditLogs language={language} />} />
                   <Route path="/permissions" element={<Permissions language={language} />} />
                 </Routes>
               </Layout>

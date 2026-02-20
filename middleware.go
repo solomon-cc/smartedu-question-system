@@ -4,6 +4,7 @@ package main
 import (
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,25 +14,36 @@ import (
 var jwtSecret = []byte("smartedu-secret-key-2024")
 var tokenDuration = 24 * time.Hour
 
-func CORSMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		origin := c.Request.Header.Get("Origin")
-		if origin != "" {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-		} else {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		}
-		
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
+// Track online users: map[userId]lastActiveTimestamp
+var ActiveUsers sync.Map
 
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-		c.Next()
-	}
+func CORSMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        origin := c.Request.Header.Get("Origin")
+
+        allowedOrigins := map[string]bool{
+            "https://go.ylmz.com.cn": true,
+            "http://localhost:3000":  true,
+            "http://localhost:5173":  true,
+            "http://0.0.0.0:3000":    true,
+        }
+
+        if allowedOrigins[origin] {
+            c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+            c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+        }
+
+        c.Writer.Header().Set("Access-Control-Allow-Headers", "*")
+        c.Writer.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+        c.Writer.Header().Set("Access-Control-Max-Age", "86400")
+
+        if c.Request.Method == http.MethodOptions {
+            c.AbortWithStatus(204)
+            return
+        }
+
+        c.Next()
+    }
 }
 
 func AuthMiddleware() gin.HandlerFunc {
@@ -56,8 +68,12 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if ok {
-			c.Set("userId", claims["userId"])
+			uid := claims["userId"].(string)
+			c.Set("userId", uid)
 			c.Set("role", claims["role"])
+			
+			// Update active status
+			ActiveUsers.Store(uid, time.Now().Unix())
 		}
 		c.Next()
 	}

@@ -3,11 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { Send, User, Book, Search, CheckCircle2, LayoutGrid, FileCheck, ChevronRight, UserCircle, Clock, ArrowLeft } from 'lucide-react';
 import { api } from '../../services/api.ts';
 import { Role } from '../../types';
+import Loading from '../../components/Loading';
 
 const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [activeTab, setActiveTab] = useState<'assign' | 'status'>('assign');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [selectedHw, setSelectedHw] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   
   // Data State
   const [students, setStudents] = useState<any[]>([]);
@@ -24,6 +26,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
       const [studentsData, papersData, hwData] = await Promise.all([
         api.students.list(),
         api.papers.list(),
@@ -52,6 +55,8 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -157,7 +162,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         </div>
       </div>
       
-      {activeTab === 'assign' ? (
+      {loading ? <Loading /> : activeTab === 'assign' ? (
         <div className="grid lg:grid-cols-2 gap-8">
           <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border dark:border-gray-700 space-y-8 shadow-sm h-fit">
             <div>

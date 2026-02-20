@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, CheckCircle2, ArrowLeft, FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { api } from '../../services/api.ts';
+import Loading from '../../components/Loading';
 
 interface HistoryItem {
   id: string;
@@ -19,9 +20,14 @@ interface HistoryItem {
 const History: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [selectedItem, setSelectedItem] = useState<HistoryItem | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.history.list().then(setHistory).catch(console.error);
+    setLoading(true);
+    api.history.list()
+      .then(setHistory)
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
   const getTypeLabel = (type: string) => {
@@ -143,7 +149,12 @@ const History: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
               </tr>
             </thead>
             <tbody className="divide-y dark:divide-gray-700">
-              {history.map(item => (
+              {loading ? (
+                <tr><td colSpan={5}><Loading /></td></tr>
+              ) : history.length === 0 ? (
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-400">{language === 'zh' ? '暂无记录' : 'No records'}</td></tr>
+              ) : (
+                history.map(item => (
                 <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors group">
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest ${item.type === 'exam' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
@@ -162,7 +173,8 @@ const History: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                     </button>
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>

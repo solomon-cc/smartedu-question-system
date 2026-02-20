@@ -26,7 +26,7 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const data = await api.users.list();
+      const data = await api.admin.listUsers();
       // Map backend User to frontend UserItem
       const mapped = data.map((u: any) => ({
         id: u.id,
@@ -84,9 +84,9 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
     try {
       if (editingUser) {
-        await api.users.update(editingUser.id, payload);
+        await api.admin.updateUser(editingUser.id, payload);
       } else {
-        await api.users.create(payload);
+        await api.admin.createUser(payload);
       }
       setIsModalOpen(false);
       fetchUsers();
@@ -99,7 +99,7 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const handleDelete = async (id: string) => {
     if (confirm(language === 'zh' ? '确定删除该用户吗？' : 'Are you sure you want to delete this user?')) {
       try {
-        await api.users.delete(id);
+        await api.admin.deleteUser(id);
         fetchUsers();
       } catch (error) {
         console.error("Failed to delete", error);

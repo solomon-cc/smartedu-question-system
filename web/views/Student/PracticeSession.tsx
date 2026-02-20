@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Question, QuestionType, Subject, AttemptState } from '../../types';
 import { api } from '../../services/api.ts';
+import { REVERSE_TYPE_MAP } from '../../utils.ts';
 import { X, ChevronRight, CheckCircle2, HelpCircle, Trophy, PlayCircle } from 'lucide-react';
 
 interface PracticeSessionProps {
@@ -17,29 +18,85 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
   const [attemptMap, setAttemptMap] = useState<Record<string, number>>({});
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isShowingFeedback, setIsShowingFeedback] = useState(false);
+  const [isShowingCorrectAnswer, setIsShowingCorrectAnswer] = useState(false);
   const [showReinforcement, setShowReinforcement] = useState(false);
   const [finishedCount, setFinishedCount] = useState(0);
   const [totalInitial, setTotalInitial] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [sessionDetails, setSessionDetails] = useState<any[]>([]);
 
   useEffect(() => {
+    const homeworkId = searchParams.get('homeworkId');
     const subject = searchParams.get('subject') || undefined;
     const grade = searchParams.get('grade') ? parseInt(searchParams.get('grade')!) : undefined;
 
-    api.questions.list(subject, grade).then(data => {
-      setQueue(data);
-      setTotalInitial(data.length);
-      setLoading(false);
-    }).catch(e => {
-      console.error(e);
-      setLoading(false);
-    });
+    const fetchQuestions = async () => {
+      setLoading(true);
+      try {
+        let data: Question[] = [];
+        if (homeworkId) {
+          const hwList = await api.homework.list();
+          const hw = hwList.find((h: any) => h.id === homeworkId);
+          if (hw) {
+            // Find the paper to get its questions
+            const papers = await api.papers.list();
+            const paper = papers.find((p: any) => p.id === hw.paperId);
+            if (paper && paper.questions) {
+              data = paper.questions;
+            }
+          }
+        } else {
+          data = await api.questions.list(subject, grade);
+        }
+        setQueue(data);
+        setTotalInitial(data.length);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuestions();
   }, [searchParams]);
+
+  const handleCompleteHomework = async () => {
+    const homeworkId = searchParams.get('homeworkId');
+    const subject = searchParams.get('subject') || (homeworkId ? '作业' : '自主练习');
+    
+    // Calculate stats
+    let wrongCount = 0;
+    Object.values(attemptMap).forEach(count => {
+      if (count > 0) wrongCount += 1; // Count each question that had at least one mistake
+    });
+
+    try {
+      // 1. Save History
+      await api.history.create({
+        type: homeworkId ? 'homework' : 'practice',
+        name: homeworkId ? '家庭作业完成' : `${subject}练习`,
+        nameEn: homeworkId ? 'Homework Finished' : `${subject} Practice`,
+        correctCount: finishedCount,
+        wrongCount: wrongCount,
+        total: totalInitial.toString(),
+        homeworkId: homeworkId || "",
+        questions: sessionDetails // These are the detail records
+      });
+
+      // 2. Mark homework as complete if applicable
+      if (homeworkId) {
+        await api.homework.complete(homeworkId);
+      }
+    } catch (e) {
+      console.error("Failed to save session results", e);
+    }
+    navigate('/');
+  };
 
   const currentQuestion = queue[currentIdx];
 
   const handleAnswer = (val: string) => {
-    if (isShowingFeedback || selectedAnswer) return;
+    if (isShowingFeedback || isShowingCorrectAnswer || selectedAnswer) return;
     setSelectedAnswer(val);
     
     const isCorrect = val === currentQuestion.answer;
@@ -48,24 +105,45 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
     if (isCorrect) {
       setFinishedCount(prev => prev + 1);
       
+      // Record full detail for History review
+      setSessionDetails(prev => [...prev, {
+        id: currentQuestion.id,
+        stem: currentQuestion.stemText,
+        stemImage: currentQuestion.stemImage,
+        options: currentQuestion.options,
+        status: 'correct',
+        answer: currentQuestion.answer,
+        userAnswer: val,
+        attempts: currentAttempts + 1
+      }]);
+
       if ((finishedCount + 1) % 2 === 0) {
         setShowReinforcement(true);
         setTimeout(() => setShowReinforcement(false), 3000);
       }
 
-      setTimeout(() => proceedToNext(true), 1200);
+      setTimeout(() => proceedToNext(true, false), 1200);
     } else {
       const nextAttemptCount = currentAttempts + 1;
       setAttemptMap(prev => ({ ...prev, [currentQuestion.id]: nextAttemptCount }));
 
       if (nextAttemptCount === 1) {
+        // First wrong: requeue after 1.2s
         setTimeout(() => proceedToNext(false, true), 1200);
       } else if (nextAttemptCount === 2) {
+        // Second wrong: show hint for 3s
         setIsShowingFeedback(true);
-      } else if (nextAttemptCount === 3) {
-        setTimeout(() => proceedToNext(false, true), 1200);
-      } else if (nextAttemptCount === 4) {
-        setTimeout(() => proceedToNext(false, false), 1200);
+        setTimeout(() => {
+          setIsShowingFeedback(false);
+          proceedToNext(false, true);
+        }, 3000);
+      } else {
+        // Third+ wrong: show correct answer for 3s
+        setIsShowingCorrectAnswer(true);
+        setTimeout(() => {
+          setIsShowingCorrectAnswer(false);
+          proceedToNext(false, true);
+        }, 3000);
       }
     }
   };
@@ -73,13 +151,16 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
   const proceedToNext = (wasCorrect: boolean, shouldRequeue: boolean = false) => {
     setSelectedAnswer(null);
     setIsShowingFeedback(false);
+    setIsShowingCorrectAnswer(false);
 
     let nextQueue = [...queue];
     if (shouldRequeue) {
+      // Requeue: remove current and push to end
       const q = nextQueue.splice(currentIdx, 1)[0];
       nextQueue.push(q);
       setQueue(nextQueue);
     } else {
+      // Correct: remove from queue
       nextQueue.splice(currentIdx, 1);
       setQueue(nextQueue);
     }
@@ -103,7 +184,7 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
           {language === 'zh' ? '太棒了！全部完成！' : 'Awesome! All Done!'}
         </h1>
         <button 
-          onClick={() => navigate('/')}
+          onClick={handleCompleteHomework}
           className="px-10 py-4 bg-primary-600 text-white rounded-2xl font-bold shadow-xl shadow-primary-600/20 active:scale-95 transition-transform"
         >
           {language === 'zh' ? '返回首页' : 'Go Home'}
@@ -138,7 +219,7 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
           <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl shadow-gray-200/50 dark:shadow-none overflow-hidden border dark:border-gray-800 animate-in slide-in-from-bottom-8 duration-500">
             <div className="p-8 md:p-12 border-b dark:border-gray-800">
               <span className="inline-block px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 text-xs font-black tracking-wider uppercase mb-6">
-                {currentQuestion.subject} · {currentQuestion.type}
+                {currentQuestion.subject} · {REVERSE_TYPE_MAP[currentQuestion.type as string] || currentQuestion.type}
               </span>
               <h2 className="text-2xl md:text-3xl font-bold mb-8 dark:text-white leading-tight">
                 {currentQuestion.stemText}
@@ -151,13 +232,25 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
             </div>
 
             {isShowingFeedback && (
-              <div className="bg-amber-50 dark:bg-amber-900/10 p-6 flex items-start gap-4 animate-in slide-in-from-top duration-500 border-b dark:border-gray-800">
+              <div className="bg-amber-50 dark:bg-amber-900/10 p-6 flex items-start gap-4 animate-in slide-in-from-top duration-500 border-b dark:border-gray-700">
                 <div className="bg-amber-100 dark:bg-amber-900/40 p-2 rounded-xl">
                   <HelpCircle className="w-6 h-6 text-amber-600" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="font-black text-amber-800 dark:text-amber-400 mb-1 tracking-wide">{language === 'zh' ? '老师的小纸条' : 'Teacher Hint'}</p>
-                  <p className="text-amber-700 dark:text-amber-500/80 leading-relaxed">{currentQuestion.hint}</p>
+                  <p className="text-amber-700 dark:text-amber-500/80 leading-relaxed">{currentQuestion.hint || (language === 'zh' ? '再仔细想想哦！' : 'Think again!')}</p>
+                </div>
+              </div>
+            )}
+
+            {isShowingCorrectAnswer && (
+              <div className="bg-green-50 dark:bg-green-900/10 p-6 flex items-start gap-4 animate-in slide-in-from-top duration-500 border-b dark:border-gray-700">
+                <div className="bg-green-100 dark:bg-green-900/40 p-2 rounded-xl">
+                  <CheckCircle2 className="w-6 h-6 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-black text-green-800 dark:text-green-400 mb-1 tracking-wide">{language === 'zh' ? '正确答案是' : 'The correct answer is'}</p>
+                  <p className="text-green-700 dark:text-green-500/80 text-xl font-black">{currentQuestion.answer}</p>
                 </div>
               </div>
             )}
@@ -165,7 +258,11 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
             <div className="p-8 md:p-12 bg-gray-50/30 dark:bg-gray-900/30">
                {currentQuestion.type === QuestionType.MULTIPLE_CHOICE && (
                  <div className={`grid gap-4 ${currentQuestion.options?.[0]?.image ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                   {currentQuestion.options?.map((opt, i) => {
+                   {currentQuestion.options?.filter((opt: any) => {
+                     const optText = typeof opt === 'string' ? opt : opt.text;
+                     const optImage = typeof opt === 'string' ? null : opt.image;
+                     return (optText && optText.trim() !== '') || (optImage && optImage.trim() !== '');
+                   }).map((opt, i) => {
                      const optText = typeof opt === 'string' ? opt : opt.text;
                      const optImage = typeof opt === 'string' ? null : opt.image;
                      const optValue = typeof opt === 'string' ? opt : opt.value;

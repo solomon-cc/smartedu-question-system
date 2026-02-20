@@ -1,10 +1,37 @@
 package main
 
 import (
+	"bufio"
+	"os"
+	"strings"
 	"github.com/gin-gonic/gin"
 )
 
+// LoadEnv loads environment variables from a .env file
+func LoadEnv() {
+	file, err := os.Open(".env")
+	if err != nil {
+		return // No .env file, ignore
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.TrimSpace(line) == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) == 2 {
+			key := strings.TrimSpace(parts[0])
+			val := strings.TrimSpace(parts[1])
+			os.Setenv(key, val)
+		}
+	}
+}
+
 func main() {
+	LoadEnv() // Load .env file at startup
 	r := gin.Default()
 
 	// Load data from disk
@@ -34,10 +61,13 @@ func main() {
 			// Papers
 			protected.GET("/papers", GetPapers)
 			protected.POST("/papers", CreatePaper)
+			protected.PUT("/papers/:id", UpdatePaper)
+			protected.DELETE("/papers/:id", DeletePaper)
 
 			// Homeworks
 			protected.GET("/homeworks", GetHomeworks)
 			protected.POST("/homeworks/assign", AssignHomework)
+			protected.PUT("/homeworks/:id/complete", CompleteHomework)
 
 			// Reinforcements
 			protected.GET("/reinforcements", GetReinforcements)
@@ -46,6 +76,7 @@ func main() {
 
 			// History
 			protected.GET("/history", GetHistory)
+			protected.POST("/history", CreateHistory)
 
 			// Students
 			protected.GET("/students", GetStudents)
@@ -63,6 +94,7 @@ func main() {
 				admin.POST("/users", CreateUser)
 				admin.PUT("/users/:id", UpdateUser)
 				admin.DELETE("/users/:id", DeleteUser)
+				admin.GET("/logs", GetAuditLogs)
 			}
 
 			// Analytics

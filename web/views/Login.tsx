@@ -90,12 +90,6 @@ const Login: React.FC<LoginProps> = ({ language }) => {
             {language === 'zh' ? '立即登录' : 'Log In Now'}
           </button>
         </form>
-
-        <div className="mt-8 text-center">
-          <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-            {language === 'zh' ? '演示账号: admin / teacher / student (密码均为 123)' : 'Demo: admin / teacher / student (Password: 123)'}
-          </p>
-        </div>
       </div>
     </div>
   );

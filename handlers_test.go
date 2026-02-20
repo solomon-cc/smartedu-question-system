@@ -16,14 +16,17 @@ func TestGetQuestions_Empty(t *testing.T) {
 	r := gin.Default()
 	r.GET("/questions", GetQuestions)
 
-	mockQuestions = make([]Question, 0) 
+	storeQuestions = make([]Question, 0) 
 
 	req, _ := http.NewRequest("GET", "/questions?subject=NonExistent", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "[]", w.Body.String())
+    var resp Response
+    json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.Equal(t, 0, resp.Code)
+    assert.Equal(t, 0, len(resp.Data.([]interface{})))
 }
 
 func TestGetTeacherStats(t *testing.T) {
@@ -31,8 +34,8 @@ func TestGetTeacherStats(t *testing.T) {
 	r := gin.Default()
 	r.GET("/teacher/stats", GetTeacherStats)
 
-    mockHomeworks = make([]Homework, 0)
-    mockHistory = make([]History, 0)
+    storeHomeworks = make([]Homework, 0)
+    storeHistory = make([]History, 0)
 
 	req, _ := http.NewRequest("GET", "/teacher/stats", nil)
 	w := httptest.NewRecorder()
@@ -50,7 +53,7 @@ func TestReinforcements(t *testing.T) {
     r.GET("/reinforcements", GetReinforcements)
     r.POST("/reinforcements", CreateReinforcement)
 
-    mockReinforcements = make([]Reinforcement, 0)
+    storeReinforcements = make([]Reinforcement, 0)
 
     // Test Create Global
     newR := Reinforcement{Name: "Test", Type: "sticker", Condition: "global"}
@@ -88,7 +91,7 @@ func TestPapers(t *testing.T) {
     r.GET("/papers", GetPapers)
     r.POST("/papers", CreatePaper)
 
-    mockPapers = make([]Paper, 0)
+    storePapers = make([]Paper, 0)
 
     p := Paper{Name: "Test Paper", Total: 100}
     body, _ := json.Marshal(p)
@@ -114,7 +117,7 @@ func TestHomeworks(t *testing.T) {
     r.GET("/homeworks", GetHomeworks)
     r.POST("/homeworks/assign", AssignHomework)
 
-    mockHomeworks = make([]Homework, 0)
+    storeHomeworks = make([]Homework, 0)
 
     h := Homework{Name: "HW1", PaperID: "p1"}
     body, _ := json.Marshal(h)
@@ -141,8 +144,8 @@ func TestUsers(t *testing.T) {
     r.POST("/users", CreateUser)
     r.DELETE("/users/:id", DeleteUser)
 
-    // Reset mock users (keep defaults)
-    mockUsers = []User{{ID: "1", Username: "admin"}}
+    // Reset store users (keep defaults)
+    storeUsers = []User{{ID: "1", Username: "admin"}}
 
     // Create
     u := User{Username: "testuser", Role: "STUDENT"}

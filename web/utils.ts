@@ -10,8 +10,6 @@ export const formatDate = (date: Date): string => {
   }).format(date);
 };
 
-export const generateMockId = () => Math.random().toString(36).substr(2, 9);
-
 export const GRADE_MAP: Record<string, number> = {
   '一年级': 1, '二年级': 2, '三年级': 3, '四年级': 4, '五年级': 5, '六年级': 6
 };

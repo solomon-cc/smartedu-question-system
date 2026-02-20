@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { PlayCircle, Image as ImageIcon, Plus, Trash2, X, UploadCloud, Info, CheckCircle, Users, Globe, UserCheck, Star, Zap, Gift, Trophy } from 'lucide-react';
 import { api } from '../../services/api.ts';
 import { Role } from '../../types';
+import Loading from '../../components/Loading';
 
 const BUILTIN_ASSETS = [
   { id: 'dino', name: '快乐恐龙', nameEn: 'Happy Dino', icon: '🦕', color: 'bg-green-100 text-green-600' },
@@ -19,7 +20,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [activeView, setActiveView] = useState<'global' | 'targeted'>('global');
   const [items, setItems] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Form State
   const [formName, setFormName] = useState('');
@@ -186,7 +187,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {loading ? (
-           <div className="col-span-4 text-center py-10 text-gray-500">Loading assets...</div>
+           <div className="col-span-4"><Loading /></div>
         ) : filteredItems.length === 0 ? (
            <div className="col-span-4 text-center py-10 text-gray-400">{language === 'zh' ? '暂无资源' : 'No assets found'}</div>
         ) : (

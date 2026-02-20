@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Lock, Unlock, Shield, X, Check, Layout, BookOpen, ClipboardList, Settings, Database, FileText, BarChart, Eye, Cpu, AlertCircle } from 'lucide-react';
+import { Lock, Unlock, Shield, X, Check, Layout, BookOpen, ClipboardList, Settings, Database, FileText, BarChart, Eye, Cpu, AlertCircle, ShieldCheck } from 'lucide-react';
 
 interface ModulePermission {
   id: string;
@@ -22,6 +22,7 @@ const ALL_MODULES = [
   { id: 'assignments', label: '作业管理', icon: FileText },
   { id: 'reinforcements', label: '强化物管理', icon: Settings },
   { id: 'users', label: '用户管理', icon: Database },
+  { id: 'audit_logs', label: '审计日志', icon: ShieldCheck },
   { id: 'stats', label: '统计报表', icon: BarChart },
 ];
 
@@ -44,6 +45,7 @@ const Permissions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         { id: 'reinforcements', ui: true, api: true },
         { id: 'stats', ui: true, api: false },
         { id: 'users', ui: false, api: false },
+        { id: 'audit_logs', ui: false, api: false },
       ], 
       level: 'PARTIAL' 
     },
@@ -58,6 +60,7 @@ const Permissions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         { id: 'papers', ui: false, api: false },
         { id: 'reinforcements', ui: false, api: false },
         { id: 'users', ui: false, api: false },
+        { id: 'audit_logs', ui: false, api: false },
       ], 
       level: 'RESTRICTED' 
     },

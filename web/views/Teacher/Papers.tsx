@@ -1,20 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, MoreVertical, X, Check, Search, Eye, BookOpen } from 'lucide-react';
+import { FileText, Plus, MoreVertical, X, Check, Search, Eye, BookOpen, Trash2, Edit } from 'lucide-react';
 import { api } from '../../services/api.ts';
 import { Question } from '../../types.ts';
 import { REVERSE_TYPE_MAP } from '../../utils.ts';
+import Loading from '../../components/Loading';
 
 const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [isPaperModalOpen, setIsPaperModalOpen] = useState(false);
   const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
   const [subjectFilter, setSubjectFilter] = useState('全部');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   
   const [papers, setPapers] = useState<any[]>([]);
   const [availableQuestions, setAvailableQuestions] = useState<Question[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [paperTitle, setPaperTitle] = useState('');
+  const [editingPaperId, setEditingPaperId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -36,20 +40,65 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     fetchData();
   }, []);
 
+  const handleOpenModalForCreate = () => {
+    setEditingPaperId(null);
+    setPaperTitle('');
+    setSelectedIds([]);
+    setIsPaperModalOpen(true);
+  };
+
+  const handleOpenModalForEdit = (p: any) => {
+    setEditingPaperId(p.id);
+    setPaperTitle(p.name);
+    if (p.questions) {
+      setSelectedIds(p.questions.map((q: any) => q.id));
+    } else if (p.questionIds) {
+      setSelectedIds(p.questionIds);
+    }
+    setIsPaperModalOpen(true);
+  };
+
   const handleCreatePaper = async () => {
-    if (!paperTitle.trim()) return;
+    if (!paperTitle.trim() || saving) return;
     try {
-      await api.papers.create({
+      setSaving(true);
+      const payload = {
         name: paperTitle,
         questionIds: selectedIds,
         total: selectedIds.length
-      });
+      };
+
+      if (editingPaperId) {
+        await api.papers.update(editingPaperId, payload);
+      } else {
+        await api.papers.create(payload);
+      }
+
       setIsPaperModalOpen(false);
-      fetchData();
+      await fetchData();
       setPaperTitle('');
       setSelectedIds([]);
+      setEditingPaperId(null);
     } catch (e) {
-      alert('Failed to create paper');
+      alert(editingPaperId ? 'Failed to update paper' : 'Failed to create paper');
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  // TODO: Add Update Paper Logic (Backend doesn't have UpdatePaper yet, so mocking edit for now or just alert)
+  // For now, let's implement Delete since backend might not support update either (checking handlers.go... no UpdatePaper)
+  // I'll add Delete support here if API supports it (checking api.ts... no delete paper method)
+  // Wait, I need to check api.ts for delete paper support.
+
+  const handleDeletePaper = async (id: string) => {
+    if (confirm(language === 'zh' ? '确定要删除这份试卷吗？' : 'Are you sure you want to delete this paper?')) {
+      try {
+        await api.papers.delete(id);
+        fetchData();
+      } catch (e) {
+        alert(language === 'zh' ? '删除失败' : 'Failed to delete');
+      }
     }
   };
 
@@ -65,11 +114,11 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
 
   return (
-    <div className="space-y-6 relative animate-in fade-in duration-500">
+    <div className="space-y-6 relative animate-in fade-in duration-500" onClick={() => setMenuOpenId(null)}>
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold dark:text-white">{language === 'zh' ? '试卷管理' : 'Paper Library'}</h2>
         <button 
-          onClick={() => setIsPaperModalOpen(true)}
+          onClick={handleOpenModalForCreate}
           className="bg-primary-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary-500/30 hover:bg-primary-700 transition-all"
         >
           <Plus className="w-5 h-5" />
@@ -77,38 +126,79 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         </button>
       </div>
 
+      {loading ? <Loading /> : (
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {papers.length === 0 && (
+          <div className="col-span-3 text-center py-20 bg-white dark:bg-gray-800 rounded-[3rem] border-2 border-dashed dark:border-gray-700">
+            <div className="bg-gray-50 dark:bg-gray-900 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <FileText className="w-10 h-10 text-gray-300" />
+            </div>
+            <h3 className="text-xl font-black dark:text-white mb-2">{language === 'zh' ? '暂无试卷' : 'No papers yet'}</h3>
+            <p className="text-gray-400 font-bold mb-8 max-w-xs mx-auto">
+              {language === 'zh' 
+                ? (availableQuestions.length > 0 ? `题库已有 ${availableQuestions.length} 道题目，快来组卷吧！` : '还没有试卷，先去题目管理添加题目吧！')
+                : (availableQuestions.length > 0 ? `You have ${availableQuestions.length} questions ready. Create your first paper!` : 'Start by adding questions to your bank first.')}
+            </p>
+            <button 
+              onClick={handleOpenModalForCreate}
+              className="bg-primary-600 text-white px-8 py-3 rounded-2xl font-black shadow-xl shadow-primary-500/30 hover:bg-primary-700 transition-all inline-flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              {language === 'zh' ? '立即创建' : 'Create Now'}
+            </button>
+          </div>
+        )}
         {papers.map(p => (
           <div key={p.id} className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border dark:border-gray-700 shadow-sm relative group hover:shadow-xl hover:translate-y-[-4px] transition-all">
             <div className="bg-primary-50 dark:bg-primary-900/20 w-14 h-14 rounded-2xl flex items-center justify-center text-primary-600 mb-6">
               <FileText className="w-8 h-8" />
             </div>
-            <button className="absolute top-6 right-6 text-gray-400 hover:text-primary-600 transition-colors p-2">
-              <MoreVertical className="w-5 h-5" />
-            </button>
+            
+            <div className="absolute top-6 right-6">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === p.id ? null : p.id); }}
+                  className="text-gray-400 hover:text-primary-600 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <MoreVertical className="w-5 h-5" />
+                </button>
+                {menuOpenId === p.id && (
+                  <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 shadow-xl rounded-2xl border dark:border-gray-700 p-2 min-w-[120px] z-10 animate-in fade-in zoom-in-95 duration-200">
+                    <button onClick={() => handleOpenModalForEdit(p)} className="w-full text-left px-4 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                       <Edit className="w-4 h-4" /> Edit
+                    </button>
+                    <button onClick={() => handleDeletePaper(p.id)} className="w-full text-left px-4 py-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-bold text-red-500 flex items-center gap-2">
+                       <Trash2 className="w-4 h-4" /> Delete
+                    </button>
+                  </div>
+                )}
+            </div>
+
             <h4 className="font-black text-lg dark:text-white mb-2 leading-tight">{p.name}</h4>
             <div className="flex justify-between text-xs text-gray-400 mt-6 font-bold uppercase tracking-widest">
               <span>{p.total || 0} {language === 'zh' ? '道题目' : 'Questions'}</span>
               <span>{p.used || 0} {language === 'zh' ? '次下发' : 'Assigned'}</span>
             </div>
             <div className="mt-8 flex gap-2">
-               <button onClick={() => setIsPaperModalOpen(true)} className="flex-1 py-3 text-xs font-black bg-gray-50 dark:bg-gray-700 rounded-xl dark:text-gray-300 hover:bg-primary-600 hover:text-white transition-all uppercase">
+               <button onClick={() => handleOpenModalForEdit(p)} className="flex-1 py-3 text-xs font-black bg-gray-50 dark:bg-gray-700 rounded-xl dark:text-gray-300 hover:bg-primary-600 hover:text-white transition-all uppercase">
                  {language === 'zh' ? '编辑' : 'Edit'}
                </button>
-               <button className="flex-1 py-3 text-xs font-black bg-red-50 dark:bg-red-900/20 text-red-600 rounded-xl hover:bg-red-500 hover:text-white transition-all uppercase">
+               <button onClick={() => handleDeletePaper(p.id)} className="flex-1 py-3 text-xs font-black bg-red-50 dark:bg-red-900/20 text-red-600 rounded-xl hover:bg-red-500 hover:text-white transition-all uppercase">
                  {language === 'zh' ? '下线' : 'Delete'}
                </button>
             </div>
           </div>
         ))}
       </div>
+      )}
 
       {isPaperModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in zoom-in-95 duration-300">
            <div className="bg-white dark:bg-gray-800 w-full max-w-5xl rounded-[3rem] shadow-2xl p-10 max-h-[92vh] flex flex-col border dark:border-gray-700">
               <div className="flex justify-between items-center mb-8 border-b dark:border-gray-700 pb-6">
                  <h3 className="text-3xl font-black dark:text-white">
-                   {language === 'zh' ? '组卷配置' : 'Paper Configuration'}
+                   {editingPaperId 
+                     ? (language === 'zh' ? '修改试卷' : 'Update Paper')
+                     : (language === 'zh' ? '组卷配置' : 'Paper Configuration')}
                  </h3>
                  <button onClick={() => setIsPaperModalOpen(false)} className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
                     <X className="w-6 h-6 dark:text-gray-400" />
@@ -210,9 +300,22 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                  <button onClick={() => setIsPaperModalOpen(false)} className="px-10 py-4 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 rounded-[1.5rem] font-black uppercase tracking-widest transition-colors">
                    {language === 'zh' ? '放弃' : 'Discard'}
                  </button>
-                 <button onClick={handleCreatePaper} className="flex-1 py-4 bg-primary-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-primary-500/30 hover:bg-primary-700 transition-all">
-                   <Check className="w-6 h-6" />
-                   {language === 'zh' ? '保存并下发' : 'Finalize'}
+                 <button 
+                   onClick={handleCreatePaper} 
+                   disabled={saving}
+                   className={`flex-1 py-4 text-white rounded-[1.5rem] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl transition-all ${saving ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary-600 shadow-primary-500/30 hover:bg-primary-700'}`}
+                 >
+                   {saving ? (
+                     <>
+                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                       {language === 'zh' ? '保存中...' : 'Saving...'}
+                     </>
+                   ) : (
+                     <>
+                       <Check className="w-6 h-6" />
+                       {language === 'zh' ? '保存并下发' : 'Finalize'}
+                     </>
+                   )}
                  </button>
               </div>
            </div>

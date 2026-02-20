@@ -20,11 +20,14 @@ const handleResponse = async (res: Response) => {
     window.location.hash = '#/login';
     throw new Error('Unauthorized');
   }
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Request failed');
+  
+  const result = await res.json();
+  
+  if (!res.ok || result.code !== 0) {
+    throw new Error(result.err || result.error || 'Request failed');
   }
-  return res.json();
+  
+  return result.data;
 };
 
 export const api = {
@@ -90,6 +93,26 @@ export const api = {
         body: JSON.stringify(data),
       });
       return handleResponse(res);
+    },
+    update: async (id: string, data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/papers/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    delete: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_URL}/papers/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      if (res.status === 401) {
+        localStorage.removeItem('user');
+        window.location.hash = '#/login';
+        throw new Error('Unauthorized');
+      }
+      if (!res.ok) throw new Error('Failed to delete paper');
     }
   },
   homework: {
@@ -105,6 +128,13 @@ export const api = {
         body: JSON.stringify(data),
       });
       return handleResponse(res);
+    },
+    complete: async (id: string): Promise<any> => {
+      const res = await fetch(`${API_URL}/homeworks/${id}/complete`, {
+        method: 'PUT',
+        headers: getHeaders(),
+      });
+      return handleResponse(res);
     }
   },
   dashboard: {
@@ -118,6 +148,14 @@ export const api = {
       const res = await fetch(`${API_URL}/history`, { headers: getHeaders() });
       const data = await handleResponse(res);
       return data || [];
+    },
+    create: async (data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/history`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
     }
   },
   student: {
@@ -139,13 +177,13 @@ export const api = {
       return handleResponse(res);
     }
   },
-  users: {
-    list: async (): Promise<User[]> => {
+  admin: {
+    listUsers: async (): Promise<User[]> => {
       const res = await fetch(`${API_URL}/admin/users`, { headers: getHeaders() });
       const data = await handleResponse(res);
       return data || [];
     },
-    create: async (data: Partial<User>): Promise<User> => {
+    createUser: async (data: Partial<User>): Promise<User> => {
       const res = await fetch(`${API_URL}/admin/users`, {
         method: 'POST',
         headers: getHeaders(),
@@ -153,7 +191,7 @@ export const api = {
       });
       return handleResponse(res);
     },
-    update: async (id: string, data: Partial<User>): Promise<User> => {
+    updateUser: async (id: string, data: Partial<User>): Promise<User> => {
       const res = await fetch(`${API_URL}/admin/users/${id}`, {
         method: 'PUT',
         headers: getHeaders(),
@@ -161,7 +199,7 @@ export const api = {
       });
       return handleResponse(res);
     },
-    delete: async (id: string): Promise<void> => {
+    deleteUser: async (id: string): Promise<void> => {
        const res = await fetch(`${API_URL}/admin/users/${id}`, {
         method: 'DELETE',
         headers: getHeaders(),
@@ -172,6 +210,11 @@ export const api = {
          throw new Error('Unauthorized');
        }
        if (!res.ok) throw new Error('Failed to delete user');
+    },
+    logs: async (): Promise<any[]> => {
+       const res = await fetch(`${API_URL}/admin/logs`, { headers: getHeaders() });
+       const data = await handleResponse(res);
+       return data || [];
     }
   },
   reinforcements: {
