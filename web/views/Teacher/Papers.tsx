@@ -25,10 +25,10 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       setLoading(true);
       const [papersData, questionsData] = await Promise.all([
         api.papers.list(),
-        api.questions.list()
+        api.questions.list({ pageSize: 10000 })
       ]);
       setPapers(papersData);
-      setAvailableQuestions(questionsData);
+      setAvailableQuestions(questionsData.list || []);
     } catch (e) {
       console.error(e);
     } finally {

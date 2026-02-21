@@ -266,7 +266,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   return (
     <div className="space-y-6 max-w-6xl mx-auto animate-in fade-in duration-500">
       <div className="flex flex-col items-center gap-6 mb-8">
-        <h2 className="text-3xl font-black dark:text-white">{language === 'zh' ? '作业管理中心' : 'HW Management'}</h2>
+        <h2 className="text-3xl font-black dark:text-white">{language === 'zh' ? '作业管理' : 'HW Management'}</h2>
         <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl w-full max-w-md">
            <button 
             onClick={() => setActiveTab('assign')}

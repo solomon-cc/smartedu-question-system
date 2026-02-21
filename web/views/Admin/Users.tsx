@@ -110,7 +110,7 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-black dark:text-white uppercase tracking-tight">{language === 'zh' ? '用户账户管理' : 'User Accounts'}</h2>
+        <h2 className="text-2xl font-black dark:text-white uppercase tracking-tight">{language === 'zh' ? '用户管理' : 'User Accounts'}</h2>
         <button 
           onClick={() => handleOpenModal()}
           className="bg-primary-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-xl shadow-primary-500/30 hover:bg-primary-700 transition-all hover:scale-105 active:scale-95"

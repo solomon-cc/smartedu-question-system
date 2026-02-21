@@ -250,7 +250,7 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
   return (
     <div className="p-4 space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black dark:text-white">{language === 'zh' ? '系统管理中心' : 'Admin Center'}</h1>
+        <h1 className="text-2xl font-black dark:text-white">{language === 'zh' ? '控制台' : 'Admin Center'}</h1>
         <div className="flex items-center gap-3">
            <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 text-green-600 rounded-full border border-green-100 dark:border-green-800 animate-pulse">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -368,9 +368,9 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
           </div>
         </div>
 
-        {/* Chart 2: Homework Completion Trend */}
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-[3rem] border dark:border-gray-700 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
+        {/* Chart 2: Homework Completion Trend (Table + Bar + Curve) */}
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-[3rem] border dark:border-gray-700 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg text-purple-600">
                 <BarChart2 className="w-5 h-5" />
@@ -379,21 +379,77 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
             </div>
           </div>
 
-          <div className="h-64 flex items-end justify-between gap-4">
-            {hwCompletionData.map((d, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-3 h-full justify-end">
-                <div className="w-full relative group">
-                  <div className="w-full h-48 bg-gray-100 dark:bg-gray-700 rounded-t-2xl relative overflow-hidden">
-                    <div 
-                      className="absolute bottom-0 left-0 w-full bg-purple-600 rounded-t-2xl transition-all duration-1000 ease-out shadow-lg"
-                      style={{ height: `${d}%` }}
-                    >
+          <div className="flex-1 flex flex-col gap-6">
+            {/* Combo Chart */}
+            <div className="h-48 w-full relative group">
+               <svg className="w-full h-full" viewBox="0 0 700 200" preserveAspectRatio="none">
+                  {/* Grid */}
+                  <line x1="0" y1="50" x2="700" y2="50" stroke="currentColor" className="text-gray-100 dark:text-gray-700" strokeWidth="1" strokeDasharray="4" />
+                  <line x1="0" y1="100" x2="700" y2="100" stroke="currentColor" className="text-gray-100 dark:text-gray-700" strokeWidth="1" strokeDasharray="4" />
+                  <line x1="0" y1="150" x2="700" y2="150" stroke="currentColor" className="text-gray-100 dark:text-gray-700" strokeWidth="1" strokeDasharray="4" />
+
+                  {/* Bars */}
+                  {hwCompletionData.map((d, i) => {
+                     const barHeight = (d / 100) * 180;
+                     return (
+                       <rect 
+                         key={`bar-${i}`}
+                         x={(i * 700 / 7) + 20} 
+                         y={200 - barHeight} 
+                         width={(700 / 7) - 40} 
+                         height={barHeight} 
+                         className="fill-purple-200 dark:fill-purple-900/50 hover:fill-purple-300 transition-colors" 
+                         rx="4"
+                       />
+                     );
+                  })}
+
+                  {/* Curve Line */}
+                  <path 
+                    d={`M ${(0 * 700 / 7) + 50} ${200 - ((hwCompletionData[0] / 100) * 180)} ${hwCompletionData.map((d, i) => `L ${(i * 700 / 7) + 50} ${200 - ((d / 100) * 180)}`).join(' ')}`}
+                    fill="none" 
+                    stroke="#9333ea" 
+                    strokeWidth="3" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    className="drop-shadow-md"
+                  />
+
+                  {/* Dots */}
+                  {hwCompletionData.map((d, i) => (
+                    <circle 
+                      key={`dot-${i}`}
+                      cx={(i * 700 / 7) + 50} 
+                      cy={200 - ((d / 100) * 180)} 
+                      r="4" 
+                      fill="white" 
+                      stroke="#9333ea" 
+                      strokeWidth="2"
+                    />
+                  ))}
+               </svg>
+            </div>
+
+            {/* Data Table */}
+            <div className="mt-auto">
+               <div className="flex justify-between items-center mb-2 px-2">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{language === 'zh' ? '日期' : 'Date'}</span>
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{language === 'zh' ? '完成率' : 'Rate'}</span>
+               </div>
+               <div className="space-y-1">
+                  {days.map((d, i) => (
+                    <div key={i} className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
+                       <span className="text-xs font-bold dark:text-gray-300">{d}</span>
+                       <div className="flex items-center gap-2">
+                          <div className="w-16 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                             <div className="h-full bg-purple-500 rounded-full" style={{ width: `${hwCompletionData[i]}%` }}></div>
+                          </div>
+                          <span className="text-xs font-black text-purple-600 w-8 text-right">{hwCompletionData[i]}%</span>
+                       </div>
                     </div>
-                  </div>
-                </div>
-                <span className="text-[10px] font-black text-gray-400">{days[i]}</span>
-              </div>
-            ))}
+                  ))}
+               </div>
+            </div>
           </div>
         </div>
       </div>

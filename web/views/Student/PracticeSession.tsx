@@ -1,14 +1,188 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Question, QuestionType, Subject, AttemptState } from '../../types';
 import { api } from '../../services/api.ts';
 import { REVERSE_TYPE_MAP } from '../../utils.ts';
-import { X, ChevronRight, CheckCircle2, HelpCircle, Trophy, PlayCircle } from 'lucide-react';
+import { X, ChevronRight, CheckCircle2, HelpCircle, Trophy, PlayCircle, RefreshCcw, Hand, Timer, Brain, Zap, Activity } from 'lucide-react';
 
 interface PracticeSessionProps {
   language: 'zh' | 'en';
   themeMode: 'light' | 'dark' | 'auto';
 }
+
+const GameView: React.FC<{ gameId: string, onClose: () => void }> = ({ gameId, onClose }) => {
+  const [gameState, setGameState] = useState<any>({});
+  const [score, setScore] = useState(0);
+  const [timer, setTimer] = useState(0);
+  const timerRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => clearInterval(timerRef.current);
+  }, []);
+
+  // Game 1: Reaction
+  if (gameId === 'reaction') {
+    const [status, setStatus] = useState<'waiting' | 'ready' | 'early' | 'clicked'>('waiting');
+    const [ms, setMs] = useState(0);
+    const startRef = useRef(0);
+
+    const start = () => {
+      setStatus('waiting');
+      const delay = 1000 + Math.random() * 2000;
+      timerRef.current = setTimeout(() => {
+        setStatus('ready');
+        startRef.current = Date.now();
+      }, delay);
+    };
+
+    const handleClick = () => {
+      if (status === 'waiting') {
+        clearTimeout(timerRef.current);
+        setStatus('early');
+      } else if (status === 'ready') {
+        const diff = Date.now() - startRef.current;
+        setMs(diff);
+        setStatus('clicked');
+      }
+    };
+
+    useEffect(() => { start(); }, []);
+
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-6">
+        <h3 className="text-2xl font-black text-white">⚡ 反应力测试</h3>
+        <div 
+          onMouseDown={handleClick}
+          className={`w-64 h-64 rounded-3xl flex items-center justify-center text-2xl font-bold cursor-pointer transition-all shadow-2xl active:scale-95 select-none ${
+            status === 'waiting' ? 'bg-red-500' : 
+            status === 'ready' ? 'bg-green-500' : 
+            status === 'early' ? 'bg-amber-500' : 'bg-blue-500'
+          }`}
+        >
+          {status === 'waiting' && "变绿时点击!"}
+          {status === 'ready' && "点我!!!"}
+          {status === 'early' && "太快了!"}
+          {status === 'clicked' && `${ms} ms`}
+        </div>
+        {(status === 'early' || status === 'clicked') && (
+          <button onClick={start} className="bg-white/20 p-3 rounded-full hover:bg-white/30"><RefreshCcw className="w-6 h-6 text-white" /></button>
+        )}
+      </div>
+    );
+  }
+
+  // Game 2: Clicker
+  if (gameId === 'clicker') {
+    const [clicks, setClicks] = useState(0);
+    const [timeLeft, setTimeLeft] = useState(5);
+    const [active, setActive] = useState(false);
+
+    const click = () => {
+      if (!active && timeLeft === 5) {
+        setActive(true);
+        const intv = setInterval(() => {
+          setTimeLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(intv);
+              setActive(false);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
+      if (timeLeft > 0) setClicks(c => c + 1);
+    };
+
+    const reset = () => {
+      setClicks(0);
+      setTimeLeft(5);
+      setActive(false);
+    }
+
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-6">
+        <h3 className="text-2xl font-black text-white">👆 疯狂点击</h3>
+        <div className="text-6xl font-black text-yellow-300">{clicks}</div>
+        <div className="text-xl font-bold text-white/80">剩余时间: {timeLeft}s</div>
+        <button 
+          onMouseDown={click}
+          disabled={timeLeft === 0}
+          className="w-48 h-48 bg-white text-primary-600 rounded-full text-3xl font-black shadow-2xl active:scale-90 transition-all disabled:opacity-50 disabled:scale-100"
+        >
+          CLICK!
+        </button>
+        {timeLeft === 0 && <button onClick={reset} className="bg-white/20 p-3 rounded-full hover:bg-white/30"><RefreshCcw className="w-6 h-6 text-white" /></button>}
+      </div>
+    );
+  }
+
+  // Game 3: Math
+  if (gameId === 'math') {
+    const generate = () => {
+      const a = Math.floor(Math.random() * 10);
+      const b = Math.floor(Math.random() * 10);
+      return { a, b, ans: a + b };
+    }
+    const [q, setQ] = useState(generate());
+    const [input, setInput] = useState('');
+    const [msg, setMsg] = useState('');
+
+    const check = (val: number) => {
+      if (val === q.ans) {
+        setMsg('正确! 🎉');
+        setTimeout(() => {
+          setQ(generate());
+          setMsg('');
+        }, 800);
+      } else {
+        setMsg('错了 😅');
+      }
+    };
+
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-8">
+        <h3 className="text-2xl font-black text-white">🧮 极速算术</h3>
+        <div className="bg-white/10 p-8 rounded-3xl backdrop-blur-md">
+          <div className="text-6xl font-black text-white mb-8 text-center">{q.a} + {q.b} = ?</div>
+          <div className="grid grid-cols-3 gap-4">
+            {[q.ans, q.ans + 1, q.ans - 1].sort(() => Math.random() - 0.5).map((n, i) => (
+              <button key={i} onClick={() => check(n)} className="w-20 h-20 bg-white text-primary-600 rounded-2xl text-2xl font-bold hover:scale-105 active:scale-95 transition-all">
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="h-8 text-xl font-bold text-yellow-300">{msg}</div>
+      </div>
+    );
+  }
+
+  // Game 4: Breath
+  if (gameId === 'breath') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-8">
+        <h3 className="text-2xl font-black text-white">🌬️ 深呼吸</h3>
+        <div className="relative flex items-center justify-center">
+           <div className="w-64 h-64 bg-cyan-400/30 rounded-full animate-ping absolute"></div>
+           <div className="w-48 h-48 bg-cyan-100 rounded-full flex items-center justify-center text-cyan-800 font-black text-xl shadow-2xl animate-pulse z-10">
+             Relax
+           </div>
+        </div>
+        <p className="text-white/80 font-bold">跟随圆圈 慢慢吸气... 慢慢呼气...</p>
+      </div>
+    );
+  }
+
+  // Default / Placeholder for others
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
+      <div className="text-6xl">🎮</div>
+      <h3 className="text-2xl font-black text-white">Mini Game</h3>
+      <p className="text-white/80 max-w-xs">Rest and play! Click Done when you are ready to continue.</p>
+    </div>
+  );
+};
 
 const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }) => {
   const navigate = useNavigate();
@@ -62,7 +236,8 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
             }
           }
         } else {
-          data = await api.questions.list(subject, grade);
+          const res = await api.questions.list({ subject, grade, pageSize: 100 });
+          data = res.list || [];
         }
         setQueue(data);
         setTotalInitial(data.length);
@@ -171,12 +346,15 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
         if (selectedRein) {
           setActiveReinforcement(selectedRein);
           setShowReinforcement(true);
-          setTimeout(() => {
-              setShowReinforcement(false);
-              if (queue.length === 1) {
-                  handleCompleteHomework(updatedDetails);
-              }
-          }, (selectedRein?.duration || 3) * 1000);
+          
+          if (selectedRein.type !== 'game') {
+            setTimeout(() => {
+                setShowReinforcement(false);
+                if (queue.length === 1) {
+                    handleCompleteHomework(updatedDetails);
+                }
+            }, (selectedRein?.duration || 3) * 1000);
+          }
         } else if (queue.length === 1) {
           handleCompleteHomework(updatedDetails);
         }
@@ -241,6 +419,13 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
     } else {
       nextQueue.splice(currentIdx, 1);
       setQueue(nextQueue);
+    }
+  };
+
+  const handleGameClose = () => {
+    setShowReinforcement(false);
+    if (queue.length === 1) {
+      handleCompleteHomework(); // Uses sessionDetails from state, which should be updated
     }
   };
 
@@ -517,47 +702,72 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
       </main>
 
       {showReinforcement && (
-        <div className={`fixed inset-0 z-[120] flex items-center justify-center p-6 backdrop-blur-2xl animate-in fade-in duration-500 ${effectiveDark ? 'bg-black/95' : 'bg-white/95'}`}>
-           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              {[...Array(20)].map((_, i) => (
-                <div 
-                  key={i}
-                  className="absolute animate-bounce opacity-20"
-                  style={{
-                    left: `${Math.random() * 100}%`,
-                    top: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 2}s`,
-                    fontSize: `${Math.random() * 20 + 20}px`
-                  }}
+        <div className={`fixed inset-0 z-[120] flex items-center justify-center p-6 backdrop-blur-2xl animate-in fade-in duration-500 ${effectiveDark ? 'bg-black/95' : 'bg-black/90'}`}>
+           {activeReinforcement?.type === 'game' ? (
+             <div className="w-full max-w-4xl h-[80vh] bg-gray-900 rounded-[3rem] shadow-2xl overflow-hidden relative animate-in zoom-in-95 border border-gray-800">
+                <button 
+                  onClick={handleGameClose}
+                  className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-50"
                 >
-                  {['✨', '🎈', '🎊', '🎉', '⭐'][Math.floor(Math.random() * 5)]}
+                  <X className="w-6 h-6" />
+                </button>
+                <div className="h-full p-8">
+                  <GameView gameId={activeReinforcement.image} onClose={handleGameClose} />
                 </div>
-              ))}
-           </div>
+                <div className="absolute bottom-6 left-0 w-full flex justify-center">
+                   <button 
+                    onClick={handleGameClose} 
+                    className="px-8 py-3 bg-white text-black font-black rounded-full shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+                   >
+                     {language === 'zh' ? '完成练习' : 'Done & Continue'}
+                     <ChevronRight className="w-4 h-4" />
+                   </button>
+                </div>
+             </div>
+           ) : (
+             <>
+               <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                  {[...Array(20)].map((_, i) => (
+                    <div 
+                      key={i}
+                      className="absolute animate-bounce opacity-20"
+                      style={{
+                        left: `${Math.random() * 100}%`,
+                        top: `${Math.random() * 100}%`,
+                        animationDelay: `${Math.random() * 2}s`,
+                        fontSize: `${Math.random() * 20 + 20}px`
+                      }}
+                    >
+                      {['✨', '🎈', '🎊', '🎉', '⭐'][Math.floor(Math.random() * 5)]}
+                    </div>
+                  ))}
+               </div>
 
-           <div className="w-full max-w-2xl text-center space-y-12 animate-in zoom-in-75 duration-500 relative">
-              <div className="relative mx-auto w-72 h-72 bg-gradient-to-b from-primary-400/20 to-transparent rounded-full flex items-center justify-center">
-                 <div className="absolute inset-0 bg-primary-500/10 blur-3xl rounded-full animate-pulse"></div>
-                 <div className={`text-[12rem] animate-bounce filter ${effectiveDark ? 'drop-shadow-[0_20px_50px_rgba(255,255,255,0.3)]' : 'drop-shadow-[0_20px_50px_rgba(0,0,0,0.2)]'}`}>
-                    {activeReinforcement?.image === 'fireworks' ? '🎆' : 
-                    activeReinforcement?.image === 'star' ? '⭐' : 
-                    activeReinforcement?.image === 'trophy' ? '🏆' : 
-                    activeReinforcement?.image === 'rocket' ? '🚀' : 
-                    activeReinforcement?.image === 'party' ? '🎉' : 
-                    activeReinforcement?.image?.startsWith('http') ? <img src={activeReinforcement.image} className="w-48 h-48 object-contain" /> :
-                    activeReinforcement?.image?.startsWith('data:') ? <img src={activeReinforcement.image} className="w-48 h-48 object-contain" /> : '🦖'}
-                 </div>
-              </div>
+               <div className="w-full max-w-2xl text-center space-y-12 animate-in zoom-in-75 duration-500 relative">
+                  <div className="relative mx-auto w-72 h-72 bg-gradient-to-b from-primary-400/20 to-transparent rounded-full flex items-center justify-center">
+                     <div className="absolute inset-0 bg-primary-500/10 blur-3xl rounded-full animate-pulse"></div>
+                     <div className={`text-[12rem] animate-bounce filter ${effectiveDark ? 'drop-shadow-[0_20px_50px_rgba(255,255,255,0.3)]' : 'drop-shadow-[0_20px_50px_rgba(0,0,0,0.2)]'}`}>
+                        {activeReinforcement?.image === 'fireworks' ? '🎆' : 
+                        activeReinforcement?.image === 'star' ? '⭐' : 
+                        activeReinforcement?.image === 'trophy' ? '🏆' : 
+                        activeReinforcement?.image === 'rocket' ? '🚀' : 
+                        activeReinforcement?.image === 'party' ? '🎉' : 
+                        activeReinforcement?.image?.startsWith('http') ? <img src={activeReinforcement.image} className="w-48 h-48 object-contain" /> :
+                        activeReinforcement?.image?.startsWith('data:') ? <img src={activeReinforcement.image} className="w-48 h-48 object-contain" /> : '🦖'}
+                     </div>
+                  </div>
 
-              <div className="space-y-4">
-                 <h2 className={`text-6xl font-black tracking-tighter uppercase ${effectiveDark ? 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-white to-yellow-200' : 'text-primary-600'}`}>
-                   {activeReinforcement?.prompt || (language === 'zh' ? '太棒了！' : 'EXCELLENT!')}
-                 </h2>
-                 <p className={`text-xl font-bold tracking-widest uppercase opacity-80 ${effectiveDark ? 'text-primary-200' : 'text-primary-900'}`}>
-                   {activeReinforcement?.name || (language === 'zh' ? '获得奖励' : 'REWARD UNLOCKED')}
-                 </p>
-              </div>
-           </div>
+                  <div className="space-y-4">
+                     <h2 className={`text-6xl font-black tracking-tighter uppercase ${effectiveDark ? 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-white to-yellow-200' : 'text-primary-600'}`}>
+                       {activeReinforcement?.prompt || (language === 'zh' ? '太棒了！' : 'EXCELLENT!')}
+                     </h2>
+                     <p className={`text-xl font-bold tracking-widest uppercase opacity-80 ${effectiveDark ? 'text-primary-200' : 'text-primary-900'}`}>
+                       {activeReinforcement?.name || (language === 'zh' ? '获得奖励' : 'REWARD UNLOCKED')}
+                     </p>
+                  </div>
+               </div>
+             </>
+           )}
         </div>
       )}
     </div>

@@ -213,6 +213,8 @@ func GetDashboardStats(c *gin.Context) {
 func GetQuestions(c *gin.Context) {
 	subject := c.Query("subject")
 	gradeStr := c.Query("grade")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
 	
 	query := DB.Model(&Question{})
 
@@ -238,9 +240,18 @@ func GetQuestions(c *gin.Context) {
 		}
 	}
 
+	var total int64
+	query.Count(&total)
+
 	questions := make([]Question, 0)
-	query.Find(&questions)
-	SendJSON(c, 0, "", questions)
+	query.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&questions)
+	
+	SendJSON(c, 0, "", gin.H{
+		"list":     questions,
+		"total":    total,
+		"page":     page,
+		"pageSize": pageSize,
+	})
 }
 
 func CreateQuestion(c *gin.Context) {

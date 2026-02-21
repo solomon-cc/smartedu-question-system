@@ -114,7 +114,7 @@ const Permissions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
           <Shield className="w-8 h-8" />
         </div>
         <div>
-          <h2 className="text-2xl font-black dark:text-white">{language === 'zh' ? '角色权限中枢' : 'Permission Hub'}</h2>
+          <h2 className="text-2xl font-black dark:text-white">{language === 'zh' ? '权限设置' : 'Permission Settings'}</h2>
           <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{language === 'zh' ? '精细化管理系统 UI 访问与 API 接口调用权限' : 'Granular control over UI access and API capabilities'}</p>
         </div>
       </div>

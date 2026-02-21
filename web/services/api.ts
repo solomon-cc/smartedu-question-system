@@ -42,14 +42,15 @@ export const api = {
     },
   },
   questions: {
-    list: async (subject?: string, grade?: number): Promise<Question[]> => {
-      const params = new URLSearchParams();
-      if (subject) params.append('subject', subject);
-      if (grade) params.append('grade', grade.toString());
+    list: async (params: { page?: number; pageSize?: number; subject?: string; grade?: number } = {}): Promise<{ list: Question[]; total: number }> => {
+      const urlParams = new URLSearchParams();
+      if (params.page) urlParams.append('page', params.page.toString());
+      if (params.pageSize) urlParams.append('pageSize', params.pageSize.toString());
+      if (params.subject) urlParams.append('subject', params.subject);
+      if (params.grade) urlParams.append('grade', params.grade.toString());
       
-      const res = await fetch(`${API_URL}/questions?${params.toString()}`, { headers: getHeaders() });
-      const data = await handleResponse(res);
-      return data || [];
+      const res = await fetch(`${API_URL}/questions?${urlParams.toString()}`, { headers: getHeaders() });
+      return handleResponse(res);
     },
     create: async (data: Partial<Question>): Promise<Question> => {
       const res = await fetch(`${API_URL}/questions`, {

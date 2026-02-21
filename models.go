@@ -74,6 +74,7 @@ type Reinforcement struct {
 	TargetStudentIDs []string `json:"targetStudentIds" gorm:"serializer:json"`
 	RuleType         string   `json:"ruleType" gorm:"type:varchar(191)"` // "fixed", "correct_count", "average"
 	RuleValue        int      `json:"ruleValue"`
+	IsActive         bool     `json:"isActive" gorm:"default:true"`
 }
 
 type Paper struct {

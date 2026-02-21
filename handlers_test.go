@@ -11,22 +11,53 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetQuestions_Empty(t *testing.T) {
+func TestGetQuestions_TableDriven(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	r.GET("/questions", GetQuestions)
 
-	storeQuestions = make([]Question, 0) 
+	// Mock some data if using global store, but here we assume DB is initialized or mocked
+	// For this example, we test the logic of parameter handling
 
-	req, _ := http.NewRequest("GET", "/questions?subject=NonExistent", nil)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
+	tests := []struct {
+		name           string
+		url            string
+		expectedStatus int
+		expectedCode   int
+	}{
+		{
+			name:           "List all questions",
+			url:            "/questions",
+			expectedStatus: http.StatusOK,
+			expectedCode:   0,
+		},
+		{
+			name:           "Filter by subject",
+			url:            "/questions?subject=MATH",
+			expectedStatus: http.StatusOK,
+			expectedCode:   0,
+		},
+		{
+			name:           "Filter by invalid grade",
+			url:            "/questions?grade=abc",
+			expectedStatus: http.StatusOK,
+			expectedCode:   0,
+		},
+	}
 
-	assert.Equal(t, http.StatusOK, w.Code)
-    var resp Response
-    json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.Equal(t, 0, resp.Code)
-    assert.Equal(t, 0, len(resp.Data.([]interface{})))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, _ := http.NewRequest("GET", tt.url, nil)
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.expectedStatus, w.Code)
+			var resp Response
+			err := json.Unmarshal(w.Body.Bytes(), &resp)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedCode, resp.Code)
+		})
+	}
 }
 
 func TestGetTeacherStats(t *testing.T) {

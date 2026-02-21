@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PlayCircle, Image as ImageIcon, Plus, Trash2, X, UploadCloud, Info, CheckCircle, Users, Globe, UserCheck, Star, Zap, Gift, Trophy, Edit2, Clock } from 'lucide-react';
+import { PlayCircle, Image as ImageIcon, Plus, Trash2, X, UploadCloud, Info, CheckCircle, Users, Globe, UserCheck, Star, Zap, Gift, Trophy, Edit2, Clock, Gamepad2 } from 'lucide-react';
 import { api } from '../../services/api.ts';
 import { Role } from '../../types';
 import Loading from '../../components/Loading';
@@ -11,6 +11,15 @@ const BUILTIN_ASSETS = [
   { id: 'trophy', name: '冠军奖杯', nameEn: 'Trophy', icon: '🏆', color: 'bg-blue-100 text-blue-600' },
   { id: 'rocket', name: '一飞冲天', nameEn: 'Rocket', icon: '🚀', color: 'bg-red-100 text-red-600' },
   { id: 'party', name: '庆祝时刻', nameEn: 'Party', icon: '🎉', color: 'bg-pink-100 text-pink-600' },
+];
+
+const BUILTIN_GAMES = [
+  { id: 'reaction', name: '反应力测试', nameEn: 'Reaction Test', icon: '⚡', color: 'bg-amber-100 text-amber-600', desc: '测试你的反应速度' },
+  { id: 'memory', name: '记忆翻牌', nameEn: 'Memory Cards', icon: '🎴', color: 'bg-blue-100 text-blue-600', desc: '找出相同的卡片' },
+  { id: 'math', name: '极速算术', nameEn: 'Quick Math', icon: '🧮', color: 'bg-green-100 text-green-600', desc: '快速回答简单的算术题' },
+  { id: 'clicker', name: '疯狂点击', nameEn: 'Speed Clicker', icon: '👆', color: 'bg-red-100 text-red-600', desc: '5秒内点击尽可能多次' },
+  { id: 'simon', name: '记忆序列', nameEn: 'Simon Says', icon: '🎹', color: 'bg-purple-100 text-purple-600', desc: '记住并重复颜色序列' },
+  { id: 'breath', name: '深呼吸', nameEn: 'Deep Breath', icon: '🌬️', color: 'bg-cyan-100 text-cyan-600', desc: '跟随指引放松呼吸' },
 ];
 
 const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'dark' | 'auto' }> = ({ language, themeMode }) => {
@@ -25,10 +34,11 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
   const [formPrompt, setFormPrompt] = useState('');
   const [formDuration, setFormDuration] = useState('3');
   const [isGlobal, setIsGlobal] = useState(true);
+  const [isActive, setIsActive] = useState(true);
   const [targetStudentIds, setTargetStudentIds] = useState<string[]>([]);
   const [ruleType, setRuleType] = useState<'fixed' | 'correct_count' | 'average'>('fixed');
   const [ruleValue, setRuleValue] = useState(2);
-  const [assetType, setAssetType] = useState<'builtin' | 'upload'>('builtin');
+  const [assetType, setAssetType] = useState<'builtin' | 'upload' | 'game'>('builtin');
   const [selectedBuiltin, setSelectedBuiltin] = useState<string>('');
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -86,9 +96,9 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
   const handleCreateOrUpdate = async () => {
     let finalImage = '';
     
-    if (assetType === 'builtin') {
+    if (assetType === 'builtin' || assetType === 'game') {
       if (!selectedBuiltin) {
-        alert(language === 'zh' ? '请选择一个动画' : 'Please select an animation');
+        alert(language === 'zh' ? '请选择一个项目' : 'Please select an item');
         return;
       }
       finalImage = selectedBuiltin;
@@ -100,16 +110,21 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
       finalImage = uploadedFile;
     }
 
+    let defaultName = 'Custom Asset';
+    if (assetType === 'builtin') defaultName = BUILTIN_ASSETS.find(b => b.id === selectedBuiltin)?.name || defaultName;
+    if (assetType === 'game') defaultName = BUILTIN_GAMES.find(b => b.id === selectedBuiltin)?.name || defaultName;
+
     const payload = {
-        name: formName || (assetType === 'builtin' ? BUILTIN_ASSETS.find(b => b.id === selectedBuiltin)?.name : 'Custom Asset'),
-        type: 'animation', 
+        name: formName || defaultName,
+        type: assetType === 'game' ? 'game' : 'animation', 
         isGlobal: isGlobal,
+        isActive: isActive,
         targetStudentIds: isGlobal ? [] : targetStudentIds,
         ruleType: ruleType,
         ruleValue: ruleValue,
         image: finalImage,
         prompt: formPrompt,
-        duration: parseInt(formDuration) || 3
+        duration: assetType === 'game' ? 0 : (parseInt(formDuration) || 3) // Games ignore duration
     };
 
     try {
@@ -132,6 +147,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
     setFormPrompt('');
     setFormDuration('3');
     setIsGlobal(true);
+    setIsActive(true);
     setTargetStudentIds([]);
     setRuleType('fixed');
     setRuleValue(2);
@@ -147,18 +163,26 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
       setFormPrompt(item.prompt || '');
       setFormDuration(String(item.duration || 3));
       setIsGlobal(item.isGlobal);
+      setIsActive(item.isActive !== false); // Default true if undefined
       setTargetStudentIds(item.targetStudentIds || []);
       setRuleType(item.ruleType || 'fixed');
       setRuleValue(item.ruleValue || 2);
       
       const isBuiltin = BUILTIN_ASSETS.some(b => b.id === item.image);
-      setAssetType(isBuiltin ? 'builtin' : 'upload');
-      if (isBuiltin) {
-          setSelectedBuiltin(item.image);
-          setUploadedFile(null);
+      const isGame = item.type === 'game';
+      
+      if (isGame) {
+        setAssetType('game');
+        setSelectedBuiltin(item.image);
+        setUploadedFile(null);
+      } else if (isBuiltin) {
+        setAssetType('builtin');
+        setSelectedBuiltin(item.image);
+        setUploadedFile(null);
       } else {
-          setUploadedFile(item.image);
-          setSelectedBuiltin('');
+        setAssetType('upload');
+        setUploadedFile(item.image);
+        setSelectedBuiltin('');
       }
       setIsUploadModalOpen(true);
   };
@@ -175,6 +199,10 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
   };
 
   const getIconForAsset = (item: any) => {
+    if (item.type === 'game') {
+        const game = BUILTIN_GAMES.find(g => g.id === item.image);
+        return <div className="text-6xl">{game?.icon || '🎮'}</div>;
+    }
     const builtin = BUILTIN_ASSETS.find(b => b.id === item.image);
     if (builtin) {
       return <div className="text-6xl">{builtin.icon}</div>;
@@ -213,7 +241,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
   return (
     <div className="space-y-6 relative animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold dark:text-white">{language === 'zh' ? '强化物资源库' : 'Reinforcement Assets'}</h2>
+        <h2 className="text-2xl font-bold dark:text-white">{language === 'zh' ? '强化物管理' : 'Reinforcement Management'}</h2>
         <button 
           onClick={() => {
             resetForm();
@@ -255,7 +283,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
                    onClick={() => setPreviewingItem(item)}
                    className="bg-white p-4 rounded-full shadow-2xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 hover:scale-110"
                  >
-                    <PlayCircle className="w-8 h-8 text-primary-600 fill-primary-600/10" />
+                    {item.type === 'game' ? <Gamepad2 className="w-8 h-8 text-primary-600 fill-primary-600/10" /> : <PlayCircle className="w-8 h-8 text-primary-600 fill-primary-600/10" />}
                  </button>
                </div>
              </div>
@@ -266,16 +294,25 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
                </div>
                <div className="flex flex-col gap-2">
                  <div className="flex items-center gap-1 text-[10px] text-gray-400 font-black uppercase tracking-widest">
-                    <span className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{item.type}</span>
+                    <span className={`bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded ${item.type === 'game' ? 'text-purple-600 bg-purple-50' : ''}`}>{item.type === 'game' ? 'GAME' : 'ANIM'}</span>
                     <span>·</span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-2.5 h-2.5" />
-                      {item.duration}s
-                    </span>
-                    <span>·</span>
+                    {item.type !== 'game' && (
+                        <>
+                        <span className="flex items-center gap-1">
+                        <Clock className="w-2.5 h-2.5" />
+                        {item.duration}s
+                        </span>
+                        <span>·</span>
+                        </>
+                    )}
                     <span className="flex items-center gap-1">
                       {item.isGlobal ? <Globe className="w-2.5 h-2.5" /> : <Users className="w-2.5 h-2.5" />}
                       {item.isGlobal ? (language === 'zh' ? '全局' : 'Global') : (language === 'zh' ? '定向' : 'Targeted')}
+                    </span>
+                    <span>·</span>
+                    <span className={`flex items-center gap-1 ${item.isActive !== false ? 'text-green-500' : 'text-gray-400'}`}>
+                      {item.isActive !== false ? <CheckCircle className="w-2.5 h-2.5" /> : <X className="w-2.5 h-2.5" />}
+                      {item.isActive !== false ? (language === 'zh' ? '启用' : 'On') : (language === 'zh' ? '停用' : 'Off')}
                     </span>
                  </div>
                  <div className="text-[10px] text-primary-600 font-bold bg-primary-50 dark:bg-primary-950/20 px-2 py-1 rounded-lg border border-primary-100 dark:border-primary-900/50 w-fit">
@@ -335,6 +372,9 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
                  <p className={`text-xl font-bold tracking-widest uppercase opacity-80 ${effectiveDark ? 'text-primary-200' : 'text-primary-900'}`}>
                    {previewingItem.name}
                  </p>
+                 {previewingItem.type === 'game' && (
+                     <p className="text-sm font-bold opacity-60">(Game Preview Placeholder)</p>
+                 )}
               </div>
 
               <div className="flex justify-center pt-8">
@@ -378,18 +418,30 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
                    </div>
                    <div className="flex flex-col">
                       <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">{language === 'zh' ? '适用范围' : 'Scope'}</label>
-                      <div className="flex p-1 bg-gray-100 dark:bg-gray-900 rounded-xl">
+                      <div className="flex gap-2">
+                        <div className="flex flex-1 p-1 bg-gray-100 dark:bg-gray-900 rounded-xl">
+                          <button 
+                            onClick={() => setIsGlobal(true)}
+                            className={`flex-1 py-3 text-xs font-black rounded-lg transition-all ${isGlobal ? 'bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white' : 'text-gray-400'}`}
+                          >
+                            {language === 'zh' ? '全局通用' : 'Global'}
+                          </button>
+                          <button 
+                            onClick={() => setIsGlobal(false)}
+                            className={`flex-1 py-3 text-xs font-black rounded-lg transition-all ${!isGlobal ? 'bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white' : 'text-gray-400'}`}
+                          >
+                            {language === 'zh' ? '定向学生' : 'Targeted'}
+                          </button>
+                        </div>
+                        
                         <button 
-                          onClick={() => setIsGlobal(true)}
-                          className={`flex-1 py-3 text-xs font-black rounded-lg transition-all ${isGlobal ? 'bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white' : 'text-gray-400'}`}
+                          onClick={() => setIsActive(!isActive)}
+                          className={`w-24 flex flex-col items-center justify-center rounded-xl font-black text-xs transition-all ${isActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
                         >
-                          {language === 'zh' ? '全局通用' : 'Global'}
-                        </button>
-                        <button 
-                          onClick={() => setIsGlobal(false)}
-                          className={`flex-1 py-3 text-xs font-black rounded-lg transition-all ${!isGlobal ? 'bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white' : 'text-gray-400'}`}
-                        >
-                          {language === 'zh' ? '定向学生' : 'Targeted'}
+                          <div className={`w-8 h-4 rounded-full p-0.5 mb-1 transition-colors ${isActive ? 'bg-green-500' : 'bg-gray-300'}`}>
+                             <div className={`w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform ${isActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                          </div>
+                          {isActive ? (language === 'zh' ? '已启用' : 'Active') : (language === 'zh' ? '已停用' : 'Inactive')}
                         </button>
                       </div>
                    </div>
@@ -447,7 +499,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
                  </div>
 
                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex-1">
+                    <div className={assetType === 'game' ? 'col-span-2' : 'flex-1'}>
                         <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">{language === 'zh' ? '奖励提示词' : 'Reinforcement Prompt'}</label>
                         <input 
                           type="text" 
@@ -457,17 +509,19 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
                           placeholder={language === 'zh' ? '输入赞美语' : 'Enter praise text'}
                         />
                     </div>
-                    <div className="w-32">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">{language === 'zh' ? '持续时间 (秒)' : 'Duration (s)'}</label>
-                        <input 
-                          type="number" 
-                          min="1"
-                          max="10"
-                          value={formDuration}
-                          onChange={(e) => setFormDuration(e.target.value)}
-                          className="w-full p-4 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-xl border dark:border-gray-700 outline-none focus:ring-4 focus:ring-primary-500/20 font-bold"
-                        />
-                    </div>
+                    {assetType !== 'game' && (
+                        <div className="w-32">
+                            <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">{language === 'zh' ? '持续时间 (秒)' : 'Duration (s)'}</label>
+                            <input 
+                            type="number" 
+                            min="1"
+                            max="10"
+                            value={formDuration}
+                            onChange={(e) => setFormDuration(e.target.value)}
+                            className="w-full p-4 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-xl border dark:border-gray-700 outline-none focus:ring-4 focus:ring-primary-500/20 font-bold"
+                            />
+                        </div>
+                    )}
                  </div>
                  
                  <div>
@@ -479,6 +533,12 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
                         {language === 'zh' ? '内置动画' : 'Built-in'}
                       </button>
                       <button 
+                        onClick={() => setAssetType('game')} 
+                        className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${assetType === 'game' ? 'bg-white dark:bg-gray-600 shadow text-primary-600 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+                      >
+                        {language === 'zh' ? '小游戏' : 'Mini Game'}
+                      </button>
+                      <button 
                         onClick={() => setAssetType('upload')} 
                         className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${assetType === 'upload' ? 'bg-white dark:bg-gray-600 shadow text-primary-600 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
                       >
@@ -486,7 +546,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
                       </button>
                    </div>
 
-                   {assetType === 'builtin' ? (
+                   {assetType === 'builtin' && (
                      <div className="grid grid-cols-3 gap-4">
                        {BUILTIN_ASSETS.map(asset => (
                          <div 
@@ -499,7 +559,25 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
                          </div>
                        ))}
                      </div>
-                   ) : (
+                   )}
+
+                   {assetType === 'game' && (
+                     <div className="grid grid-cols-3 gap-4">
+                       {BUILTIN_GAMES.map(game => (
+                         <div 
+                           key={game.id}
+                           onClick={() => setSelectedBuiltin(game.id)}
+                           className={`cursor-pointer p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 text-center ${selectedBuiltin === game.id ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-transparent bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                         >
+                            <div className="text-4xl">{game.icon}</div>
+                            <span className="text-xs font-bold dark:text-white">{language === 'zh' ? game.name : game.nameEn}</span>
+                            <span className="text-[10px] text-gray-400 leading-tight">{game.desc}</span>
+                         </div>
+                       ))}
+                     </div>
+                   )}
+
+                   {assetType === 'upload' && (
                      <div 
                         onClick={() => fileInputRef.current?.click()}
                         className={`group border-4 border-dashed rounded-[2.5rem] p-8 flex flex-col items-center justify-center gap-4 hover:border-primary-500 hover:bg-primary-50/20 transition-all cursor-pointer ${uploadedFile ? 'border-green-500 bg-green-50/20' : 'dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50'}`}

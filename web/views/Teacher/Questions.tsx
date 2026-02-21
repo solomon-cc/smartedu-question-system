@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Filter, Edit2, Trash2, X, Image as ImageIcon, CheckCircle, Circle, CheckSquare, Square, Upload, Eye } from 'lucide-react';
+import { Plus, Search, Filter, Edit2, Trash2, X, Image as ImageIcon, CheckCircle, Circle, CheckSquare, Square, Upload, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { api } from '../../services/api.ts';
 import { Question, QuestionType } from '../../types.ts';
@@ -92,6 +92,9 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 10;
 
   // ... (existing states)
 
@@ -177,7 +180,7 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       await api.questions.bulkCreate(importData);
       setIsImportModalOpen(false);
       setImportData([]);
-      fetchQuestions();
+      if (page === 1) fetchQuestions(); else setPage(1);
       alert(language === 'zh' ? '导入成功' : 'Import successful');
     } catch (e) {
       console.error(e);
@@ -219,8 +222,9 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const fetchQuestions = async () => {
     setLoading(true);
     try {
-      const data = await api.questions.list();
-      setQuestions(data);
+      const res = await api.questions.list({ page, pageSize });
+      setQuestions(res.list || []);
+      setTotal(res.total);
     } catch (error) {
       console.error("Failed to fetch questions", error);
     } finally {
@@ -230,7 +234,7 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
   useEffect(() => {
     fetchQuestions();
-  }, []);
+  }, [page]);
 
   const handleOpenModal = (q: Question | null = null) => {
     if (q) {
@@ -314,11 +318,12 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     try {
       if (editingQuestion) {
         await api.questions.update(editingQuestion.id, questionData);
+        fetchQuestions(); // Stay on page for edit
       } else {
         await api.questions.create(questionData);
+        if (page === 1) fetchQuestions(); else setPage(1); // Go to page 1 for new
       }
       setIsModalOpen(false);
-      fetchQuestions();
     } catch (error) {
       console.error("Failed to save question", error);
       alert(language === 'zh' ? '保存失败' : 'Failed to save');
@@ -418,6 +423,33 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
               </div>
             );
           })
+        )}
+        
+        {total > pageSize && (
+          <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex items-center justify-between">
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+              {language === 'zh' ? `共 ${total} 题` : `Total ${total}`}
+            </div>
+            <div className="flex gap-2">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage(p => p - 1)}
+                className="p-2 rounded-lg border dark:border-gray-700 disabled:opacity-30 hover:bg-white dark:hover:bg-gray-800 transition-colors bg-white dark:bg-gray-800"
+              >
+                <ChevronLeft className="w-4 h-4 dark:text-gray-300" />
+              </button>
+              <div className="flex items-center px-4 font-black dark:text-white text-sm">
+                {page} / {Math.ceil(total / pageSize)}
+              </div>
+              <button
+                disabled={page >= Math.ceil(total / pageSize)}
+                onClick={() => setPage(p => p + 1)}
+                className="p-2 rounded-lg border dark:border-gray-700 disabled:opacity-30 hover:bg-white dark:hover:bg-gray-800 transition-colors bg-white dark:bg-gray-800"
+              >
+                <ChevronRight className="w-4 h-4 dark:text-gray-300" />
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
