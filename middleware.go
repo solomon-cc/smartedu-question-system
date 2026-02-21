@@ -11,7 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecret = []byte("smartedu-secret-key-2024")
+var jwtSecret = []byte("yilmz-secret-key-2024")
 var tokenDuration = 24 * time.Hour
 
 // Track online users: map[userId]lastActiveTimestamp

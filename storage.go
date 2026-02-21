@@ -26,8 +26,8 @@ func UploadBase64ToOSS(base64Str string) (string, error) {
 	accessKey := os.Getenv("OSS_ACCESS_KEY")
 	secretKey := os.Getenv("OSS_SECRET_KEY")
 	endpoint := getEnv("OSS_ENDPOINT", "oss-cn-chengdu.aliyuncs.com")
-	bucketName := getEnv("OSS_BUCKET_NAME", "smartedu-assets")
-	urlPrefix := getEnv("OSS_URL_PREFIX", "https://smartedu-assets.oss-cn-beijing.aliyuncs.com/")
+	bucketName := getEnv("OSS_BUCKET_NAME", "yilmz-assets")
+	urlPrefix := getEnv("OSS_URL_PREFIX", "https://yilmz-assets.oss-cn-beijing.aliyuncs.com/")
 
 	if accessKey == "" || secretKey == "" {
 		fmt.Printf("[OSS] Warning: Missing OSS_ACCESS_KEY or OSS_SECRET_KEY. Falling back to base64.\n")

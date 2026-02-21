@@ -67,7 +67,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
         border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0
       `}>
         <div className="p-6 flex justify-between items-center border-b dark:border-gray-700 shrink-0">
-          <Link to="/" className="text-xl font-bold text-primary-600">SmartEdu</Link>
+          <Link to="/" className="text-xl font-bold text-primary-600">一粒麦子</Link>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden">
             <X className="w-6 h-6 dark:text-gray-300" />
           </button>
@@ -147,7 +147,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
           >
             <Menu className="w-6 h-6 dark:text-gray-300" />
           </button>
-          <span className="ml-4 font-bold text-primary-600">SmartEdu</span>
+          <span className="ml-4 font-bold text-primary-600">一粒麦子</span>
         </header>
 
         <main className="flex-1 p-4 lg:p-8 overflow-y-auto scroll-smooth">

@@ -1,4 +1,4 @@
-# SmartEdu Question Bank System – Full Stack Integration Mode
+# 一粒麦子题目管理系统 – Full Stack Integration Mode
 
 ## 🚨 Critical Requirement (Must Follow)
 

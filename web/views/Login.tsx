@@ -33,7 +33,7 @@ const Login: React.FC<LoginProps> = ({ language }) => {
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary-400 to-primary-600"></div>
         
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-extrabold text-primary-600 mb-2 tracking-tight">SmartEdu</h1>
+          <h1 className="text-4xl font-extrabold text-primary-600 mb-2 tracking-tight">一粒麦子</h1>
           <p className="text-gray-500 dark:text-gray-400 font-medium">
             {language === 'zh' ? '欢迎回来，请登录您的账户' : 'Welcome back, please log in'}
           </p>
