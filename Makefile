@@ -29,11 +29,16 @@ test-frontend:
 	@echo "Running frontend tests..."
 	cd web && npm run test -- --watchAll=false --passWithNoTests || true
 
-build-frontend:
+web/node_modules: web/package.json
+	@echo "Detected changes in package.json, installing dependencies..."
+	cd web && npm install
+	@touch web/node_modules
+
+build-frontend: web/node_modules
 	@echo "Building frontend..."
-	cd web && npm install && npm run build
-	@echo "Packaging frontend..."
-	cd web && tar -czf dist.tar.gz -C dist .
+	cd web && npm run build
+	@echo "Packaging frontend (including dist directory)..."
+	cd web && tar -czf dist.tar.gz dist
 
 # Coverage targets
 coverage-backend:
