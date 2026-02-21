@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { PlayCircle, Image as ImageIcon, Plus, Trash2, X, UploadCloud, Info, CheckCircle, Users, Globe, UserCheck, Star, Zap, Gift, Trophy } from 'lucide-react';
+import { PlayCircle, Image as ImageIcon, Plus, Trash2, X, UploadCloud, Info, CheckCircle, Users, Globe, UserCheck, Star, Zap, Gift, Trophy, Edit2 } from 'lucide-react';
 import { api } from '../../services/api.ts';
 import { Role } from '../../types';
 import Loading from '../../components/Loading';
@@ -24,10 +24,13 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
   // Form State
   const [formName, setFormName] = useState('');
+  const [formPrompt, setFormPrompt] = useState('');
+  const [formDuration, setFormDuration] = useState('3');
   const [formTarget, setFormTarget] = useState('ALL');
   const [assetType, setAssetType] = useState<'builtin' | 'upload'>('builtin');
   const [selectedBuiltin, setSelectedBuiltin] = useState<string>('');
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -46,6 +49,8 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         id: item.id,
         name: item.name,
         type: item.type,
+        prompt: item.prompt,
+        duration: item.duration || 3,
         // If image field starts with 'data:', it's uploaded. If it matches a builtin ID, it's builtin.
         image: item.image, 
         size: '1.2 MB', // Mock
@@ -76,7 +81,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     }
   };
 
-  const handleCreate = async () => {
+  const handleCreateOrUpdate = async () => {
     let finalImage = '';
     
     if (assetType === 'builtin') {
@@ -93,25 +98,55 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       finalImage = uploadedFile;
     }
 
+    const payload = {
+        name: formName || (assetType === 'builtin' ? BUILTIN_ASSETS.find(b => b.id === selectedBuiltin)?.name : 'Custom Asset'),
+        type: 'animation', 
+        condition: formTarget === 'ALL' ? 'global' : formTarget,
+        image: finalImage,
+        prompt: formPrompt,
+        duration: parseInt(formDuration) || 3
+    };
+
     try {
-      await api.reinforcements.create({
-          name: formName || (assetType === 'builtin' ? BUILTIN_ASSETS.find(b => b.id === selectedBuiltin)?.name : 'Custom Asset'),
-          type: 'animation', 
-          condition: formTarget === 'ALL' ? 'global' : formTarget,
-          image: finalImage
-      });
+      if (editingId) {
+          await api.reinforcements.update(editingId, payload);
+      } else {
+          await api.reinforcements.create(payload);
+      }
       setIsUploadModalOpen(false);
       fetchData();
       // Reset form
       setFormName('');
+      setFormPrompt('');
+      setFormDuration('3');
       setFormTarget('ALL');
       setAssetType('builtin');
       setSelectedBuiltin('');
       setUploadedFile(null);
+      setEditingId(null);
     } catch (e) {
       console.error(e);
-      alert('Failed to create');
+      alert('Failed to save');
     }
+  };
+
+  const handleOpenEdit = (item: any) => {
+      setEditingId(item.id);
+      setFormName(item.name);
+      setFormPrompt(item.prompt || '');
+      setFormDuration(String(item.duration || 3));
+      setFormTarget(item.target === 'ALL' ? 'ALL' : item.target);
+      
+      const isBuiltin = BUILTIN_ASSETS.some(b => b.id === item.image);
+      setAssetType(isBuiltin ? 'builtin' : 'upload');
+      if (isBuiltin) {
+          setSelectedBuiltin(item.image);
+          setUploadedFile(null);
+      } else {
+          setUploadedFile(item.image);
+          setSelectedBuiltin('');
+      }
+      setIsUploadModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -148,7 +183,17 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold dark:text-white">{language === 'zh' ? '强化物资源库' : 'Reinforcement Assets'}</h2>
         <button 
-          onClick={() => setIsUploadModalOpen(true)}
+          onClick={() => {
+            setEditingId(null);
+            setFormName('');
+            setFormPrompt('');
+            setFormDuration('3');
+            setFormTarget('ALL');
+            setAssetType('builtin');
+            setSelectedBuiltin('');
+            setUploadedFile(null);
+            setIsUploadModalOpen(true);
+          }}
           className="bg-primary-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-xl shadow-primary-500/30 hover:bg-primary-700 transition-all hover:scale-105"
         >
           <Plus className="w-5 h-5" />
@@ -220,12 +265,20 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                   </span>
                </div>
              </div>
-             <button 
-                onClick={() => handleDelete(item.id)}
-                className="absolute top-4 right-4 p-2 bg-white/90 dark:bg-gray-800/90 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all shadow-sm hover:bg-red-500 hover:text-white"
-             >
-               <Trash2 className="w-4 h-4" />
-             </button>
+             <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                <button 
+                  onClick={() => handleOpenEdit(item)}
+                  className="p-2 bg-white/90 dark:bg-gray-800/90 text-primary-500 rounded-xl shadow-sm hover:bg-primary-500 hover:text-white"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => handleDelete(item.id)}
+                  className="p-2 bg-white/90 dark:bg-gray-800/90 text-red-500 rounded-xl shadow-sm hover:bg-red-500 hover:text-white"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+             </div>
           </div>
         )))}
       </div>
@@ -260,7 +313,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
               <div className="space-y-4">
                  <h2 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-white to-yellow-200 tracking-tighter uppercase">
-                   {language === 'zh' ? '太棒了！' : 'EXCELLENT!'}
+                   {previewingItem.prompt || (language === 'zh' ? '太棒了！' : 'EXCELLENT!')}
                  </h2>
                  <p className="text-xl text-primary-200 font-bold tracking-widest uppercase opacity-80">
                    {previewingItem.name}
@@ -284,7 +337,11 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in zoom-in-95 duration-300">
            <div className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[2.5rem] shadow-2xl p-10 border dark:border-gray-700 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-10 border-b dark:border-gray-700 pb-6">
-                 <h3 className="text-2xl font-black dark:text-white uppercase tracking-tight">{language === 'zh' ? '添加强化物' : 'Add Reinforcement'}</h3>
+                 <h3 className="text-2xl font-black dark:text-white uppercase tracking-tight">
+                    {editingId 
+                      ? (language === 'zh' ? '编辑强化物' : 'Edit Reinforcement') 
+                      : (language === 'zh' ? '添加强化物' : 'Add Reinforcement')}
+                 </h3>
                  <button onClick={() => setIsUploadModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
                     <X className="w-6 h-6 dark:text-gray-400" />
                  </button>
@@ -313,6 +370,30 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                          {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
                    </div>
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="flex-1">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">{language === 'zh' ? '奖励提示词 (手动输入)' : 'Reinforcement Prompt'}</label>
+                        <input 
+                          type="text" 
+                          value={formPrompt}
+                          onChange={(e) => setFormPrompt(e.target.value)}
+                          className="w-full p-4 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-xl border dark:border-gray-700 outline-none focus:ring-4 focus:ring-primary-500/20 font-bold"
+                          placeholder={language === 'zh' ? '输入赞美语' : 'Enter praise text'}
+                        />
+                    </div>
+                    <div className="w-32">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">{language === 'zh' ? '持续时间 (秒)' : 'Duration (s)'}</label>
+                        <input 
+                          type="number" 
+                          min="1"
+                          max="10"
+                          value={formDuration}
+                          onChange={(e) => setFormDuration(e.target.value)}
+                          className="w-full p-4 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-xl border dark:border-gray-700 outline-none focus:ring-4 focus:ring-primary-500/20 font-bold"
+                        />
+                    </div>
                  </div>
                  
                  <div>
@@ -381,10 +462,10 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                       {language === 'zh' ? '取消' : 'Cancel'}
                     </button>
                     <button 
-                      onClick={handleCreate} 
+                      onClick={handleCreateOrUpdate} 
                       className="flex-1 py-4 bg-primary-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest shadow-xl shadow-primary-500/30 hover:bg-primary-700 transition-all"
                     >
-                      {language === 'zh' ? '确认添加' : 'Confirm'}
+                      {language === 'zh' ? (editingId ? '确认修改' : '确认添加') : (editingId ? 'Update' : 'Confirm')}
                     </button>
                  </div>
               </div>

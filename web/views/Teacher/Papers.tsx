@@ -176,7 +176,7 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
             <h4 className="font-black text-lg dark:text-white mb-2 leading-tight">{p.name}</h4>
             <div className="flex justify-between text-xs text-gray-400 mt-6 font-bold uppercase tracking-widest">
               <span>{p.total || 0} {language === 'zh' ? '道题目' : 'Questions'}</span>
-              <span>{p.used || 0} {language === 'zh' ? '次下发' : 'Assigned'}</span>
+              <span>{p.assignedCount || 0} {language === 'zh' ? '次下发' : 'Assigned'}</span>
             </div>
             <div className="mt-8 flex gap-2">
                <button onClick={() => handleOpenModalForEdit(p)} className="flex-1 py-3 text-xs font-black bg-gray-50 dark:bg-gray-700 rounded-xl dark:text-gray-300 hover:bg-primary-600 hover:text-white transition-all uppercase">

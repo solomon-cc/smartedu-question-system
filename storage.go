@@ -2,23 +2,12 @@ package main
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-)
-
-// OSS Configuration (Fetched from environment variables)
-var (
-	OSSEndpoint   = getEnv("OSS_ENDPOINT", "oss-cn-chengdu.aliyuncs.com")
-	OSSAccessKey  = os.Getenv("OSS_ACCESS_KEY")
-	OSSSecretKey  = os.Getenv("OSS_SECRET_KEY")
-	OSSBucketName = getEnv("OSS_BUCKET_NAME", "ylmz-wheat")
-	OSSUrlPrefix  = getEnv("OSS_URL_PREFIX", "https://img.ylmz.com.cn/")
 )
 
 func getEnv(key, fallback string) string {
@@ -86,82 +75,4 @@ func UploadBase64ToOSS(base64Str string) (string, error) {
 	finalURL := urlPrefix + filename
 	fmt.Printf("[OSS] Success: Uploaded to %s\n", finalURL)
 	return finalURL, nil
-}
-
-type DataStore struct {
-	Users          []User          `json:"users"`
-	Questions      []Question      `json:"questions"`
-	Papers         []Paper         `json:"papers"`
-	Homeworks      []Homework      `json:"homeworks"`
-	History        []History       `json:"history"`
-	Reinforcements []Reinforcement `json:"reinforcements"`
-	Logs           []AuditLog      `json:"logs"`
-}
-
-var (
-	dataMu    sync.RWMutex
-	dataFile  = "data.json"
-)
-
-var storeLogs = make([]AuditLog, 0)
-
-func LoadData() error {
-	dataMu.Lock()
-	defer dataMu.Unlock()
-
-	file, err := os.ReadFile(dataFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return saveDataUnlocked() 
-		}
-		return err
-	}
-
-	var store DataStore
-	if err := json.Unmarshal(file, &store); err != nil {
-		return err
-	}
-
-	// Sync to globals
-	storeUsers = store.Users
-	if storeUsers == nil { storeUsers = make([]User, 0) }
-	storeQuestions = store.Questions
-	if storeQuestions == nil { storeQuestions = make([]Question, 0) }
-	storePapers = store.Papers
-	if storePapers == nil { storePapers = make([]Paper, 0) }
-	storeHomeworks = store.Homeworks
-	if storeHomeworks == nil { storeHomeworks = make([]Homework, 0) }
-	storeHistory = store.History
-	if storeHistory == nil { storeHistory = make([]History, 0) }
-	storeReinforcements = store.Reinforcements
-	if storeReinforcements == nil { storeReinforcements = make([]Reinforcement, 0) }
-	storeLogs = store.Logs
-	if storeLogs == nil { storeLogs = make([]AuditLog, 0) }
-
-	return nil
-}
-
-func SaveData() error {
-	dataMu.Lock()
-	defer dataMu.Unlock()
-	return saveDataUnlocked()
-}
-
-func saveDataUnlocked() error {
-	store := DataStore{
-		Users:          storeUsers,
-		Questions:      storeQuestions,
-		Papers:         storePapers,
-		Homeworks:      storeHomeworks,
-		History:        storeHistory,
-		Reinforcements: storeReinforcements,
-		Logs:           storeLogs,
-	}
-
-	data, err := json.MarshalIndent(store, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(dataFile, data, 0644)
 }

@@ -20,14 +20,15 @@ export const REVERSE_GRADE_MAP: Record<number, string> = {
 
 export const TYPE_MAP: Record<string, QuestionType> = {
   '单选题': QuestionType.MULTIPLE_CHOICE,
-  '多选题': QuestionType.MULTIPLE_CHOICE, // Backend might distinguish, but sharing type for now or using array answer
+  '多选题': QuestionType.MULTIPLE_SELECT,
   '填空题': QuestionType.FILL_BLANK,
   '判断题': QuestionType.TRUE_FALSE,
   '计算题': QuestionType.CALCULATION
 };
 
 export const REVERSE_TYPE_MAP: Record<string, string> = {
-  [QuestionType.MULTIPLE_CHOICE]: '单选题', // Simplified
+  [QuestionType.MULTIPLE_CHOICE]: '单选题',
+  [QuestionType.MULTIPLE_SELECT]: '多选题',
   [QuestionType.TRUE_FALSE]: '判断题',
   [QuestionType.FILL_BLANK]: '填空题',
   [QuestionType.CALCULATION]: '计算题'

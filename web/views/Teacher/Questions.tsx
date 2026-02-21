@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Filter, Edit2, Trash2, X, Image as ImageIcon, CheckCircle, Circle, CheckSquare, Square, Upload, Eye } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { api } from '../../services/api.ts';
 import { Question, QuestionType } from '../../types.ts';
 import { GRADE_MAP, REVERSE_GRADE_MAP, TYPE_MAP, REVERSE_TYPE_MAP } from '../../utils.ts';
@@ -30,7 +31,7 @@ const OptionRow: React.FC<OptionRowProps> = ({
            onClick={() => handleToggleAnswer(opt.value)}
            className={`p-2 rounded-lg transition-colors ${isCorrect ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}
          >
-           {formType === '多选题' 
+           {formType === '多选题' || formType === QuestionType.MULTIPLE_SELECT
              ? (isCorrect ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />)
              : (isCorrect ? <CheckCircle className="w-5 h-5" /> : <Circle className="w-5 h-5" />)
            }
@@ -85,10 +86,104 @@ const OptionRow: React.FC<OptionRowProps> = ({
 
 const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importData, setImportData] = useState<any[]>([]);
   const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // ... (existing states)
+
+  const downloadTemplate = () => {
+    const wb = XLSX.utils.book_new();
+    
+    const mcData = [
+      { "科目": "数学", "年级": 3, "题干": "1+1=?", "题干图片URL": "", "答案": "B", "选项A": "1", "选项A图片URL": "", "选项B": "2", "选项B图片URL": "", "选项C": "3", "选项C图片URL": "", "选项D": "4", "选项D图片URL": "" }
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mcData), "单选题");
+
+    const msData = [
+      { "科目": "数学", "年级": 3, "题干": "哪些是质数？", "题干图片URL": "", "答案": "A,B", "选项A": "2", "选项A图片URL": "", "选项B": "3", "选项B图片URL": "", "选项C": "4", "选项C图片URL": "", "选项D": "6", "选项D图片URL": "" }
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(msData), "多选题");
+
+    const fbData = [
+      { "科目": "数学", "年级": 3, "题干": "三角形内角和是___度", "题干图片URL": "", "答案": "180" }
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fbData), "填空题");
+
+    const tfData = [
+      { "科目": "数学", "年级": 3, "题干": "1是质数", "题干图片URL": "", "答案": "错误" }
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(tfData), "判断题");
+
+    XLSX.writeFile(wb, "question_template_v3.xlsx");
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = new Uint8Array(ev.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const allFormatted: any[] = [];
+
+          workbook.SheetNames.forEach(sheetName => {
+            const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
+            let type = QuestionType.MULTIPLE_CHOICE;
+            if (sheetName === '多选题') type = QuestionType.MULTIPLE_SELECT;
+            if (sheetName === '填空题') type = QuestionType.CALCULATION;
+            if (sheetName === '判断题') type = QuestionType.TRUE_FALSE;
+
+            rows.forEach(row => {
+              const options = [];
+              if (type === QuestionType.MULTIPLE_CHOICE || type === QuestionType.MULTIPLE_SELECT) {
+                if (row['选项A'] !== undefined) options.push({ text: String(row['选项A']), image: row['选项A图片URL'] || "", value: "A" });
+                if (row['选项B'] !== undefined) options.push({ text: String(row['选项B']), image: row['选项B图片URL'] || "", value: "B" });
+                if (row['选项C'] !== undefined) options.push({ text: String(row['选项C']), image: row['选项C图片URL'] || "", value: "C" });
+                if (row['选项D'] !== undefined) options.push({ text: String(row['选项D']), image: row['选项D图片URL'] || "", value: "D" });
+              }
+
+              // Simple Validation
+              const isValid = !!(row['科目'] && row['题干'] && row['答案']);
+
+              allFormatted.push({
+                subject: row['科目'],
+                grade: parseInt(row['年级']),
+                type: type,
+                stemText: row['题干'],
+                stemImage: row['题干图片URL'] || "",
+                answer: String(row['答案']),
+                options: options.length > 0 ? options : undefined,
+                isValid: isValid
+              });
+            });
+          });
+          
+          setImportData(allFormatted);
+        } catch (err) {
+          alert('Invalid Excel file');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  };
+
+  const confirmImport = async () => {
+    try {
+      await api.questions.bulkCreate(importData);
+      setIsImportModalOpen(false);
+      setImportData([]);
+      fetchQuestions();
+      alert(language === 'zh' ? '导入成功' : 'Import successful');
+    } catch (e) {
+      console.error(e);
+      alert('Import failed');
+    }
+  };
 
   // Form State
   // ... (keeping existing states)
@@ -154,8 +249,11 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         value: o.value 
       })) || [{ text: '', image: '', value: 'A' }, { text: '', image: '', value: 'B' }, { text: '', image: '', value: 'C' }, { text: '', image: '', value: 'D' }]);
       
-      // Handle answer parsing if needed (backend stores string)
-      setFormAnswer(q.answer); 
+      if (q.type === QuestionType.MULTIPLE_SELECT || uiType === '多选题') {
+          setFormAnswer(q.answer ? q.answer.split(',') : []);
+      } else {
+          setFormAnswer(q.answer);
+      }
     } else {
       setEditingQuestion(null);
       setFormSubject('数学');
@@ -170,15 +268,12 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   };
 
   const handleToggleAnswer = (val: string) => {
-    if (formType === '多选题') {
+    if (formType === '多选题' || formType === QuestionType.MULTIPLE_SELECT) {
       const current = Array.isArray(formAnswer) ? [...formAnswer] : (formAnswer ? [formAnswer as string] : []);
-      // Logic for multi-select (not fully supported by backend string field yet unless JSON stringified, but simplifying here)
-      // Assuming backend stores comma separated or JSON for multiple answers? 
-      // Current backend model has Answer string.
       if (current.includes(val)) {
         setFormAnswer(current.filter(v => v !== val));
       } else {
-        setFormAnswer([...current, val]);
+        setFormAnswer([...current, val].sort());
       }
     } else {
       setFormAnswer(val);
@@ -212,7 +307,7 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       type: TYPE_MAP[formType] || QuestionType.MULTIPLE_CHOICE,
       stemText: formStem,
       stemImage: formStemImage,
-      options: ['单选题', '多选题'].includes(formType) ? validOptions : undefined,
+      options: ['单选题', '多选题', QuestionType.MULTIPLE_CHOICE, QuestionType.MULTIPLE_SELECT].includes(formType) ? validOptions : undefined,
       answer: Array.isArray(formAnswer) ? formAnswer.join(',') : formAnswer
     };
 
@@ -248,13 +343,29 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     <div className="space-y-6 relative animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold dark:text-white">{language === 'zh' ? '题目管理' : 'Question Bank'}</h2>
-        <button 
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 bg-primary-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/30"
-        >
-          <Plus className="w-5 h-5" />
-          {language === 'zh' ? '添加新题' : 'New Question'}
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={downloadTemplate}
+            className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-4 py-2 rounded-xl font-bold hover:bg-gray-200 transition-all border dark:border-gray-700"
+          >
+            <Upload className="w-4 h-4 rotate-180" />
+            {language === 'zh' ? '下载模版' : 'Template'}
+          </button>
+          <button 
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-xl font-bold hover:bg-blue-100 transition-all border border-blue-100 dark:border-blue-800"
+          >
+            <Upload className="w-4 h-4" />
+            {language === 'zh' ? '一键导入' : 'Import'}
+          </button>
+          <button 
+            onClick={() => handleOpenModal()}
+            className="flex items-center gap-2 bg-primary-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/30"
+          >
+            <Plus className="w-5 h-5" />
+            {language === 'zh' ? '添加新题' : 'New Question'}
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-4">
@@ -512,6 +623,74 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
               <div className="p-6 bg-primary-50 dark:bg-primary-900/10 rounded-2xl border-2 border-primary-200 dark:border-primary-800">
                  <p className="text-[10px] font-black text-primary-600 uppercase mb-1 tracking-widest">{language === 'zh' ? '标准答案' : 'Solution'}</p>
                  <p className="text-primary-700 dark:text-primary-400 font-black text-lg">{previewQuestion.answer}</p>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in zoom-in-95 duration-300">
+           <div className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[2.5rem] shadow-2xl p-8 border dark:border-gray-700">
+              <div className="flex justify-between items-center mb-6">
+                 <h3 className="text-2xl font-black dark:text-white uppercase tracking-tight">{language === 'zh' ? '一键导入题目' : 'Bulk Import'}</h3>
+                 <button onClick={() => setIsImportModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                    <X className="w-6 h-6 dark:text-gray-400" />
+                 </button>
+              </div>
+
+              <div className="space-y-6">
+                 {importData.length === 0 ? (
+                   <div className="border-4 border-dashed border-gray-100 dark:border-gray-700 rounded-[2rem] p-12 text-center">
+                     <Upload className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                     <p className="font-bold dark:text-gray-300 mb-2">{language === 'zh' ? '点击上传模版文件 (.xlsx)' : 'Upload Excel template'}</p>
+                     <p className="text-xs text-gray-400 mb-6">{language === 'zh' ? '请确保文件格式符合下载的 Excel 模版' : 'Follow the downloaded Excel template format'}</p>
+                     <input type="file" accept=".xlsx" onChange={handleImportFile} className="mx-auto" />
+                   </div>
+                 ) : (
+                   <div className="space-y-4">
+                      <p className="font-bold dark:text-white">{language === 'zh' ? `预览解析结果 (共 ${importData.length} 题)` : `Preview Results (${importData.length})`}</p>
+                      <div className="max-h-80 overflow-y-auto space-y-2 border dark:border-gray-700 p-4 rounded-2xl bg-gray-50 dark:bg-gray-900 scrollbar-thin">
+                         {importData.map((q, i) => (
+                           <div key={i} className="p-3 bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 flex items-center justify-between group">
+                              <div className="flex items-center gap-3 min-w-0">
+                                 <div className={`w-2 h-2 rounded-full shrink-0 ${q.isValid ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                 <div className="truncate">
+                                    <span className="text-[10px] font-black text-primary-600 uppercase mr-2">[{q.subject}]</span>
+                                    <span className="text-sm dark:text-gray-300">{q.stemText}</span>
+                                 </div>
+                              </div>
+                              <button 
+                                onClick={() => {
+                                    // Map back to temporary question object for existing preview modal
+                                    setPreviewQuestion({
+                                        id: 'temp',
+                                        ...q
+                                    });
+                                }}
+                                className="p-2 text-gray-400 hover:text-primary-600 opacity-0 group-hover:opacity-100 transition-all"
+                              >
+                                 <Eye className="w-4 h-4" />
+                              </button>
+                           </div>
+                         ))}
+                      </div>
+                      <div className="flex gap-3">
+                         <button onClick={() => setImportData([])} className="flex-1 py-4 bg-gray-100 dark:bg-gray-700 text-gray-500 rounded-2xl font-bold">{language === 'zh' ? '重新上传' : 'Reset'}</button>
+                         <button 
+                            onClick={confirmImport} 
+                            disabled={importData.some(q => !q.isValid)}
+                            className={`flex-1 py-4 text-white rounded-2xl font-bold shadow-lg transition-all ${importData.some(q => !q.isValid) ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary-600 shadow-primary-500/20'}`}
+                         >
+                            {language === 'zh' ? '确认导入' : 'Confirm Import'}
+                         </button>
+                      </div>
+                      {importData.some(q => !q.isValid) && (
+                          <p className="text-center text-xs text-red-500 font-bold">
+                            {language === 'zh' ? '部分题目校验未通过，请检查必填项' : 'Some questions failed validation. Please check required fields.'}
+                          </p>
+                      )}
+                   </div>
+                 )}
               </div>
            </div>
         </div>

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, CheckCircle2, ArrowLeft, FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, CheckCircle2, ArrowLeft, FileText, Clock, CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../../services/api.ts';
 import Loading from '../../components/Loading';
 
@@ -21,14 +21,20 @@ const History: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [selectedItem, setSelectedItem] = useState<HistoryItem | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pageSize] = useState(10);
 
   useEffect(() => {
     setLoading(true);
-    api.history.list()
-      .then(setHistory)
+    api.history.list(page, pageSize)
+      .then(res => {
+        setHistory(res.list);
+        setTotal(res.total);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, pageSize]);
 
   const getTypeLabel = (type: string) => {
     switch (type) {
@@ -40,13 +46,19 @@ const History: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   };
 
   const getResultDisplay = (item: HistoryItem) => {
-    if (item.type === 'exam') {
-      return <span className="font-mono font-bold text-primary-600">{item.score} / {item.total}</span>;
-    }
+    const totalQuestions = parseInt(item.total || '0');
+    const correct = item.correctCount || 0;
+    const incorrect = totalQuestions - correct;
+
     return (
-      <div className="flex gap-3 text-xs font-bold">
-        <span className="text-green-600 flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> {item.correctCount}</span>
-        <span className="text-red-500 flex items-center gap-1"><XCircle className="w-4 h-4" /> {item.wrongCount}</span>
+      <div className="flex gap-3 text-xs font-bold items-center">
+        <span className="text-green-600 flex items-center gap-1">
+          <CheckCircle2 className="w-4 h-4" /> {correct}
+        </span>
+        <span className="text-gray-300 dark:text-gray-600 text-sm">/</span>
+        <span className="text-red-500 flex items-center gap-1">
+          <XCircle className="w-4 h-4" /> {incorrect}
+        </span>
       </div>
     );
   };
@@ -178,6 +190,34 @@ const History: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        {total > pageSize && (
+          <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex items-center justify-between">
+            <div className="text-sm text-gray-500">
+              {language === 'zh' ? `共 ${total} 条记录` : `Total ${total} records`}
+            </div>
+            <div className="flex gap-2">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage(p => p - 1)}
+                className="p-2 rounded-lg border dark:border-gray-700 disabled:opacity-30 hover:bg-white dark:hover:bg-gray-800 transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 dark:text-gray-300" />
+              </button>
+              <div className="flex items-center px-4 font-bold dark:text-white">
+                {page} / {Math.ceil(total / pageSize)}
+              </div>
+              <button
+                disabled={page >= Math.ceil(total / pageSize)}
+                onClick={() => setPage(p => p + 1)}
+                className="p-2 rounded-lg border dark:border-gray-700 disabled:opacity-30 hover:bg-white dark:hover:bg-gray-800 transition-colors"
+              >
+                <ChevronRight className="w-5 h-5 dark:text-gray-300" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

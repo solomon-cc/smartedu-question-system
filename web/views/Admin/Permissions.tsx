@@ -21,7 +21,9 @@ const ALL_MODULES = [
   { id: 'papers', label: '试卷管理', icon: ClipboardList },
   { id: 'assignments', label: '作业管理', icon: FileText },
   { id: 'reinforcements', label: '强化物管理', icon: Settings },
+  { id: 'resources', label: '素材管理', icon: ClipboardList },
   { id: 'users', label: '用户管理', icon: Database },
+  { id: 'homework_audit', label: '作业审计', icon: ShieldCheck },
   { id: 'audit_logs', label: '审计日志', icon: ShieldCheck },
   { id: 'stats', label: '统计报表', icon: BarChart },
 ];
@@ -45,6 +47,7 @@ const Permissions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         { id: 'reinforcements', ui: true, api: true },
         { id: 'stats', ui: true, api: false },
         { id: 'users', ui: false, api: false },
+        { id: 'homework_audit', ui: false, api: false },
         { id: 'audit_logs', ui: false, api: false },
       ], 
       level: 'PARTIAL' 
@@ -60,6 +63,7 @@ const Permissions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         { id: 'papers', ui: false, api: false },
         { id: 'reinforcements', ui: false, api: false },
         { id: 'users', ui: false, api: false },
+        { id: 'homework_audit', ui: false, api: false },
         { id: 'audit_logs', ui: false, api: false },
       ], 
       level: 'RESTRICTED' 

@@ -15,6 +15,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [students, setStudents] = useState<any[]>([]);
   const [papers, setPapers] = useState<any[]>([]);
   const [historicalHw, setHistoricalHw] = useState<any[]>([]);
+  const [historyRecords, setHistoryRecords] = useState<any[]>([]);
   
   // Form State
   const [selectedPaperId, setSelectedPaperId] = useState('');
@@ -27,17 +28,20 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [studentsData, papersData, hwData] = await Promise.all([
+      const [studentsData, papersData, hwData, historyData] = await Promise.all([
         api.students.list(),
         api.papers.list(),
-        api.homework.list()
+        api.homework.list(),
+        api.history.list()
       ]);
+
+      setHistoryRecords(historyData);
 
       setStudents(studentsData.map((u: any) => ({
         id: u.id,
-        name: u.username, // Using username as name
-        grade: '3-1', // Mock grade as user model doesn't have it yet
-        completion: '0%' // Mock completion for now
+        name: u.username,
+        grade: '', 
+        completion: '0%'
       })));
 
       setPapers(papersData);
@@ -90,6 +94,16 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   };
 
   if (selectedHw) {
+    const hwHistory = historyRecords.filter(h => h.homeworkId === selectedHw.id);
+    const enrichedStudents = students.map(s => {
+      const record = hwHistory.find(h => h.studentId === s.id);
+      return {
+        ...s,
+        completion: record ? '100%' : '0%',
+        isDone: !!record
+      };
+    });
+
     return (
       <div className="space-y-6 animate-in slide-in-from-right duration-300">
         <button 
@@ -118,7 +132,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
           <div className="space-y-4">
              <h3 className="font-bold dark:text-white mb-4">{language === 'zh' ? '学生完成明细' : 'Student Detail'}</h3>
              <div className="divide-y dark:divide-gray-700">
-                {students.map(s => (
+                {enrichedStudents.map(s => (
                   <div key={s.id} className="py-4 flex items-center justify-between">
                      <div className="flex items-center gap-3">
                         <UserCircle className="w-10 h-10 text-gray-300" />
@@ -128,8 +142,8 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                         </div>
                      </div>
                      <div className="text-right">
-                        <p className={`text-sm font-black ${s.completion === '100%' ? 'text-green-500' : s.completion === '0%' ? 'text-red-500' : 'text-amber-500'}`}>{s.completion}</p>
-                        <p className="text-[10px] text-gray-400">{s.completion === '100%' ? (language === 'zh' ? '已完成' : 'Done') : (language === 'zh' ? '进行中' : 'In Progress')}</p>
+                        <p className={`text-sm font-black ${s.isDone ? 'text-green-500' : 'text-red-500'}`}>{s.completion}</p>
+                        <p className="text-[10px] text-gray-400">{s.isDone ? (language === 'zh' ? '已完成' : 'Done') : (language === 'zh' ? '待完成' : 'Pending')}</p>
                      </div>
                   </div>
                 ))}
@@ -281,7 +295,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                                 style={{ width: `${hw.total > 0 ? (hw.submitted/hw.total)*100 : 0}%` }}
                                ></div>
                             </div>
-                            <span className="text-xs font-bold text-gray-500">{hw.submitted}/{hw.total}</span>
+                            <span className="text-xs font-bold text-gray-500">{hw.submitted}/{hw.total} {language === 'zh' ? '人' : 'Students'}</span>
                          </div>
                       </td>
                       <td className="px-8 py-6 text-right">

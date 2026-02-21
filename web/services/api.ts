@@ -59,6 +59,14 @@ export const api = {
       });
       return handleResponse(res);
     },
+    bulkCreate: async (data: Partial<Question>[]): Promise<{ imported: number }> => {
+      const res = await fetch(`${API_URL}/questions/bulk`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
     update: async (id: string, data: Partial<Question>): Promise<Question> => {
       const res = await fetch(`${API_URL}/questions/${id}`, {
         method: 'PUT',
@@ -144,10 +152,13 @@ export const api = {
     }
   },
   history: {
-    list: async (): Promise<any[]> => {
-      const res = await fetch(`${API_URL}/history`, { headers: getHeaders() });
-      const data = await handleResponse(res);
-      return data || [];
+    list: async (page = 1, pageSize = 10): Promise<{ list: any[], total: number }> => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString()
+      });
+      const res = await fetch(`${API_URL}/history?${params.toString()}`, { headers: getHeaders() });
+      return handleResponse(res);
     },
     create: async (data: any): Promise<any> => {
       const res = await fetch(`${API_URL}/history`, {
@@ -215,6 +226,16 @@ export const api = {
        const res = await fetch(`${API_URL}/admin/logs`, { headers: getHeaders() });
        const data = await handleResponse(res);
        return data || [];
+    },
+    homeworks: async (): Promise<any[]> => {
+       const res = await fetch(`${API_URL}/admin/homeworks`, { headers: getHeaders() });
+       const data = await handleResponse(res);
+       return data || [];
+    },
+    practices: async (): Promise<any[]> => {
+       const res = await fetch(`${API_URL}/admin/practices`, { headers: getHeaders() });
+       const data = await handleResponse(res);
+       return data || [];
     }
   },
   reinforcements: {
@@ -231,6 +252,14 @@ export const api = {
       });
       return handleResponse(res);
     },
+    update: async (id: string, data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/reinforcements/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
     delete: async (id: string): Promise<void> => {
       const res = await fetch(`${API_URL}/reinforcements/${id}`, {
         method: 'DELETE',
@@ -242,6 +271,45 @@ export const api = {
         throw new Error('Unauthorized');
       }
       if (!res.ok) throw new Error('Failed to delete reinforcement');
+    }
+  },
+  resources: {
+    list: async (page = 1, pageSize = 10, keyword = ''): Promise<{ list: Resource[], total: number }> => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+        keyword: keyword
+      });
+      const res = await fetch(`${API_URL}/resources?${params.toString()}`, { headers: getHeaders() });
+      return handleResponse(res);
+    },
+    create: async (data: any): Promise<Resource> => {
+      const res = await fetch(`${API_URL}/resources`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, data: any): Promise<Resource> => {
+      const res = await fetch(`${API_URL}/resources/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    delete: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_URL}/resources/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      if (res.status === 401) {
+        localStorage.removeItem('user');
+        window.location.hash = '#/login';
+        throw new Error('Unauthorized');
+      }
+      if (!res.ok) throw new Error('Failed to delete resource');
     }
   }
 };

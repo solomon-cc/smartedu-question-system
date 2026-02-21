@@ -14,6 +14,7 @@ export enum Subject {
 
 export enum QuestionType {
   MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
+  MULTIPLE_SELECT = 'MULTIPLE_SELECT',
   TRUE_FALSE = 'TRUE_FALSE',
   FILL_BLANK = 'FILL_BLANK',
   CALCULATION = 'CALCULATION'
@@ -63,4 +64,15 @@ export interface ReinforcementRule {
 export interface AttemptState {
   questionId: string;
   attempts: number; // Max 4
+}
+
+export interface Resource {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  tags: string[];
+  visibility: 'personal' | 'public';
+  creatorId: string;
+  createdAt: string;
 }

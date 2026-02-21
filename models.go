@@ -9,11 +9,11 @@ const (
 )
 
 type User struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Password string `json:"password,omitempty"` // omitempty in response for security
-	Role     Role   `json:"role"`
-	Status   string `json:"status"` // "active", "inactive"
+	ID       string `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	Username string `json:"username" gorm:"type:varchar(191);unique"`
+	Password string `json:"password,omitempty" gorm:"type:varchar(191)"`
+	Role     Role   `json:"role" gorm:"type:varchar(191)"`
+	Status   string `json:"status" gorm:"type:varchar(191)"`
 }
 
 type LoginRequest struct {
@@ -22,15 +22,15 @@ type LoginRequest struct {
 }
 
 type Question struct {
-	ID         string   `json:"id"`
-	Subject    string   `json:"subject"`
+	ID         string   `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	Subject    string   `json:"subject" gorm:"type:varchar(191)"`
 	Grade      int      `json:"grade"`
-	Type       string   `json:"type"`
-	StemText   string   `json:"stemText"`
-	StemImage  string   `json:"stemImage,omitempty"`
-	Answer     string   `json:"answer"`
-	Options    []Option `json:"options,omitempty"`
-	Hint       string   `json:"hint,omitempty"`
+	Type       string   `json:"type" gorm:"type:varchar(191)"`
+	StemText   string   `json:"stemText" gorm:"type:text"`
+	StemImage  string   `json:"stemImage,omitempty" gorm:"type:text"`
+	Answer     string   `json:"answer" gorm:"type:text"`
+	Options    []Option `json:"options,omitempty" gorm:"serializer:json"`
+	Hint       string   `json:"hint,omitempty" gorm:"type:text"`
 }
 
 type Option struct {
@@ -63,56 +63,69 @@ type DashboardStats struct {
 	OnlineUsers     int         `json:"onlineUsers"`
 }
 
-// New Models
-
 type Reinforcement struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Type      string `json:"type"` // e.g., "sticker", "animation"
-	Image     string `json:"image,omitempty"`
-	Condition string `json:"condition"` // e.g., "streak_10"
+	ID        string `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	Name      string `json:"name" gorm:"type:varchar(191)"`
+	Type      string `json:"type" gorm:"type:varchar(191)"`
+	Image     string `json:"image,omitempty" gorm:"type:text"`
+	Prompt    string `json:"prompt,omitempty" gorm:"type:text"`
+	Duration  int    `json:"duration,omitempty"`
+	Condition string `json:"condition" gorm:"type:varchar(191)"`
 }
 
 type Paper struct {
-	ID          string     `json:"id"`
-	Name        string     `json:"name"`
-	Questions   []Question `json:"questions"`
-	QuestionIDs []string   `json:"questionIds,omitempty"` // For input binding
+	ID          string     `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	Name        string     `json:"name" gorm:"type:varchar(191)"`
+	Questions   []Question `json:"questions" gorm:"serializer:json"`
+	QuestionIDs []string   `json:"questionIds,omitempty" gorm:"serializer:json"`
 	Total       int        `json:"total"`
 }
 
 type Homework struct {
-	ID        string `json:"id"`
-	PaperID   string `json:"paperId"`
-	Name      string `json:"name"`
-	ClassID   string `json:"classId"`
-	StartDate string `json:"startDate"`
-	EndDate   string `json:"endDate"`
-	Status    string `json:"status"` // "pending", "completed"
-	Completed int    `json:"completed"`
-	Total     int    `json:"total"`
+	ID         string   `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	TeacherID  string   `json:"teacherId" gorm:"type:varchar(191)"`
+	PaperID    string   `json:"paperId" gorm:"type:varchar(191)"`
+	Name       string   `json:"name" gorm:"type:varchar(191)"`
+	ClassID    string   `json:"classId" gorm:"type:varchar(191)"`
+	StartDate  string   `json:"startDate" gorm:"type:varchar(191)"`
+	EndDate    string   `json:"endDate" gorm:"type:varchar(191)"`
+	Status     string   `json:"status" gorm:"type:varchar(191)"`
+	Completed  int      `json:"completed"`
+	Total      int      `json:"total"`
+	StudentIDs []string `json:"studentIds,omitempty" gorm:"serializer:json"`
 }
 
 type History struct {
-	ID           string   `json:"id"`
-	StudentID    string   `json:"studentId"`
-	HomeworkID   string   `json:"homeworkId"`
-	Type         string   `json:"type"` // "exam", "practice", "homework"
-	Name         string   `json:"name"`
-	NameEn       string   `json:"nameEn"`
-	Date         string   `json:"date"`
-	Score        string   `json:"score,omitempty"`
-	Total        string   `json:"total,omitempty"`
+	ID           string   `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	StudentID    string   `json:"studentId" gorm:"type:varchar(191)"`
+	HomeworkID   string   `json:"homeworkId" gorm:"type:varchar(191)"`
+	Type         string   `json:"type" gorm:"type:varchar(191)"`
+	Name         string   `json:"name" gorm:"type:varchar(191)"`
+	NameEn       string   `json:"nameEn" gorm:"type:varchar(191)"`
+	Date         string   `json:"date" gorm:"type:varchar(191)"`
+	Score        string   `json:"score,omitempty" gorm:"type:varchar(191)"`
+	Total        string   `json:"total,omitempty" gorm:"type:varchar(191)"`
 	CorrectCount int      `json:"correctCount,omitempty"`
 	WrongCount   int      `json:"wrongCount,omitempty"`
-	Questions    []any    `json:"questions"` // Detail records
+	Questions    []any    `json:"questions" gorm:"serializer:json"`
+}
+
+type Resource struct {
+	ID         string   `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	Name       string   `json:"name" gorm:"type:varchar(191)"`
+	URL        string   `json:"url" gorm:"type:text"`
+	Type       string   `json:"type" gorm:"type:varchar(191)"`
+	Tags       []string `json:"tags" gorm:"serializer:json"`
+	Visibility string   `json:"visibility" gorm:"type:varchar(191)"`
+	CreatorID  string   `json:"creatorId" gorm:"type:varchar(191)"`
+	CreatedAt  string   `json:"createdAt" gorm:"type:varchar(191)"`
 }
 
 type AuditLog struct {
-	ID        string `json:"id"`
-	UserID    string `json:"userId"`
-	Username  string `json:"username"`
-	Action    string `json:"action"`      // "LOGIN", "LOGOUT", "CREATE_QUESTION", etc.
-	Details   string `json:"details"`     // "Created question: 1+1=?"
-	Timestamp string `json:"timestamp"`
+	ID        string `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	UserID    string `json:"userId" gorm:"type:varchar(191)"`
+	Username  string `json:"username" gorm:"type:varchar(191)"`
+	Action    string `json:"action" gorm:"type:varchar(191)"`
+	Details   string `json:"details" gorm:"type:text"`
+	Timestamp string `json:"timestamp" gorm:"type:varchar(191)"`
 }

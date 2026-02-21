@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func SendJSON(c *gin.Context, code int, err string, data interface{}) {
@@ -20,19 +21,6 @@ func SendJSON(c *gin.Context, code int, err string, data interface{}) {
 	})
 }
 
-// Store Data (Initial Seed Users only)
-var storeUsers = []User{
-	{ID: "1", Username: "admin", Password: "123", Role: RoleAdmin, Status: "active"},
-	{ID: "2", Username: "teacher", Password: "123", Role: RoleTeacher, Status: "active"},
-	{ID: "3", Username: "student", Password: "123", Role: RoleStudent, Status: "active"},
-}
-
-var storeQuestions = make([]Question, 0)
-var storePapers = make([]Paper, 0)
-var storeHomeworks = make([]Homework, 0)
-var storeHistory = make([]History, 0)
-var storeReinforcements = make([]Reinforcement, 0)
-
 // Auth Handlers
 func LoginHandler(c *gin.Context) {
 	var req LoginRequest
@@ -41,15 +29,14 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	var foundUser *User
-	for _, u := range storeUsers {
-		if u.Username == req.Username && u.Password == req.Password {
-			foundUser = &u
-			break
-		}
+	var foundUser User
+	if err := DB.Where("username = ?", req.Username).First(&foundUser).Error; err != nil {
+		SendJSON(c, 1, "Unauthorized", nil)
+		return
 	}
 
-	if foundUser == nil {
+	// Verify password
+	if err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(req.Password)); err != nil {
 		SendJSON(c, 1, "Unauthorized", nil)
 		return
 	}
@@ -79,16 +66,14 @@ func LoginHandler(c *gin.Context) {
 
 // User Handlers (Admin)
 func GetUsers(c *gin.Context) {
-	SendJSON(c, 0, "", storeUsers)
+	var users []User
+	DB.Find(&users)
+	SendJSON(c, 0, "", users)
 }
 
 func GetStudents(c *gin.Context) {
-	students := make([]User, 0)
-	for _, u := range storeUsers {
-		if u.Role == RoleStudent {
-			students = append(students, u)
-		}
-	}
+	var students []User
+	DB.Where("role = ?", RoleStudent).Find(&students)
 	SendJSON(c, 0, "", students)
 }
 
@@ -98,9 +83,20 @@ func CreateUser(c *gin.Context) {
 		SendJSON(c, 1, err.Error(), nil)
 		return
 	}
+
+	// Hash password
+	hashed, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), bcrypt.DefaultCost)
+	if err != nil {
+		SendJSON(c, 1, "Failed to hash password", nil)
+		return
+	}
+	newUser.Password = string(hashed)
+
 	newUser.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
-	storeUsers = append(storeUsers, newUser)
-	SaveData()
+	if err := DB.Create(&newUser).Error; err != nil {
+		SendJSON(c, 1, "Failed to create user", nil)
+		return
+	}
 	SendJSON(c, 0, "", newUser)
 }
 
@@ -112,33 +108,36 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	for i, u := range storeUsers {
-		if u.ID == id {
-			if updateData.Password != "" {
-				storeUsers[i].Password = updateData.Password
-			}
-			storeUsers[i].Username = updateData.Username
-			storeUsers[i].Role = updateData.Role
-			storeUsers[i].Status = updateData.Status
-			SaveData()
-			SendJSON(c, 0, "", storeUsers[i])
+	var user User
+	if err := DB.First(&user, "id = ?", id).Error; err != nil {
+		SendJSON(c, 1, "User not found", nil)
+		return
+	}
+
+	if updateData.Password != "" {
+		// Hash new password
+		hashed, err := bcrypt.GenerateFromPassword([]byte(updateData.Password), bcrypt.DefaultCost)
+		if err != nil {
+			SendJSON(c, 1, "Failed to hash password", nil)
 			return
 		}
+		user.Password = string(hashed)
 	}
-	SendJSON(c, 1, "User not found", nil)
+	user.Username = updateData.Username
+	user.Role = updateData.Role
+	user.Status = updateData.Status
+
+	DB.Save(&user)
+	SendJSON(c, 0, "", user)
 }
 
 func DeleteUser(c *gin.Context) {
 	id := c.Param("id")
-	for i, u := range storeUsers {
-		if u.ID == id {
-			storeUsers = append(storeUsers[:i], storeUsers[i+1:]...)
-			SaveData()
-			SendJSON(c, 0, "", gin.H{"message": "Deleted"})
-			return
-		}
+	if err := DB.Delete(&User{}, "id = ?", id).Error; err != nil {
+		SendJSON(c, 1, "Failed to delete user", nil)
+		return
 	}
-	SendJSON(c, 1, "User not found", nil)
+	SendJSON(c, 0, "", gin.H{"message": "Deleted"})
 }
 
 // Stats Handlers
@@ -153,34 +152,32 @@ func GetDashboardStats(c *gin.Context) {
 		label := day.Format("01-02")
 		
 		// 1. Calculate Accuracy for this day
-		correct := 0
-		total := 0
-		for _, h := range storeHistory {
-			if strings.HasPrefix(h.Date, dateStr) {
-				correct += h.CorrectCount
-				total += (h.CorrectCount + h.WrongCount)
-			}
+		var results struct {
+			Correct int
+			Total   int
 		}
+		DB.Model(&History{}).
+			Select("SUM(correct_count) as correct, SUM(CAST(total AS UNSIGNED)) as total").
+			Where("date LIKE ?", dateStr+"%").
+			Scan(&results)
+
 		accValue := 0.0
-		if total > 0 {
-			accValue = (float64(correct) / float64(total)) * 100
+		if results.Total > 0 {
+			accValue = (float64(results.Correct) / float64(results.Total)) * 100
 		}
 		accuracyTrend[i] = StatPoint{Label: label, Value: accValue}
 
 		// 2. Calculate Completion for this day
-		finished := 0
-		assigned := 0
-		for _, hw := range storeHomeworks {
-			if strings.HasPrefix(hw.StartDate, dateStr) {
-				assigned++
-				if hw.Status == "completed" {
-					finished++
-				}
-			}
+		var counts struct {
+			Assigned  int64
+			Completed int64
 		}
+		DB.Model(&Homework{}).Where("start_date LIKE ?", dateStr+"%").Count(&counts.Assigned)
+		DB.Model(&Homework{}).Where("start_date LIKE ?", dateStr+"%").Where("status = ?", "completed").Count(&counts.Completed)
+
 		compValue := 0.0
-		if assigned > 0 {
-			compValue = (float64(finished) / float64(assigned)) * 100
+		if counts.Assigned > 0 {
+			compValue = (float64(counts.Completed) / float64(counts.Assigned)) * 100
 		}
 		completionTrend[i] = StatPoint{Label: label, Value: compValue}
 	}
@@ -196,11 +193,16 @@ func GetDashboardStats(c *gin.Context) {
 		return true
 	})
 
+	var totalUsers int64
+	var totalQuestions int64
+	DB.Model(&User{}).Count(&totalUsers)
+	DB.Model(&Question{}).Count(&totalQuestions)
+
 	stats := DashboardStats{
 		AccuracyTrend:   accuracyTrend,
 		CompletionTrend: completionTrend,
-		TotalUsers:      len(storeUsers),
-		TotalQuestions:  len(storeQuestions),
+		TotalUsers:      int(totalUsers),
+		TotalQuestions:  int(totalQuestions),
 		OnlineUsers:     onlineCount,
 	}
 	SendJSON(c, 0, "", stats)
@@ -211,36 +213,33 @@ func GetQuestions(c *gin.Context) {
 	subject := c.Query("subject")
 	gradeStr := c.Query("grade")
 	
-	println("GET /api/questions called with:", subject, gradeStr)
+	query := DB.Model(&Question{})
 
-	// Map English subject enums to Chinese stored values
-	subjectMap := map[string]string{
-		"MATH":     "数学",
-		"LANGUAGE": "语文",
-		"READING":  "阅读",
-		"LITERACY": "识字",
-	}
-
-	filtered := make([]Question, 0)
-	for _, q := range storeQuestions {
-		// Try to match original subject or mapped subject
-		matchSubject := subject == "" || q.Subject == subject || (subjectMap[subject] != "" && q.Subject == subjectMap[subject])
+	if subject != "" {
+		// Map English subject enums to Chinese stored values
+		subjectMap := map[string]string{
+			"MATH":     "数学",
+			"LANGUAGE": "语文",
+			"READING":  "阅读",
+			"LITERACY": "识字",
+		}
 		
-		matchGrade := true
-		if gradeStr != "" {
-			matchGrade = false
-			if g, err := strconv.Atoi(gradeStr); err == nil {
-				if q.Grade == g {
-					matchGrade = true
-				}
-			}
-		}
-
-		if matchSubject && matchGrade {
-			filtered = append(filtered, q)
+		if mapped, ok := subjectMap[subject]; ok {
+			query = query.Where("subject = ? OR subject = ?", subject, mapped)
+		} else {
+			query = query.Where("subject = ?", subject)
 		}
 	}
-	SendJSON(c, 0, "", filtered)
+
+	if gradeStr != "" {
+		if g, err := strconv.Atoi(gradeStr); err == nil {
+			query = query.Where("grade = ?", g)
+		}
+	}
+
+	var questions []Question
+	query.Find(&questions)
+	SendJSON(c, 0, "", questions)
 }
 
 func CreateQuestion(c *gin.Context) {
@@ -269,8 +268,10 @@ func CreateQuestion(c *gin.Context) {
 	}
 
 	q.ID = time.Now().Format("20060102150405")
-	storeQuestions = append(storeQuestions, q)
-	SaveData()
+	if err := DB.Create(&q).Error; err != nil {
+		SendJSON(c, 1, "Failed to create question", nil)
+		return
+	}
 	AddAuditLog(c, "CREATE_QUESTION", fmt.Sprintf("Created question: %s", q.StemText))
 	SendJSON(c, 0, "", q)
 }
@@ -301,38 +302,48 @@ func UpdateQuestion(c *gin.Context) {
 		}
 	}
 
-	for i, existing := range storeQuestions {
-		if existing.ID == id {
-			storeQuestions[i] = q
-			storeQuestions[i].ID = id
-			SaveData()
-			AddAuditLog(c, "UPDATE_QUESTION", fmt.Sprintf("Updated question: %s", q.StemText))
-			SendJSON(c, 0, "", storeQuestions[i])
-			return
-		}
+	q.ID = id
+	if err := DB.Save(&q).Error; err != nil {
+		SendJSON(c, 1, "Failed to update question", nil)
+		return
 	}
-	SendJSON(c, 1, "Question not found", nil)
+	AddAuditLog(c, "UPDATE_QUESTION", fmt.Sprintf("Updated question: %s", q.StemText))
+	SendJSON(c, 0, "", q)
 }
 
 func DeleteQuestion(c *gin.Context) {
 	id := c.Param("id")
-	for i, q := range storeQuestions {
-		if q.ID == id {
-			stem := q.StemText
-			storeQuestions = append(storeQuestions[:i], storeQuestions[i+1:]...)
-			SaveData()
-			AddAuditLog(c, "DELETE_QUESTION", fmt.Sprintf("Deleted question: %s", stem))
-			SendJSON(c, 0, "", gin.H{"message": "Deleted"})
-			return
-		}
+	var q Question
+	if err := DB.First(&q, "id = ?", id).Error; err != nil {
+		SendJSON(c, 1, "Question not found", nil)
+		return
 	}
-	SendJSON(c, 1, "Question not found", nil)
+	
+	stem := q.StemText
+	DB.Delete(&q)
+	AddAuditLog(c, "DELETE_QUESTION", fmt.Sprintf("Deleted question: %s", stem))
+	SendJSON(c, 0, "", gin.H{"message": "Deleted"})
 }
 
 // Paper Handlers
 func GetPapers(c *gin.Context) {
-	println("GET /api/papers called, returning", len(storePapers), "papers")
-	SendJSON(c, 0, "", storePapers)
+	var papers []Paper
+	DB.Find(&papers)
+
+	result := make([]interface{}, len(papers))
+	for i, p := range papers {
+		var assignedCount int64
+		DB.Model(&Homework{}).Where("paper_id = ?", p.ID).Count(&assignedCount)
+		
+		result[i] = gin.H{
+			"id":            p.ID,
+			"name":          p.Name,
+			"questions":     p.Questions,
+			"total":         p.Total,
+			"assignedCount": assignedCount,
+		}
+	}
+	SendJSON(c, 0, "", result)
 }
 
 func CreatePaper(c *gin.Context) {
@@ -345,20 +356,16 @@ func CreatePaper(c *gin.Context) {
 	
 	// Populate Questions from IDs if provided
 	if len(p.QuestionIDs) > 0 {
-		p.Questions = make([]Question, 0)
-		for _, qID := range p.QuestionIDs {
-			for _, q := range storeQuestions {
-				if q.ID == qID {
-					p.Questions = append(p.Questions, q)
-					break
-				}
-			}
-		}
+		var questions []Question
+		DB.Where("id IN ?", p.QuestionIDs).Find(&questions)
+		p.Questions = questions
 	}
 	p.Total = len(p.Questions)
 
-	storePapers = append(storePapers, p)
-	SaveData()
+	if err := DB.Create(&p).Error; err != nil {
+		SendJSON(c, 1, "Failed to create paper", nil)
+		return
+	}
 	SendJSON(c, 0, "", p)
 }
 
@@ -370,81 +377,151 @@ func UpdatePaper(c *gin.Context) {
 		return
 	}
 
-	for i, existing := range storePapers {
-		if existing.ID == id {
-			p.ID = id
-			// Populate questions
-			if len(p.QuestionIDs) > 0 {
-				p.Questions = make([]Question, 0)
-				for _, qID := range p.QuestionIDs {
-					for _, q := range storeQuestions {
-						if q.ID == qID {
-							p.Questions = append(p.Questions, q)
-							break
-						}
-					}
-				}
-			}
-			p.Total = len(p.Questions)
-			storePapers[i] = p
-			SaveData()
-			SendJSON(c, 0, "", p)
-			return
-		}
+	p.ID = id
+	// Populate questions
+	if len(p.QuestionIDs) > 0 {
+		var questions []Question
+		DB.Where("id IN ?", p.QuestionIDs).Find(&questions)
+		p.Questions = questions
 	}
-	SendJSON(c, 1, "Paper not found", nil)
+	p.Total = len(p.Questions)
+	
+	if err := DB.Save(&p).Error; err != nil {
+		SendJSON(c, 1, "Failed to update paper", nil)
+		return
+	}
+	SendJSON(c, 0, "", p)
 }
 
 func DeletePaper(c *gin.Context) {
 	id := c.Param("id")
-	for i, p := range storePapers {
-		if p.ID == id {
-			storePapers = append(storePapers[:i], storePapers[i+1:]...)
-			SaveData()
-			SendJSON(c, 0, "", gin.H{"message": "Deleted"})
-			return
-		}
+	if err := DB.Delete(&Paper{}, "id = ?", id).Error; err != nil {
+		SendJSON(c, 1, "Failed to delete paper", nil)
+		return
 	}
-	SendJSON(c, 1, "Paper not found", nil)
+	SendJSON(c, 0, "", gin.H{"message": "Deleted"})
 }
 
 // Homework Handlers
 func GetHomeworks(c *gin.Context) {
-	SendJSON(c, 0, "", storeHomeworks)
+	userId, _ := c.Get("userId")
+	role, _ := c.Get("role")
+
+	var hws []Homework
+	query := DB.Model(&Homework{})
+
+	// If it's a teacher, filter by their ID
+	if fmt.Sprintf("%v", role) == string(RoleTeacher) {
+		query = query.Where("teacher_id = ?", fmt.Sprintf("%v", userId))
+	}
+	
+	query.Find(&hws)
+
+	// Dynamically calculate completed count from history records
+	for i := range hws {
+		var count int64
+		DB.Model(&History{}).
+			Where("homework_id = ?", hws[i].ID).
+			Distinct("student_id").
+			Count(&count)
+		
+		hws[i].Completed = int(count)
+		if hws[i].Total > 0 && hws[i].Completed >= hws[i].Total {
+			hws[i].Status = "completed"
+			DB.Model(&Homework{}).Where("id = ?", hws[i].ID).Update("status", "completed")
+		}
+	}
+
+	SendJSON(c, 0, "", hws)
 }
 
 func AssignHomework(c *gin.Context) {
+	userId, _ := c.Get("userId")
 	var h Homework
 	if err := c.ShouldBindJSON(&h); err != nil {
 		SendJSON(c, 1, err.Error(), nil)
 		return
 	}
+
+	h.TeacherID = fmt.Sprintf("%v", userId)
+	h.Total = len(h.StudentIDs)
+	
 	h.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
 	h.Status = "pending"
-	storeHomeworks = append(storeHomeworks, h)
-	SaveData()
+	if err := DB.Create(&h).Error; err != nil {
+		SendJSON(c, 1, "Failed to assign homework", nil)
+		return
+	}
 	AddAuditLog(c, "ASSIGN_HOMEWORK", fmt.Sprintf("Assigned homework: %s", h.Name))
 	SendJSON(c, 0, "", h)
 }
 
+func BulkCreateQuestions(c *gin.Context) {
+	var list []Question
+	if err := c.ShouldBindJSON(&list); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+	
+	now := time.Now().Unix()
+	for i := range list {
+		list[i].ID = strconv.FormatInt(now, 10) + "_" + strconv.Itoa(i)
+	}
+	
+	if err := DB.Create(&list).Error; err != nil {
+		SendJSON(c, 1, "Failed to bulk create questions", nil)
+		return
+	}
+	
+	AddAuditLog(c, "BULK_CREATE_QUESTIONS", fmt.Sprintf("Bulk imported %d questions", len(list)))
+	SendJSON(c, 0, "", gin.H{"imported": len(list)})
+}
+
 func CompleteHomework(c *gin.Context) {
 	id := c.Param("id")
-	for i, h := range storeHomeworks {
-		if h.ID == id {
-			storeHomeworks[i].Status = "completed"
-			storeHomeworks[i].Completed++
-			SaveData()
-			AddAuditLog(c, "COMPLETE_HOMEWORK", fmt.Sprintf("Finished homework: %s", h.Name))
-			SendJSON(c, 0, "", storeHomeworks[i])
-			return
-		}
+	userId, _ := c.Get("userId")
+	studentId := fmt.Sprintf("%v", userId)
+
+	var h Homework
+	if err := DB.First(&h, "id = ?", id).Error; err != nil {
+		SendJSON(c, 1, "Homework not found", nil)
+		return
 	}
-	SendJSON(c, 1, "Homework not found", nil)
+
+	// Check if this student already completed it in History
+	var exists int64
+	DB.Model(&History{}).Where("homework_id = ? AND student_id = ?", id, studentId).Count(&exists)
+
+	if exists == 0 {
+		// This is a bit tricky with concurrent DB, but for simple logic:
+		h.Completed++
+		h.Status = "completed" // Simplistic status update
+		DB.Save(&h)
+	}
+	
+	AddAuditLog(c, "COMPLETE_HOMEWORK", fmt.Sprintf("Finished homework: %s", h.Name))
+	SendJSON(c, 0, "", h)
 }
 
 // History Handlers
 func GetHistory(c *gin.Context) {
-	SendJSON(c, 0, "", storeHistory)
+	userId, _ := c.Get("userId")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+
+	var histories []History
+	var total int64
+	
+	query := DB.Model(&History{}).Where("student_id = ?", fmt.Sprintf("%v", userId))
+	query.Count(&total)
+	query.Order("date DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&histories)
+
+	SendJSON(c, 0, "", gin.H{
+		"list":     histories,
+		"total":    total,
+		"page":     page,
+		"pageSize": pageSize,
+	})
 }
 
 func CreateHistory(c *gin.Context) {
@@ -454,171 +531,262 @@ func CreateHistory(c *gin.Context) {
 		return
 	}
 	
-	userId, exists := c.Get("userId")
-	if !exists {
-		println("[ERROR] CreateHistory called without userId in context")
-	}
+	userId, _ := c.Get("userId")
 
 	h.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
 	h.StudentID = fmt.Sprintf("%v", userId)
 	h.Date = time.Now().Format("2006-01-02 15:04:05")
 
-	storeHistory = append(storeHistory, h)
-	SaveData()
+	if err := DB.Create(&h).Error; err != nil {
+		SendJSON(c, 1, "Failed to create history", nil)
+		return
+	}
 	
-	// Ensure Action contains 'PRACTICE' for frontend filter
 	AddAuditLog(c, "PRACTICE_FINISH", fmt.Sprintf("Completed session: %s (Score: %d/%s)", h.Name, h.CorrectCount, h.Total))
-	
 	SendJSON(c, 0, "", h)
 }
 
 // Student Stats
 func GetStudentStats(c *gin.Context) {
 	userId, _ := c.Get("userId")
-	studentId := userId.(string)
+	studentId := fmt.Sprintf("%v", userId)
 
-	totalCorrect := 0
-	totalQuestions := 0
-	completed := 0
-	trends := make([]int, 7) // Last 7 sessions accuracy
+	var histories []History
+	DB.Where("student_id = ?", studentId).Find(&histories)
 
-	count := 0
-	for i := len(storeHistory) - 1; i >= 0; i-- {
-		h := storeHistory[i]
-		if h.StudentID == studentId {
-			completed++
-			currTotal := h.CorrectCount + h.WrongCount
-			totalCorrect += h.CorrectCount
-			totalQuestions += currTotal
+	practiceTrendMap := make(map[string]struct {
+		Count    int
+		Correct  int
+		Total    int
+	})
+	homeworkTrendMap := make(map[string]struct {
+		Count    int
+		Correct  int
+		Total    int
+	})
 
-			if count < 7 {
-				if currTotal > 0 {
-					trends[6-count] = int((float64(h.CorrectCount) / float64(currTotal)) * 100)
-				}
-				count++
-			}
+	totalPracticeCorrect := 0
+	totalPracticeQuestions := 0
+
+	for _, h := range histories {
+		date := strings.Split(h.Date, " ")[0]
+		t, _ := strconv.Atoi(h.Total)
+		
+		if h.Type == "homework" {
+			entry := homeworkTrendMap[date]
+			entry.Count++
+			entry.Correct += h.CorrectCount
+			entry.Total += t
+			homeworkTrendMap[date] = entry
+		} else {
+			entry := practiceTrendMap[date]
+			entry.Count += t
+			entry.Correct += h.CorrectCount
+			entry.Total += t
+			practiceTrendMap[date] = entry
+			
+			totalPracticeCorrect += h.CorrectCount
+			totalPracticeQuestions += t
 		}
+	}
+
+	type TrendPoint struct {
+		Date     string `json:"date"`
+		Count    int    `json:"count"`
+		Accuracy int    `json:"accuracy"`
+	}
+	
+	processMap := func(m map[string]struct{Count, Correct, Total int}) []TrendPoint {
+		keys := make([]string, 0, len(m))
+		for k := range m { keys = append(keys, k) }
+		sortStrings(keys)
+
+		res := make([]TrendPoint, 0)
+		for _, k := range keys {
+			v := m[k]
+			acc := 0
+			if v.Total > 0 {
+				acc = int((float64(v.Correct) / float64(v.Total)) * 100)
+			}
+			res = append(res, TrendPoint{Date: k, Count: v.Count, Accuracy: acc})
+		}
+		if len(res) > 14 { res = res[len(res)-14:] }
+		return res
 	}
 
 	accuracy := "0%"
-	if totalQuestions > 0 {
-		accuracy = strconv.Itoa(int((float64(totalCorrect)/float64(totalQuestions))*100)) + "%"
+	if totalPracticeQuestions > 0 {
+		accuracy = strconv.Itoa(int((float64(totalPracticeCorrect)/float64(totalPracticeQuestions))*100)) + "%"
 	}
 
 	SendJSON(c, 0, "", gin.H{
-		"accuracy":     accuracy,
-		"completed":    completed,
-		"rank":         0, // Rank would require sorting all students, keeping 0 for now
-		"time":         "0h", // Time tracking not yet implemented in history
-		"achievements": 0,
-		"trends":       trends,
+		"accuracy":       accuracy,
+		"practiceTrends": processMap(practiceTrendMap),
+		"homeworkTrends": processMap(homeworkTrendMap),
 	})
 }
 
+func sortStrings(s []string) {
+	for i := 0; i < len(s); i++ {
+		for j := i + 1; j < len(s); j++ {
+			if s[i] > s[j] { s[i], s[j] = s[j], s[i] }
+		}
+	}
+}
+
 func GetTeacherStats(c *gin.Context) {
+	userId, _ := c.Get("userId")
+	teacherId := fmt.Sprintf("%v", userId)
 	today := time.Now().Format("2006-01-02")
-	todayCorrected := 0
-	for _, h := range storeHistory {
-		if strings.HasPrefix(h.Date, today) {
-			todayCorrected++
-		}
+	
+	var todayAssigned int64
+	DB.Model(&Homework{}).Where("teacher_id = ? AND start_date LIKE ?", teacherId, today+"%").Count(&todayAssigned)
+
+	var totalAssigned int64
+	var totalCompleted int64
+	DB.Model(&Homework{}).Where("teacher_id = ?").Select("SUM(total)").Scan(&totalAssigned)
+	DB.Model(&Homework{}).Where("teacher_id = ?").Select("SUM(completed)").Scan(&totalCompleted)
+	
+	completionRate := 0.0
+	if totalAssigned > 0 {
+		completionRate = (float64(totalCompleted) / float64(totalAssigned)) * 100
 	}
 
-	pendingCount := 0
-	for _, h := range storeHomeworks {
-		if h.Status == "pending" {
-			pendingCount++
-		}
+	var results struct {
+		Correct int
+		Total   int
 	}
+	DB.Table("histories").
+		Joins("JOIN homeworks ON homeworks.id = histories.homework_id").
+		Where("homeworks.teacher_id = ?", teacherId).
+		Select("SUM(histories.correct_count) as correct, SUM(CAST(histories.total AS UNSIGNED)) as total").
+		Scan(&results)
 
-	totalCorrect := 0
-	totalQuestions := 0
-	for _, h := range storeHistory {
-		totalCorrect += h.CorrectCount
-		totalQuestions += (h.CorrectCount + h.WrongCount)
-	}
 	accuracy := 0.0
-	if totalQuestions > 0 {
-		accuracy = float64(totalCorrect) / float64(totalQuestions)
+	if results.Total > 0 {
+		accuracy = float64(results.Correct) / float64(results.Total)
 	}
 
-	recent := make([]gin.H, 0)
-	// Get up to 5 most recent homeworks
-	for i := len(storeHomeworks) - 1; i >= 0 && len(recent) < 5; i-- {
-		h := storeHomeworks[i]
-		recent = append(recent, gin.H{
+	var recent []Homework
+	DB.Where("teacher_id = ?", teacherId).Order("start_date DESC").Limit(5).Find(&recent)
+
+	recentFormatted := make([]gin.H, len(recent))
+	for i, h := range recent {
+		recentFormatted[i] = gin.H{
 			"id":        h.ID,
 			"name":      h.Name,
 			"date":      h.StartDate,
 			"completed": h.Completed,
 			"total":     h.Total,
-		})
+		}
 	}
 
 	SendJSON(c, 0, "", gin.H{
-		"todayCorrected":     todayCorrected,
-		"pendingAssignments": pendingCount,
-		"accuracyRate":       accuracy,
-		"recentHomeworks":    recent,
+		"todayAssigned":   int(todayAssigned),
+		"completionRate":  completionRate,
+		"accuracyRate":    accuracy,
+		"recentHomeworks": recentFormatted,
 	})
 }
 
+// Admin Handlers
+func AdminGetHomeworks(c *gin.Context) {
+	var hws []Homework
+	DB.Find(&hws)
+
+	type HomeworkDetail struct {
+		ID          string `json:"id"`
+		Name        string `json:"name"`
+		TeacherName string `json:"teacherName"`
+		ClassName   string `json:"className"`
+		StartDate   string `json:"startDate"`
+		Total       int    `json:"total"`
+		Completed   int    `json:"completed"`
+		Status      string `json:"status"`
+		Results     []any  `json:"results"`
+	}
+
+	res := make([]HomeworkDetail, 0)
+	for _, h := range hws {
+		var teacher User
+		DB.First(&teacher, "id = ?", h.TeacherID)
+		
+		var histories []History
+		DB.Where("homework_id = ?", h.ID).Find(&histories)
+		
+		results := make([]any, 0)
+		for _, rec := range histories {
+			var student User
+			DB.First(&student, "id = ?", rec.StudentID)
+			
+			results = append(results, gin.H{
+				"id": rec.ID,
+				"studentName": student.Username,
+				"date": rec.Date,
+				"correctCount": rec.CorrectCount,
+				"total": rec.Total,
+				"questions": rec.Questions,
+			})
+		}
+
+		res = append(res, HomeworkDetail{
+			ID:          h.ID,
+			Name:        h.Name,
+			TeacherName: teacher.Username,
+			ClassName:   h.ClassID,
+			StartDate:   h.StartDate,
+			Total:       h.Total,
+			Completed:   h.Completed,
+			Status:      h.Status,
+			Results:     results,
+		})
+	}
+	SendJSON(c, 0, "", res)
+}
+
+func AdminGetPractices(c *gin.Context) {
+	var histories []History
+	DB.Find(&histories)
+
+	type PracticeDetail struct {
+		ID          string `json:"id"`
+		StudentName string `json:"studentName"`
+		Date        string `json:"date"`
+		Name        string `json:"name"`
+		Score       string `json:"score"`
+		Accuracy    string `json:"accuracy"`
+		Questions   []any  `json:"questions"`
+	}
+	
+	res := make([]PracticeDetail, 0)
+	for _, h := range histories {
+		var student User
+		DB.First(&student, "id = ?", h.StudentID)
+		
+		acc := "0%"
+		total, _ := strconv.Atoi(h.Total)
+		if total > 0 {
+			acc = strconv.Itoa(int((float64(h.CorrectCount)/float64(total))*100)) + "%"
+		}
+
+		res = append(res, PracticeDetail{
+			ID:          h.ID,
+			StudentName: student.Username,
+			Date:        h.Date,
+			Name:        h.Name,
+			Score:       fmt.Sprintf("%d/%d", h.CorrectCount, total),
+			Accuracy:    acc,
+			Questions:   h.Questions,
+		})
+	}
+	SendJSON(c, 0, "", res)
+}
+
 // Reinforcement Handlers
-func GetAuditLogs(c *gin.Context) {
-	// Return latest 50 logs
-	start := 0
-	if len(storeLogs) > 50 {
-		start = len(storeLogs) - 50
-	}
-	SendJSON(c, 0, "", storeLogs[start:])
-}
-
-func AddAuditLog(c *gin.Context, action, details string) {
-	userId, _ := c.Get("userId")
-	role, _ := c.Get("role")
-	
-	// Find username
-	username := "system"
-	if uid, ok := userId.(string); ok {
-		for _, u := range storeUsers {
-			if u.ID == uid {
-				username = u.Username
-				break
-			}
-		}
-		if username == "system" {
-			username = "UID:" + uid // Fallback if user object deleted
-		}
-	} else if action == "LOGIN" {
-		username = "guest"
-	}
-
-	roleStr := "UNKNOWN"
-	if r, ok := role.(Role); ok {
-		roleStr = string(r)
-	} else if r, ok := role.(string); ok {
-		roleStr = r
-	}
-
-	log := AuditLog{
-		ID:        strconv.FormatInt(time.Now().UnixNano(), 36),
-		UserID:    fmt.Sprintf("%v", userId),
-		Username:  fmt.Sprintf("%s (%s)", username, roleStr),
-		Action:    action,
-		Details:   details,
-		Timestamp: time.Now().Format("2006-01-02 15:04:05"),
-	}
-	
-	dataMu.Lock()
-	storeLogs = append(storeLogs, log)
-	dataMu.Unlock()
-	
-	SaveData()
-	println("[AUDIT]", log.Username, "|", log.Action, "|", log.Details)
-}
-
 func GetReinforcements(c *gin.Context) {
-	SendJSON(c, 0, "", storeReinforcements)
+	var list []Reinforcement
+	DB.Find(&list)
+	SendJSON(c, 0, "", list)
 }
 
 func CreateReinforcement(c *gin.Context) {
@@ -628,20 +796,149 @@ func CreateReinforcement(c *gin.Context) {
 		return
 	}
 	r.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
-	storeReinforcements = append(storeReinforcements, r)
-	SaveData()
+	DB.Create(&r)
+	SendJSON(c, 0, "", r)
+}
+
+func UpdateReinforcement(c *gin.Context) {
+	id := c.Param("id")
+	var r Reinforcement
+	if err := DB.First(&Reinforcement{}, "id = ?", id).Error; err != nil {
+		SendJSON(c, 1, "Reinforcement not found", nil)
+		return
+	}
+	if err := c.ShouldBindJSON(&r); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+	r.ID = id
+	DB.Save(&r)
 	SendJSON(c, 0, "", r)
 }
 
 func DeleteReinforcement(c *gin.Context) {
 	id := c.Param("id")
-	for i, r := range storeReinforcements {
-		if r.ID == id {
-			storeReinforcements = append(storeReinforcements[:i], storeReinforcements[i+1:]...)
-			SaveData()
-			SendJSON(c, 0, "", gin.H{"message": "Deleted"})
-			return
-		}
+	DB.Delete(&Reinforcement{}, "id = ?", id)
+	SendJSON(c, 0, "", gin.H{"message": "Deleted"})
+}
+
+// Resource Handlers
+func GetResources(c *gin.Context) {
+	userId, _ := c.Get("userId")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	keyword := strings.ToLower(c.Query("keyword"))
+
+	var list []Resource
+	var total int64
+	
+	query := DB.Model(&Resource{}).Where("visibility = 'public' OR creator_id = ?", fmt.Sprintf("%v", userId))
+	if keyword != "" {
+		query = query.Where("LOWER(name) LIKE ? OR JSON_CONTAINS(LOWER(tags), ?)", "%"+keyword+"%", "\""+keyword+"\"")
 	}
-	SendJSON(c, 1, "Reinforcement not found", nil)
+	
+	query.Count(&total)
+	query.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list)
+
+	SendJSON(c, 0, "", gin.H{
+		"list":     list,
+		"total":    total,
+		"page":     page,
+		"pageSize": pageSize,
+	})
+}
+
+func CreateResource(c *gin.Context) {
+	var r Resource
+	if err := c.ShouldBindJSON(&r); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+
+	userId, _ := c.Get("userId")
+
+	if strings.HasPrefix(r.URL, "data:image") {
+		url, err := UploadBase64ToOSS(r.URL)
+		if err == nil { r.URL = url }
+	}
+
+	r.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
+	r.CreatorID = fmt.Sprintf("%v", userId)
+	r.CreatedAt = time.Now().Format("2006-01-02 15:04:05")
+	if r.Type == "" { r.Type = "image" }
+	if r.Tags == nil { r.Tags = make([]string, 0) }
+
+	DB.Create(&r)
+	AddAuditLog(c, "CREATE_RESOURCE", fmt.Sprintf("Uploaded resource: %s", r.Name))
+	SendJSON(c, 0, "", r)
+}
+
+func UpdateResource(c *gin.Context) {
+	id := c.Param("id")
+	userId, _ := c.Get("userId")
+
+	var r Resource
+	if err := DB.First(&r, "id = ? AND creator_id = ?", id, fmt.Sprintf("%v", userId)).Error; err != nil {
+		SendJSON(c, 1, "Resource not found or permission denied", nil)
+		return
+	}
+
+	var updateData Resource
+	if err := c.ShouldBindJSON(&updateData); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+
+	r.Name = updateData.Name
+	r.Visibility = updateData.Visibility
+	r.Tags = updateData.Tags
+	DB.Save(&r)
+	SendJSON(c, 0, "", r)
+}
+
+func DeleteResource(c *gin.Context) {
+	id := c.Param("id")
+	userId, _ := c.Get("userId")
+	
+	if err := DB.Delete(&Resource{}, "id = ? AND creator_id = ?", id, fmt.Sprintf("%v", userId)).Error; err != nil {
+		SendJSON(c, 1, "Failed to delete resource", nil)
+		return
+	}
+	SendJSON(c, 0, "", gin.H{"message": "Deleted"})
+}
+
+// Audit Log Handlers
+func GetAuditLogs(c *gin.Context) {
+	var logs []AuditLog
+	DB.Order("timestamp DESC").Limit(50).Find(&logs)
+	SendJSON(c, 0, "", logs)
+}
+
+func AddAuditLog(c *gin.Context, action, details string) {
+	userId, _ := c.Get("userId")
+	role, _ := c.Get("role")
+	
+	username := "system"
+	if uid, ok := userId.(string); ok {
+		var user User
+		if err := DB.First(&user, "id = ?", uid).Error; err == nil {
+			username = user.Username
+		} else {
+			username = "UID:" + uid
+		}
+	} else if action == "LOGIN" {
+		username = "guest"
+	}
+
+	log := AuditLog{
+		ID:        strconv.FormatInt(time.Now().UnixNano(), 36),
+		UserID:    fmt.Sprintf("%v", userId),
+		Username:  fmt.Sprintf("%s (%v)", username, role),
+		Action:    action,
+		Details:   details,
+		Timestamp: time.Now().Format("2006-01-02 15:04:05"),
+	}
+	
+	DB.Create(&log)
+	fmt.Printf("[AUDIT] %s | %s | %s\n", log.Username, log.Action, log.Details)
 }

@@ -13,9 +13,11 @@ import Questions from './views/Teacher/Questions';
 import Papers from './views/Teacher/Papers';
 import Assign from './views/Teacher/Assign';
 import Reinforcements from './views/Teacher/Reinforcements';
+import Resources from './views/Teacher/Resources';
 import Users from './views/Admin/Users';
 import Permissions from './views/Admin/Permissions';
 import AuditLogs from './views/Admin/AuditLogs';
+import HomeworkAudit from './views/Admin/HomeworkAudit';
 import Layout from './components/Layout';
 
 interface AuthContextType {
@@ -28,11 +30,25 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [darkMode, setDarkMode] = useState(false);
+  const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'auto'>('light');
   const [language, setLanguage] = useState<'zh' | 'en'>('zh');
+
+  const getEffectiveDarkMode = (mode: 'light' | 'dark' | 'auto') => {
+    if (mode === 'auto') {
+      const hour = new Date().getHours();
+      return hour >= 18 || hour < 6; // Dark mode from 6 PM to 6 AM
+    }
+    return mode === 'dark';
+  };
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | 'auto';
+    
+    if (savedTheme) {
+      setThemeMode(savedTheme);
+    }
+
     if (savedUser) {
       try {
          const parsed = JSON.parse(savedUser);
@@ -46,13 +62,17 @@ const App: React.FC = () => {
          localStorage.removeItem('user');
       }
     }
-    
-    if (darkMode) {
+  }, []);
+
+  useEffect(() => {
+    const effectiveDark = getEffectiveDarkMode(themeMode);
+    if (effectiveDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [darkMode]);
+    localStorage.setItem('theme', themeMode);
+  }, [themeMode]);
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
@@ -72,10 +92,12 @@ const App: React.FC = () => {
     localStorage.removeItem('user');
   };
 
+  const effectiveDarkMode = getEffectiveDarkMode(themeMode);
+
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
       <HashRouter>
-        <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+        <div className={`min-h-screen ${effectiveDarkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
           <Routes>
             <Route path="/login" element={!user ? <Login language={language} /> : <Navigate to="/" />} />
             
@@ -83,8 +105,8 @@ const App: React.FC = () => {
               <Layout 
                 language={language} 
                 setLanguage={setLanguage} 
-                darkMode={darkMode} 
-                setDarkMode={setDarkMode}
+                themeMode={themeMode} 
+                setThemeMode={setThemeMode}
               >
                 <Routes>
                   <Route path="/" element={<Dashboard language={language} />} />
@@ -95,9 +117,11 @@ const App: React.FC = () => {
                   <Route path="/papers" element={<Papers language={language} />} />
                   <Route path="/assign" element={<Assign language={language} />} />
                   <Route path="/reinforcements" element={<Reinforcements language={language} />} />
+                  <Route path="/resources" element={<Resources language={language} />} />
                   <Route path="/users" element={<Users language={language} />} />
                   <Route path="/logs" element={<AuditLogs language={language} />} />
                   <Route path="/permissions" element={<Permissions language={language} />} />
+                  <Route path="/admin/audit" element={<HomeworkAudit language={language} />} />
                 </Routes>
               </Layout>
             ) : <Navigate to="/login" />}>

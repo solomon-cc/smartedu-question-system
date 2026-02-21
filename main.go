@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 	"github.com/gin-gonic/gin"
@@ -34,9 +35,10 @@ func main() {
 	LoadEnv() // Load .env file at startup
 	r := gin.Default()
 
-	// Load data from disk
-	if err := LoadData(); err != nil {
-		println("Failed to load data:", err.Error())
+	// Initialize MySQL
+	if err := InitDB(); err != nil {
+		fmt.Printf("Failed to initialize database: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Global Middlewares
@@ -55,6 +57,7 @@ func main() {
 			// Questions
 			protected.GET("/questions", GetQuestions)
 			protected.POST("/questions", CreateQuestion)
+			protected.POST("/questions/bulk", BulkCreateQuestions)
 			protected.PUT("/questions/:id", UpdateQuestion)
 			protected.DELETE("/questions/:id", DeleteQuestion)
 
@@ -72,7 +75,14 @@ func main() {
 			// Reinforcements
 			protected.GET("/reinforcements", GetReinforcements)
 			protected.POST("/reinforcements", CreateReinforcement)
+			protected.PUT("/reinforcements/:id", UpdateReinforcement)
 			protected.DELETE("/reinforcements/:id", DeleteReinforcement)
+
+			// Resources
+			protected.GET("/resources", GetResources)
+			protected.POST("/resources", CreateResource)
+			protected.PUT("/resources/:id", UpdateResource)
+			protected.DELETE("/resources/:id", DeleteResource)
 
 			// History
 			protected.GET("/history", GetHistory)
@@ -95,6 +105,8 @@ func main() {
 				admin.PUT("/users/:id", UpdateUser)
 				admin.DELETE("/users/:id", DeleteUser)
 				admin.GET("/logs", GetAuditLogs)
+				admin.GET("/homeworks", AdminGetHomeworks)
+				admin.GET("/practices", AdminGetPractices)
 			}
 
 			// Analytics

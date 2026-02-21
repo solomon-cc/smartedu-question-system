@@ -156,16 +156,16 @@ const TeacherDashboard: React.FC<DashboardProps> = ({ language }) => {
       <h1 className="text-2xl font-bold dark:text-white">{language === 'zh' ? '教师控制台' : 'Teacher Console'}</h1>
       <div className="grid md:grid-cols-3 gap-6">
         <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm">
-          <h3 className="text-gray-500 text-sm mb-1">{language === 'zh' ? '今日批改' : 'Today Corrected'}</h3>
-          <p className="text-3xl font-bold dark:text-white">{stats.todayCorrected}</p>
+          <h3 className="text-gray-500 text-sm mb-1">{language === 'zh' ? '今日布置作业' : 'Today Assigned'}</h3>
+          <p className="text-3xl font-bold dark:text-white">{stats.todayAssigned || 0}</p>
         </div>
         <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm">
-          <h3 className="text-gray-500 text-sm mb-1">{language === 'zh' ? '待布置作业' : 'Assignments Pending'}</h3>
-          <p className="text-3xl font-bold dark:text-white">{stats.pendingAssignments}</p>
+          <h3 className="text-gray-500 text-sm mb-1">{language === 'zh' ? '作业完成率' : 'Completion Rate'}</h3>
+          <p className="text-3xl font-bold dark:text-white">{Math.round(stats.completionRate || 0)}%</p>
         </div>
         <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm">
           <h3 className="text-gray-500 text-sm mb-1">{language === 'zh' ? '学生正确率' : 'Accuracy Rate'}</h3>
-          <p className="text-3xl font-bold dark:text-white text-green-500">{stats.accuracyRate * 100}%</p>
+          <p className="text-3xl font-bold dark:text-white text-green-500">{(stats.accuracyRate * 100).toFixed(1)}%</p>
         </div>
       </div>
       
