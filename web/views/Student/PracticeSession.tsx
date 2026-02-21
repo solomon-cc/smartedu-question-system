@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Question, QuestionType, Subject, AttemptState } from '../../types';
@@ -8,9 +7,10 @@ import { X, ChevronRight, CheckCircle2, HelpCircle, Trophy, PlayCircle } from 'l
 
 interface PracticeSessionProps {
   language: 'zh' | 'en';
+  themeMode: 'light' | 'dark' | 'auto';
 }
 
-const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
+const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [queue, setQueue] = useState<Question[]>([]);
@@ -22,11 +22,20 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
   const [isShowingCorrectAnswer, setIsShowingCorrectAnswer] = useState(false);
   const [showReinforcement, setShowReinforcement] = useState(false);
   const [finishedCount, setFinishedCount] = useState(0);
+  const [totalAnswered, setTotalAnswered] = useState(0);
   const [totalInitial, setTotalInitial] = useState(0);
   const [loading, setLoading] = useState(true);
   const [sessionDetails, setSessionDetails] = useState<any[]>([]);
   const [reinforcements, setReinforcements] = useState<any[]>([]);
   const [activeReinforcement, setActiveReinforcement] = useState<any>(null);
+
+  const getEffectiveDarkMode = () => {
+    if (themeMode === 'auto') {
+      const hour = new Date().getHours();
+      return hour >= 18 || hour < 6;
+    }
+    return themeMode === 'dark';
+  };
 
   useEffect(() => {
     const homeworkId = searchParams.get('homeworkId');
@@ -73,17 +82,16 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
     
     const currentDetails = finalDetails || sessionDetails;
 
-    let wrongCount = 0;
-    Object.values(attemptMap).forEach(count => {
-      if (count > 0) wrongCount += 1; 
-    });
+    // Use currentDetails to calculate counts to ensure consistency
+    const correctCount = currentDetails.filter(d => d.status === 'correct').length;
+    const wrongCount = currentDetails.filter(d => d.status === 'wrong').length;
 
     try {
       await api.history.create({
         type: homeworkId ? 'homework' : 'practice',
         name: homeworkId ? '家庭作业完成' : `${subject}练习`,
         nameEn: homeworkId ? 'Homework Finished' : `${subject} Practice`,
-        correctCount: finishedCount + (finalDetails && queue.length === 0 ? 0 : 0), // Count is already updated in state
+        correctCount: correctCount, 
         wrongCount: wrongCount,
         total: totalInitial.toString(),
         homeworkId: homeworkId || "",
@@ -116,6 +124,7 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
   const handleAnswer = (val: string) => {
     if (isShowingFeedback || isShowingCorrectAnswer || selectedAnswer || !currentQuestion) return;
     setSelectedAnswer(val);
+    setTotalAnswered(prev => prev + 1);
     
     const isCorrect = val === currentQuestion.answer;
     const currentAttempts = attemptMap[currentQuestion.id] || 0;
@@ -138,20 +147,41 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
       const updatedDetails = [...sessionDetails, newDetail];
       setSessionDetails(updatedDetails);
 
-      if (newFinishedCount % 2 === 0 || queue.length === 1) {
-        const userStr = localStorage.getItem('user');
-        const userData = userStr ? JSON.parse(userStr).user : null;
-        const best = reinforcements.find(r => r.condition === userData?.username) || 
-                     reinforcements.find(r => r.condition === 'global');
-        
-        setActiveReinforcement(best);
-        setShowReinforcement(true);
-        setTimeout(() => {
-            setShowReinforcement(false);
-            if (queue.length === 1) {
-                handleCompleteHomework(updatedDetails);
-            }
-        }, (best?.duration || 3) * 1000);
+      // Rule Evaluation
+      const userStr = localStorage.getItem('user');
+      const userData = userStr ? JSON.parse(userStr).user : null;
+      
+      const applicable = reinforcements.filter(r => 
+        r.isGlobal || (r.targetStudentIds && r.targetStudentIds.includes(userData?.id))
+      );
+
+      const trigger = applicable.find(r => {
+        if (r.ruleType === 'fixed') {
+          return (totalAnswered + 1) % (r.ruleValue || 2) === 0;
+        } else if (r.ruleType === 'correct_count') {
+          return newFinishedCount % (r.ruleValue || 2) === 0;
+        } else if (r.ruleType === 'average') {
+          return Math.random() < (1 / (r.ruleValue || 2));
+        }
+        return false;
+      });
+
+      if (trigger || (queue.length === 1 && applicable.length > 0)) {
+        const selectedRein = trigger || applicable[0];
+        if (selectedRein) {
+          setActiveReinforcement(selectedRein);
+          setShowReinforcement(true);
+          setTimeout(() => {
+              setShowReinforcement(false);
+              if (queue.length === 1) {
+                  handleCompleteHomework(updatedDetails);
+              }
+          }, (selectedRein?.duration || 3) * 1000);
+        } else if (queue.length === 1) {
+          handleCompleteHomework(updatedDetails);
+        }
+      } else if (queue.length === 1) {
+        handleCompleteHomework(updatedDetails);
       }
 
       if (queue.length > 1) {
@@ -172,7 +202,6 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
       } else {
         setIsShowingCorrectAnswer(true);
         
-        // RECORD FAILED QUESTION
         const newDetail = {
           id: currentQuestion.id,
           stem: currentQuestion.stemText,
@@ -191,7 +220,7 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
           if (queue.length === 1) {
               handleCompleteHomework(updatedDetails);
           } else {
-              proceedToNext(false, false); // Don't requeue if they failed 3 times, move on
+              proceedToNext(false, false); 
           }
         }, 3000);
       }
@@ -227,8 +256,10 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
       return null;
   }
 
+  const effectiveDark = getEffectiveDarkMode();
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col overflow-x-hidden">
+    <div className={`min-h-screen flex flex-col overflow-x-hidden ${effectiveDark ? 'dark bg-gray-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b dark:border-gray-800 px-4 py-4 sticky top-0 z-30">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button onClick={() => navigate('/')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
@@ -486,7 +517,7 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
       </main>
 
       {showReinforcement && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-500">
+        <div className={`fixed inset-0 z-[120] flex items-center justify-center p-6 backdrop-blur-2xl animate-in fade-in duration-500 ${effectiveDark ? 'bg-black/95' : 'bg-white/95'}`}>
            <div className="absolute inset-0 overflow-hidden pointer-events-none">
               {[...Array(20)].map((_, i) => (
                 <div 
@@ -507,21 +538,22 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language }) => {
            <div className="w-full max-w-2xl text-center space-y-12 animate-in zoom-in-75 duration-500 relative">
               <div className="relative mx-auto w-72 h-72 bg-gradient-to-b from-primary-400/20 to-transparent rounded-full flex items-center justify-center">
                  <div className="absolute inset-0 bg-primary-500/10 blur-3xl rounded-full animate-pulse"></div>
-                 <div className="text-[12rem] animate-bounce filter drop-shadow-[0_20px_50px_rgba(255,255,255,0.3)]">
+                 <div className={`text-[12rem] animate-bounce filter ${effectiveDark ? 'drop-shadow-[0_20px_50px_rgba(255,255,255,0.3)]' : 'drop-shadow-[0_20px_50px_rgba(0,0,0,0.2)]'}`}>
                     {activeReinforcement?.image === 'fireworks' ? '🎆' : 
                     activeReinforcement?.image === 'star' ? '⭐' : 
                     activeReinforcement?.image === 'trophy' ? '🏆' : 
                     activeReinforcement?.image === 'rocket' ? '🚀' : 
                     activeReinforcement?.image === 'party' ? '🎉' : 
+                    activeReinforcement?.image?.startsWith('http') ? <img src={activeReinforcement.image} className="w-48 h-48 object-contain" /> :
                     activeReinforcement?.image?.startsWith('data:') ? <img src={activeReinforcement.image} className="w-48 h-48 object-contain" /> : '🦖'}
                  </div>
               </div>
 
               <div className="space-y-4">
-                 <h2 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-white to-yellow-200 tracking-tighter uppercase">
+                 <h2 className={`text-6xl font-black tracking-tighter uppercase ${effectiveDark ? 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-white to-yellow-200' : 'text-primary-600'}`}>
                    {activeReinforcement?.prompt || (language === 'zh' ? '太棒了！' : 'EXCELLENT!')}
                  </h2>
-                 <p className="text-xl text-primary-200 font-bold tracking-widest uppercase opacity-80">
+                 <p className={`text-xl font-bold tracking-widest uppercase opacity-80 ${effectiveDark ? 'text-primary-200' : 'text-primary-900'}`}>
                    {activeReinforcement?.name || (language === 'zh' ? '获得奖励' : 'REWARD UNLOCKED')}
                  </p>
               </div>

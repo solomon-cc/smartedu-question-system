@@ -117,7 +117,6 @@ const StudentDashboard: React.FC<DashboardProps> = ({ language }) => {
              </div>
              <div>
                 <h4 className="font-bold dark:text-white">{language === 'zh' ? '答题历史' : 'History'}</h4>
-                <p className="text-xs text-gray-500">{historyCount} {language === 'zh' ? '条记录' : 'records'}</p>
              </div>
           </div>
           <ChevronRight className="text-gray-400 group-hover:translate-x-1 transition-transform" />
@@ -188,7 +187,11 @@ const TeacherDashboard: React.FC<DashboardProps> = ({ language }) => {
           <h2 className="text-lg font-bold mb-4 dark:text-white">{language === 'zh' ? '最近作业情况' : 'Recent HW Status'}</h2>
           <div className="space-y-4">
             {stats.recentHomeworks?.map((item: any, i: number) => (
-              <div key={i} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
+              <div 
+                key={i} 
+                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => navigate(`/assign?id=${item.id}`)}
+              >
                  <div className="flex items-center gap-3">
                    <div className="w-10 h-10 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center font-bold">A</div>
                    <div>
@@ -196,7 +199,10 @@ const TeacherDashboard: React.FC<DashboardProps> = ({ language }) => {
                       <p className="text-xs text-gray-500">{item.date}</p>
                    </div>
                  </div>
-                 <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">{language === 'zh' ? '已完成' : 'Done'} {item.completed}/{item.total}</span>
+                 <div className="flex items-center gap-3">
+                    <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">{language === 'zh' ? '已完成' : 'Done'} {item.completed}/{item.total}</span>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                 </div>
               </div>
             ))}
           </div>

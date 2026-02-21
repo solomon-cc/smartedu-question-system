@@ -33,7 +33,7 @@ const Resources: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     setLoading(true);
     try {
       const data = await api.resources.list(page, pageSize, keyword);
-      setItems(data.list);
+      setItems(data.list || []);
       setTotal(data.total);
     } catch (e) {
       console.error(e);

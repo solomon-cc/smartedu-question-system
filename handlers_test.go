@@ -32,19 +32,28 @@ func TestGetQuestions_Empty(t *testing.T) {
 func TestGetTeacherStats(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	r.GET("/teacher/stats", GetTeacherStats)
+	r.GET("/teacher/stats", func(c *gin.Context) {
+		c.Set("userId", "2")
+		GetTeacherStats(c)
+	})
 
-    storeHomeworks = make([]Homework, 0)
-    storeHistory = make([]History, 0)
-
+	// Note: In real tests we'd need to mock the database. 
+	// Since this is a small project using GORM with a real DB (probably SQLite or MySQL),
+	// this test will run against whatever is in the current environment's DB.
+	
 	req, _ := http.NewRequest("GET", "/teacher/stats", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-    var response map[string]interface{}
-    json.Unmarshal(w.Body.Bytes(), &response)
-    assert.Contains(t, response, "accuracyRate")
+    var resp map[string]interface{}
+    json.Unmarshal(w.Body.Bytes(), &resp)
+    
+    // Check if expected keys exist in response
+    data := resp["data"].(map[string]interface{})
+    assert.Contains(t, data, "accuracyRate")
+    assert.Contains(t, data, "completionRate")
+    assert.Contains(t, data, "todayAssigned")
 }
 
 func TestReinforcements(t *testing.T) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -237,7 +238,7 @@ func GetQuestions(c *gin.Context) {
 		}
 	}
 
-	var questions []Question
+	questions := make([]Question, 0)
 	query.Find(&questions)
 	SendJSON(c, 0, "", questions)
 }
@@ -407,32 +408,50 @@ func GetHomeworks(c *gin.Context) {
 	userId, _ := c.Get("userId")
 	role, _ := c.Get("role")
 
-	var hws []Homework
-	query := DB.Model(&Homework{})
+	type HomeworkStat struct {
+		ID           string  `json:"id"`
+		TeacherID    string  `json:"teacherId"`
+		PaperID      string  `json:"paperId"`
+		Name         string  `json:"name"`
+		ClassID      string  `json:"classId"`
+		StartDate    string  `json:"startDate"`
+		EndDate      string  `json:"endDate"`
+		Status       string  `json:"status"`
+		Total        int     `json:"total"`       // Assigned count
+		Completed    int     `json:"completed"`   // Submitted count
+		StudentIDs   json.RawMessage `json:"studentIds"`
+	}
 
-	// If it's a teacher, filter by their ID
+	var results []HomeworkStat
+	
+	query := DB.Table("homeworks").
+		Select(`
+			homeworks.*,
+			(SELECT COUNT(DISTINCT student_id) FROM histories WHERE histories.homework_id = homeworks.id) as completed
+		`)
+
 	if fmt.Sprintf("%v", role) == string(RoleTeacher) {
-		query = query.Where("teacher_id = ?", fmt.Sprintf("%v", userId))
+		query = query.Where("homeworks.teacher_id = ?", fmt.Sprintf("%v", userId))
 	}
 	
-	query.Find(&hws)
+	query.Scan(&results)
 
-	// Dynamically calculate completed count from history records
-	for i := range hws {
-		var count int64
-		DB.Model(&History{}).
-			Where("homework_id = ?", hws[i].ID).
-			Distinct("student_id").
-			Count(&count)
-		
-		hws[i].Completed = int(count)
-		if hws[i].Total > 0 && hws[i].Completed >= hws[i].Total {
-			hws[i].Status = "completed"
-			DB.Model(&Homework{}).Where("id = ?", hws[i].ID).Update("status", "completed")
-		}
+	// Update status logic in memory/DB if needed, but primary source is now the query
+	for i := range results {
+		if results[i].Total > 0 && results[i].Completed >= results[i].Total {
+			if results[i].Status != "completed" {
+				results[i].Status = "completed"
+				DB.Model(&Homework{}).Where("id = ?", results[i].ID).Update("status", "completed")
+			}
+		} else {
+             if results[i].Status == "completed" {
+                 results[i].Status = "pending"
+                 DB.Model(&Homework{}).Where("id = ?", results[i].ID).Update("status", "pending")
+             }
+        }
 	}
 
-	SendJSON(c, 0, "", hws)
+	SendJSON(c, 0, "", results)
 }
 
 func AssignHomework(c *gin.Context) {
@@ -492,12 +511,24 @@ func CompleteHomework(c *gin.Context) {
 	var exists int64
 	DB.Model(&History{}).Where("homework_id = ? AND student_id = ?", id, studentId).Count(&exists)
 
-	if exists == 0 {
-		// This is a bit tricky with concurrent DB, but for simple logic:
-		h.Completed++
-		h.Status = "completed" // Simplistic status update
-		DB.Save(&h)
+	// Recalculate accurate completion count
+	var currentCompleted int64
+	DB.Model(&History{}).
+		Where("homework_id = ?", id).
+		Select("COUNT(DISTINCT student_id)").
+		Scan(&currentCompleted)
+	
+	h.Completed = int(currentCompleted)
+	
+	// Update status only if fully completed
+	if h.Total > 0 && h.Completed >= h.Total {
+		h.Status = "completed"
+	} else {
+		// If not full, ensure it's pending (or whatever active status is)
+		h.Status = "pending"
 	}
+	
+	DB.Save(&h)
 	
 	AddAuditLog(c, "COMPLETE_HOMEWORK", fmt.Sprintf("Finished homework: %s", h.Name))
 	SendJSON(c, 0, "", h)
@@ -508,11 +539,35 @@ func GetHistory(c *gin.Context) {
 	userId, _ := c.Get("userId")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	homeworkId := c.Query("homeworkId")
 
-	var histories []History
+	histories := make([]History, 0)
 	var total int64
+	role, _ := c.Get("role")
 	
-	query := DB.Model(&History{}).Where("student_id = ?", fmt.Sprintf("%v", userId))
+	query := DB.Model(&History{})
+	if fmt.Sprintf("%v", role) == string(RoleStudent) {
+		query = query.Where("student_id = ?", fmt.Sprintf("%v", userId))
+	} else if fmt.Sprintf("%v", role) == string(RoleTeacher) {
+		// Two-step approach to avoid JOIN issues
+		// 1. Get all homework IDs for this teacher
+		var homeworkIDs []string
+		
+		hwQuery := DB.Model(&Homework{}).Where("teacher_id = ?", fmt.Sprintf("%v", userId))
+		if homeworkId != "" {
+			hwQuery = hwQuery.Where("id = ?", homeworkId)
+		}
+		
+		hwQuery.Pluck("id", &homeworkIDs)
+		
+		if len(homeworkIDs) > 0 {
+			query = query.Where("homework_id IN ?", homeworkIDs)
+		} else {
+			// No homeworks found for this teacher (or the specific one doesn't belong to them)
+			query = query.Where("1 = 0")
+		}
+	}
+
 	query.Count(&total)
 	query.Order("date DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&histories)
 
@@ -644,8 +699,15 @@ func GetTeacherStats(c *gin.Context) {
 
 	var totalAssigned int64
 	var totalCompleted int64
-	DB.Model(&Homework{}).Where("teacher_id = ?").Select("SUM(total)").Scan(&totalAssigned)
-	DB.Model(&Homework{}).Where("teacher_id = ?").Select("SUM(completed)").Scan(&totalCompleted)
+	
+	// Calculate totals in one go to ensure consistency
+	DB.Table("homeworks").
+		Where("teacher_id = ?", teacherId).
+		Select(`
+			COALESCE(SUM(total), 0) as assigned,
+			COALESCE(SUM((SELECT COUNT(DISTINCT student_id) FROM histories WHERE histories.homework_id = homeworks.id)), 0) as completed
+		`).
+		Row().Scan(&totalAssigned, &totalCompleted)
 	
 	completionRate := 0.0
 	if totalAssigned > 0 {
@@ -667,15 +729,29 @@ func GetTeacherStats(c *gin.Context) {
 		accuracy = float64(results.Correct) / float64(results.Total)
 	}
 
-	var recent []Homework
-	DB.Where("teacher_id = ?", teacherId).Order("start_date DESC").Limit(5).Find(&recent)
+	// Use aggregated query for recent homeworks to ensure consistency
+	type RecentHWStat struct {
+		ID        string `json:"id"`
+		Name      string `json:"name"`
+		Date      string `json:"date"`
+		Completed int    `json:"completed"`
+		Total     int    `json:"total"`
+	}
+	var recentStats []RecentHWStat
+	
+	DB.Table("homeworks").
+		Select("homeworks.id, homeworks.name, homeworks.start_date as date, homeworks.total, (SELECT COUNT(DISTINCT student_id) FROM histories WHERE histories.homework_id = homeworks.id) as completed").
+		Where("homeworks.teacher_id = ?", teacherId).
+		Order("homeworks.start_date DESC").
+		Limit(5).
+		Scan(&recentStats)
 
-	recentFormatted := make([]gin.H, len(recent))
-	for i, h := range recent {
+	recentFormatted := make([]gin.H, len(recentStats))
+	for i, h := range recentStats {
 		recentFormatted[i] = gin.H{
 			"id":        h.ID,
 			"name":      h.Name,
-			"date":      h.StartDate,
+			"date":      h.Date,
 			"completed": h.Completed,
 			"total":     h.Total,
 		}
@@ -691,7 +767,7 @@ func GetTeacherStats(c *gin.Context) {
 
 // Admin Handlers
 func AdminGetHomeworks(c *gin.Context) {
-	var hws []Homework
+	hws := make([]Homework, 0)
 	DB.Find(&hws)
 
 	type HomeworkDetail struct {
@@ -714,6 +790,9 @@ func AdminGetHomeworks(c *gin.Context) {
 		var histories []History
 		DB.Where("homework_id = ?", h.ID).Find(&histories)
 		
+		var count int64
+		DB.Model(&History{}).Where("homework_id = ?", h.ID).Distinct("student_id").Count(&count)
+
 		results := make([]any, 0)
 		for _, rec := range histories {
 			var student User
@@ -736,7 +815,7 @@ func AdminGetHomeworks(c *gin.Context) {
 			ClassName:   h.ClassID,
 			StartDate:   h.StartDate,
 			Total:       h.Total,
-			Completed:   h.Completed,
+			Completed:   int(count),
 			Status:      h.Status,
 			Results:     results,
 		})
@@ -745,7 +824,7 @@ func AdminGetHomeworks(c *gin.Context) {
 }
 
 func AdminGetPractices(c *gin.Context) {
-	var histories []History
+	histories := make([]History, 0)
 	DB.Find(&histories)
 
 	type PracticeDetail struct {
@@ -784,7 +863,7 @@ func AdminGetPractices(c *gin.Context) {
 
 // Reinforcement Handlers
 func GetReinforcements(c *gin.Context) {
-	var list []Reinforcement
+	list := make([]Reinforcement, 0)
 	DB.Find(&list)
 	SendJSON(c, 0, "", list)
 }
@@ -829,7 +908,7 @@ func GetResources(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
 	keyword := strings.ToLower(c.Query("keyword"))
 
-	var list []Resource
+	list := make([]Resource, 0)
 	var total int64
 	
 	query := DB.Model(&Resource{}).Where("visibility = 'public' OR creator_id = ?", fmt.Sprintf("%v", userId))

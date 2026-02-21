@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { PlayCircle, Image as ImageIcon, Plus, Trash2, X, UploadCloud, Info, CheckCircle, Users, Globe, UserCheck, Star, Zap, Gift, Trophy, Edit2 } from 'lucide-react';
+import { PlayCircle, Image as ImageIcon, Plus, Trash2, X, UploadCloud, Info, CheckCircle, Users, Globe, UserCheck, Star, Zap, Gift, Trophy, Edit2, Clock } from 'lucide-react';
 import { api } from '../../services/api.ts';
 import { Role } from '../../types';
 import Loading from '../../components/Loading';
@@ -14,10 +13,9 @@ const BUILTIN_ASSETS = [
   { id: 'party', name: '庆祝时刻', nameEn: 'Party', icon: '🎉', color: 'bg-pink-100 text-pink-600' },
 ];
 
-const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
+const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'dark' | 'auto' }> = ({ language, themeMode }) => {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [previewingItem, setPreviewingItem] = useState<any>(null);
-  const [activeView, setActiveView] = useState<'global' | 'targeted'>('global');
   const [items, setItems] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,12 +24,23 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [formName, setFormName] = useState('');
   const [formPrompt, setFormPrompt] = useState('');
   const [formDuration, setFormDuration] = useState('3');
-  const [formTarget, setFormTarget] = useState('ALL');
+  const [isGlobal, setIsGlobal] = useState(true);
+  const [targetStudentIds, setTargetStudentIds] = useState<string[]>([]);
+  const [ruleType, setRuleType] = useState<'fixed' | 'correct_count' | 'average'>('fixed');
+  const [ruleValue, setRuleValue] = useState(2);
   const [assetType, setAssetType] = useState<'builtin' | 'upload'>('builtin');
   const [selectedBuiltin, setSelectedBuiltin] = useState<string>('');
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const getEffectiveDarkMode = () => {
+    if (themeMode === 'auto') {
+      const hour = new Date().getHours();
+      return hour >= 18 || hour < 6;
+    }
+    return themeMode === 'dark';
+  };
 
   useEffect(() => {
     fetchData();
@@ -46,20 +55,13 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       ]);
 
       setItems(reinforcementsData.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        type: item.type,
-        prompt: item.prompt,
-        duration: item.duration || 3,
-        // If image field starts with 'data:', it's uploaded. If it matches a builtin ID, it's builtin.
-        image: item.image, 
-        size: '1.2 MB', // Mock
-        color: 'bg-primary-500', // Mock
-        target: item.condition === 'global' ? 'ALL' : item.condition
+        ...item,
+        size: '1.2 MB', 
+        color: item.isGlobal ? 'bg-primary-500' : 'bg-orange-500'
       })));
 
       setStudents(studentsData.map((u: any) => ({
-        id: u.username, // Using username as ID for simplicity in this mock
+        id: u.id, 
         name: u.username
       })));
 
@@ -89,7 +91,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         alert(language === 'zh' ? '请选择一个动画' : 'Please select an animation');
         return;
       }
-      finalImage = selectedBuiltin; // Store ID
+      finalImage = selectedBuiltin;
     } else {
       if (!uploadedFile) {
         alert(language === 'zh' ? '请上传文件' : 'Please upload a file');
@@ -101,7 +103,10 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     const payload = {
         name: formName || (assetType === 'builtin' ? BUILTIN_ASSETS.find(b => b.id === selectedBuiltin)?.name : 'Custom Asset'),
         type: 'animation', 
-        condition: formTarget === 'ALL' ? 'global' : formTarget,
+        isGlobal: isGlobal,
+        targetStudentIds: isGlobal ? [] : targetStudentIds,
+        ruleType: ruleType,
+        ruleValue: ruleValue,
         image: finalImage,
         prompt: formPrompt,
         duration: parseInt(formDuration) || 3
@@ -115,27 +120,36 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       }
       setIsUploadModalOpen(false);
       fetchData();
-      // Reset form
-      setFormName('');
-      setFormPrompt('');
-      setFormDuration('3');
-      setFormTarget('ALL');
-      setAssetType('builtin');
-      setSelectedBuiltin('');
-      setUploadedFile(null);
-      setEditingId(null);
+      resetForm();
     } catch (e) {
       console.error(e);
       alert('Failed to save');
     }
   };
 
+  const resetForm = () => {
+    setFormName('');
+    setFormPrompt('');
+    setFormDuration('3');
+    setIsGlobal(true);
+    setTargetStudentIds([]);
+    setRuleType('fixed');
+    setRuleValue(2);
+    setAssetType('builtin');
+    setSelectedBuiltin('');
+    setUploadedFile(null);
+    setEditingId(null);
+  }
+
   const handleOpenEdit = (item: any) => {
       setEditingId(item.id);
       setFormName(item.name);
       setFormPrompt(item.prompt || '');
       setFormDuration(String(item.duration || 3));
-      setFormTarget(item.target === 'ALL' ? 'ALL' : item.target);
+      setIsGlobal(item.isGlobal);
+      setTargetStudentIds(item.targetStudentIds || []);
+      setRuleType(item.ruleType || 'fixed');
+      setRuleValue(item.ruleValue || 2);
       
       const isBuiltin = BUILTIN_ASSETS.some(b => b.id === item.image);
       setAssetType(isBuiltin ? 'builtin' : 'upload');
@@ -160,23 +174,41 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     }
   };
 
-  const filteredItems = activeView === 'global' 
-    ? items.filter(i => i.target === 'ALL')
-    : items.filter(i => i.target !== 'ALL');
-
   const getIconForAsset = (item: any) => {
-    // Check if it's a builtin asset
     const builtin = BUILTIN_ASSETS.find(b => b.id === item.image);
     if (builtin) {
       return <div className="text-6xl">{builtin.icon}</div>;
     }
-    // Check if it's an uploaded image (data URI)
+    if (item.image && item.image.startsWith('http')) {
+      return <img src={item.image} alt={item.name} className="w-full h-full object-cover" />;
+    }
     if (item.image && item.image.startsWith('data:')) {
       return <img src={item.image} alt={item.name} className="w-full h-full object-cover" />;
     }
-    // Fallback
     return <ImageIcon className="w-16 h-16 text-gray-300" />;
   };
+
+  const getRuleLabel = (type: string, value: number) => {
+    switch (type) {
+      case 'fixed': return language === 'zh' ? `每 ${value} 题出现` : `Every ${value} Qs`;
+      case 'correct_count': return language === 'zh' ? `每答对 ${value} 题出现` : `Every ${value} Correct`;
+      case 'average': return language === 'zh' ? `平均每 ${value} 题概率出现` : `Avg every ${value} Qs`;
+      default: return type;
+    }
+  }
+
+  const getRuleDescription = (type: string, value: number) => {
+    switch (type) {
+      case 'fixed': return language === 'zh' ? `效果：学生每完成 ${value} 道练习题（无论对错），系统将弹出一次该奖励。` : `Effect: Reward pops up every ${value} questions answered (correct or wrong).`;
+      case 'correct_count': return language === 'zh' ? `效果：学生每积累答对 ${value} 道练习题，系统将弹出一次该奖励。` : `Effect: Reward pops up every ${value} correct answers accumulated.`;
+      case 'average': 
+        const prob = Math.round((1/value)*100);
+        return language === 'zh' ? `效果：随机概率触发。平均每 ${value} 题出现一次（当前触发几率为 ${prob}%）。适合制造惊喜感。` : `Effect: Random trigger. On average appears every ${value} questions (current chance: ${prob}%). Great for surprises.`;
+      default: return '';
+    }
+  }
+
+  const effectiveDark = getEffectiveDarkMode();
 
   return (
     <div className="space-y-6 relative animate-in fade-in duration-500">
@@ -184,14 +216,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         <h2 className="text-2xl font-bold dark:text-white">{language === 'zh' ? '强化物资源库' : 'Reinforcement Assets'}</h2>
         <button 
           onClick={() => {
-            setEditingId(null);
-            setFormName('');
-            setFormPrompt('');
-            setFormDuration('3');
-            setFormTarget('ALL');
-            setAssetType('builtin');
-            setSelectedBuiltin('');
-            setUploadedFile(null);
+            resetForm();
             setIsUploadModalOpen(true);
           }}
           className="bg-primary-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-xl shadow-primary-500/30 hover:bg-primary-700 transition-all hover:scale-105"
@@ -201,31 +226,14 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         </button>
       </div>
 
-      <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl w-fit">
-        <button 
-          onClick={() => setActiveView('global')}
-          className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold text-sm transition-all ${activeView === 'global' ? 'bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-primary-400' : 'text-gray-500'}`}
-        >
-          <Globe className="w-4 h-4" />
-          {language === 'zh' ? '全局通用' : 'Global'}
-        </button>
-        <button 
-          onClick={() => setActiveView('targeted')}
-          className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold text-sm transition-all ${activeView === 'targeted' ? 'bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-primary-400' : 'text-gray-500'}`}
-        >
-          <UserCheck className="w-4 h-4" />
-          {language === 'zh' ? '定向配置' : 'Targeted'}
-        </button>
-      </div>
-
       <div className="bg-primary-50 dark:bg-primary-900/10 p-6 rounded-[2rem] border-2 border-primary-100 dark:border-primary-800 flex items-start gap-4 text-primary-600 dark:text-primary-400">
          <div className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
-           <Info className="w-6 h-6 shrink-0" />
+           <Zap className="w-6 h-6 shrink-0" />
          </div>
          <div>
-           <p className="font-bold text-lg mb-1">{language === 'zh' ? '个性化设置' : 'Personalization'}</p>
+           <p className="font-bold text-lg mb-1">{language === 'zh' ? '管理说明' : 'Management Note'}</p>
            <p className="text-sm opacity-80 leading-relaxed">
-             {language === 'zh' ? '您可以为全班设置通用强化物，也可以针对特定学习动力的学生配置个性化奖励动画。' : 'Set universal reinforcements for the class or targeted rewards for specific students to boost motivation.'}
+             {language === 'zh' ? '在此管理所有的强化物奖励及其出现规则。您可以设置全局通用的奖励，也可以为特定学生配置专属的激励逻辑。' : 'Manage all reinforcement rewards and their trigger rules here. You can set global rewards or configure exclusive motivation logic for specific students.'}
            </p>
          </div>
       </div>
@@ -233,10 +241,10 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {loading ? (
            <div className="col-span-4"><Loading /></div>
-        ) : filteredItems.length === 0 ? (
+        ) : items.length === 0 ? (
            <div className="col-span-4 text-center py-10 text-gray-400">{language === 'zh' ? '暂无资源' : 'No assets found'}</div>
         ) : (
-        filteredItems.map(item => (
+        items.map(item => (
           <div key={item.id} className="bg-white dark:bg-gray-800 rounded-[2rem] overflow-hidden border dark:border-gray-700 group relative shadow-sm hover:shadow-2xl hover:translate-y-[-6px] transition-all duration-300">
              <div className="aspect-square bg-gray-50 dark:bg-gray-900 flex items-center justify-center relative overflow-hidden">
                <div className={`absolute inset-0 opacity-10 ${item.color}`}></div>
@@ -256,13 +264,23 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                  <h5 className="font-black text-sm dark:text-white truncate pr-2 uppercase tracking-wide">{item.name}</h5>
                  <span className={`w-2 h-2 rounded-full ${item.color}`}></span>
                </div>
-               <div className="flex items-center gap-1 text-[10px] text-gray-400 font-black uppercase tracking-widest">
-                  <span className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{item.type}</span>
-                  <span>·</span>
-                  <span className="flex items-center gap-1">
-                    <Users className="w-2.5 h-2.5" />
-                    {item.target === 'ALL' ? (language === 'zh' ? '全局' : 'Global') : item.target}
-                  </span>
+               <div className="flex flex-col gap-2">
+                 <div className="flex items-center gap-1 text-[10px] text-gray-400 font-black uppercase tracking-widest">
+                    <span className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{item.type}</span>
+                    <span>·</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5" />
+                      {item.duration}s
+                    </span>
+                    <span>·</span>
+                    <span className="flex items-center gap-1">
+                      {item.isGlobal ? <Globe className="w-2.5 h-2.5" /> : <Users className="w-2.5 h-2.5" />}
+                      {item.isGlobal ? (language === 'zh' ? '全局' : 'Global') : (language === 'zh' ? '定向' : 'Targeted')}
+                    </span>
+                 </div>
+                 <div className="text-[10px] text-primary-600 font-bold bg-primary-50 dark:bg-primary-950/20 px-2 py-1 rounded-lg border border-primary-100 dark:border-primary-900/50 w-fit">
+                   {getRuleLabel(item.ruleType, item.ruleValue)}
+                 </div>
                </div>
              </div>
              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
@@ -284,8 +302,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       </div>
 
       {previewingItem && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-500">
-           {/* Decorative background elements */}
+        <div className={`fixed inset-0 z-[120] flex items-center justify-center p-6 backdrop-blur-2xl animate-in fade-in duration-500 ${effectiveDark ? 'bg-black/95' : 'bg-white/95'}`}>
            <div className="absolute inset-0 overflow-hidden pointer-events-none">
               {[...Array(20)].map((_, i) => (
                 <div 
@@ -306,16 +323,16 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
            <div className="w-full max-w-2xl text-center space-y-12 animate-in zoom-in-75 duration-500 relative">
               <div className="relative mx-auto w-72 h-72 bg-gradient-to-b from-primary-400/20 to-transparent rounded-full flex items-center justify-center">
                  <div className="absolute inset-0 bg-primary-500/10 blur-3xl rounded-full animate-pulse"></div>
-                 <div className="text-[12rem] animate-bounce filter drop-shadow-[0_20px_50px_rgba(255,255,255,0.3)]">
+                 <div className={`text-[12rem] animate-bounce filter ${effectiveDark ? 'drop-shadow-[0_20px_50px_rgba(255,255,255,0.3)]' : 'drop-shadow-[0_20px_50px_rgba(0,0,0,0.2)]'}`}>
                    {getIconForAsset(previewingItem)}
                  </div>
               </div>
 
               <div className="space-y-4">
-                 <h2 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-white to-yellow-200 tracking-tighter uppercase">
+                 <h2 className={`text-6xl font-black tracking-tighter uppercase ${effectiveDark ? 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-white to-yellow-200' : 'text-primary-600'}`}>
                    {previewingItem.prompt || (language === 'zh' ? '太棒了！' : 'EXCELLENT!')}
                  </h2>
-                 <p className="text-xl text-primary-200 font-bold tracking-widest uppercase opacity-80">
+                 <p className={`text-xl font-bold tracking-widest uppercase opacity-80 ${effectiveDark ? 'text-primary-200' : 'text-primary-900'}`}>
                    {previewingItem.name}
                  </p>
               </div>
@@ -323,7 +340,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
               <div className="flex justify-center pt-8">
                  <button 
                   onClick={() => setPreviewingItem(null)} 
-                  className="px-12 py-5 bg-white text-primary-900 rounded-full font-black uppercase tracking-widest shadow-[0_20px_50px_rgba(255,255,255,0.2)] hover:scale-110 active:scale-95 transition-all flex items-center gap-3"
+                  className={`px-12 py-5 rounded-full font-black uppercase tracking-widest shadow-[0_20px_50px_rgba(0,0,0,0.1)] hover:scale-110 active:scale-95 transition-all flex items-center gap-3 ${effectiveDark ? 'bg-white text-primary-900' : 'bg-primary-600 text-white'}`}
                  >
                    <X className="w-6 h-6" />
                    {language === 'zh' ? '完成预览' : 'Done'}
@@ -335,7 +352,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in zoom-in-95 duration-300">
-           <div className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[2.5rem] shadow-2xl p-10 border dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+           <div className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[2.5rem] shadow-2xl p-10 border dark:border-gray-700 max-h-[95vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-10 border-b dark:border-gray-700 pb-6">
                  <h3 className="text-2xl font-black dark:text-white uppercase tracking-tight">
                     {editingId 
@@ -347,7 +364,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                  </button>
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-6">
                  <div className="grid grid-cols-2 gap-4">
                    <div>
                       <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">{language === 'zh' ? '资源名称' : 'Asset Name'}</label>
@@ -359,22 +376,79 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                         placeholder={language === 'zh' ? '自定义名称 (选填)' : 'Custom Name (Optional)'}
                       />
                    </div>
-                   <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">{language === 'zh' ? '投放对象' : 'Target Object'}</label>
-                      <select 
-                        value={formTarget}
-                        onChange={(e) => setFormTarget(e.target.value)}
-                        className="w-full p-4 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-xl border dark:border-gray-700 outline-none focus:ring-4 focus:ring-primary-500/20 font-bold"
-                      >
-                         <option value="ALL">{language === 'zh' ? '全局通用' : 'Global'}</option>
-                         {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                      </select>
+                   <div className="flex flex-col">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">{language === 'zh' ? '适用范围' : 'Scope'}</label>
+                      <div className="flex p-1 bg-gray-100 dark:bg-gray-900 rounded-xl">
+                        <button 
+                          onClick={() => setIsGlobal(true)}
+                          className={`flex-1 py-3 text-xs font-black rounded-lg transition-all ${isGlobal ? 'bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white' : 'text-gray-400'}`}
+                        >
+                          {language === 'zh' ? '全局通用' : 'Global'}
+                        </button>
+                        <button 
+                          onClick={() => setIsGlobal(false)}
+                          className={`flex-1 py-3 text-xs font-black rounded-lg transition-all ${!isGlobal ? 'bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white' : 'text-gray-400'}`}
+                        >
+                          {language === 'zh' ? '定向学生' : 'Targeted'}
+                        </button>
+                      </div>
                    </div>
+                 </div>
+
+                 {!isGlobal && (
+                   <div className="animate-in slide-in-from-top duration-300 space-y-2">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">{language === 'zh' ? '选择学生 (可多选)' : 'Select Students (Multi-select)'}</label>
+                      <div className="flex flex-wrap gap-2 p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border dark:border-gray-700 max-h-32 overflow-y-auto">
+                        {students.map(s => {
+                          const selected = targetStudentIds.includes(s.id);
+                          return (
+                            <button
+                              key={s.id}
+                              onClick={() => setTargetStudentIds(prev => selected ? prev.filter(id => id !== s.id) : [...prev, s.id])}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${selected ? 'bg-primary-600 text-white shadow-md' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300'}`}
+                            >
+                              {s.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                   </div>
+                 )}
+
+                 <div className="p-6 bg-primary-50/50 dark:bg-primary-900/10 rounded-3xl border border-primary-100 dark:border-primary-800 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-black text-primary-600 uppercase mb-3 tracking-widest">{language === 'zh' ? '触发规则' : 'Trigger Rule'}</label>
+                        <select 
+                          value={ruleType}
+                          onChange={(e) => setRuleType(e.target.value as any)}
+                          className="w-full p-4 bg-white dark:bg-gray-900 dark:text-white rounded-xl border dark:border-gray-700 outline-none focus:ring-4 focus:ring-primary-500/20 font-bold"
+                        >
+                          <option value="fixed">{language === 'zh' ? '固定题数' : 'Every N Questions'}</option>
+                          <option value="correct_count">{language === 'zh' ? '答对数量' : 'Every N Correct'}</option>
+                          <option value="average">{language === 'zh' ? '平均概率' : 'Average Interval'}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-primary-600 uppercase mb-3 tracking-widest">{language === 'zh' ? '规则值 (N)' : 'Rule Value (N)'}</label>
+                        <input 
+                          type="number" 
+                          min="1"
+                          value={ruleValue}
+                          onChange={(e) => setRuleValue(parseInt(e.target.value) || 1)}
+                          className="w-full p-4 bg-white dark:bg-gray-900 dark:text-white rounded-xl border dark:border-gray-700 outline-none focus:ring-4 focus:ring-primary-500/20 font-bold"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 text-xs text-primary-700 dark:text-primary-400 bg-white/50 dark:bg-gray-800/50 p-3 rounded-xl border border-primary-100/50 dark:border-primary-900/30">
+                       <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                       <p className="font-medium leading-relaxed">{getRuleDescription(ruleType, ruleValue)}</p>
+                    </div>
                  </div>
 
                  <div className="grid grid-cols-2 gap-4">
                     <div className="flex-1">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">{language === 'zh' ? '奖励提示词 (手动输入)' : 'Reinforcement Prompt'}</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">{language === 'zh' ? '奖励提示词' : 'Reinforcement Prompt'}</label>
                         <input 
                           type="text" 
                           value={formPrompt}
@@ -397,7 +471,7 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                  </div>
                  
                  <div>
-                   <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-2xl mb-6 w-fit">
+                   <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-2xl mb-4 w-fit">
                       <button 
                         onClick={() => setAssetType('builtin')} 
                         className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${assetType === 'builtin' ? 'bg-white dark:bg-gray-600 shadow text-primary-600 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
@@ -428,21 +502,21 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                    ) : (
                      <div 
                         onClick={() => fileInputRef.current?.click()}
-                        className={`group border-4 border-dashed rounded-[2.5rem] p-12 flex flex-col items-center justify-center gap-4 hover:border-primary-500 hover:bg-primary-50/20 transition-all cursor-pointer ${uploadedFile ? 'border-green-500 bg-green-50/20' : 'dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50'}`}
+                        className={`group border-4 border-dashed rounded-[2.5rem] p-8 flex flex-col items-center justify-center gap-4 hover:border-primary-500 hover:bg-primary-50/20 transition-all cursor-pointer ${uploadedFile ? 'border-green-500 bg-green-50/20' : 'dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50'}`}
                      >
                         {uploadedFile ? (
                            <div className="flex flex-col items-center">
-                              <img src={uploadedFile} alt="Preview" className="h-24 object-contain mb-4 rounded-lg" />
-                              <p className="text-green-600 font-bold">{language === 'zh' ? '已选择文件' : 'File Selected'}</p>
+                              <img src={uploadedFile} alt="Preview" className="h-20 object-contain mb-2 rounded-lg" />
+                              <p className="text-green-600 font-bold text-xs">{language === 'zh' ? '已选择文件' : 'File Selected'}</p>
                            </div>
                         ) : (
                            <>
-                              <div className="bg-primary-100 dark:bg-primary-900/30 p-6 rounded-[2rem] group-hover:scale-110 transition-all shadow-sm">
-                                 <UploadCloud className="w-10 h-10 text-primary-600" />
+                              <div className="bg-primary-100 dark:bg-primary-900/30 p-4 rounded-[1.5rem] group-hover:scale-110 transition-all shadow-sm">
+                                 <UploadCloud className="w-8 h-8 text-primary-600" />
                               </div>
                               <div className="text-center">
-                                 <p className="font-black dark:text-white text-lg">{language === 'zh' ? '点击上传 GIF/图片' : 'Click to Upload GIF/Image'}</p>
-                                 <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-widest">Max 2MB</p>
+                                 <p className="font-black dark:text-white text-base">{language === 'zh' ? '点击上传 GIF/图片' : 'Click to Upload GIF/Image'}</p>
+                                 <p className="text-[10px] text-gray-400 mt-1 font-bold uppercase tracking-widest">Max 2MB</p>
                               </div>
                            </>
                         )}
@@ -458,12 +532,12 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                  </div>
 
                  <div className="flex gap-4 pt-4">
-                    <button onClick={() => setIsUploadModalOpen(false)} className="flex-1 py-4 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 rounded-[1.5rem] font-black uppercase tracking-widest">
+                    <button onClick={() => setIsUploadModalOpen(false)} className="flex-1 py-4 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 rounded-[1.5rem] font-black uppercase tracking-widest transition-all hover:bg-gray-200">
                       {language === 'zh' ? '取消' : 'Cancel'}
                     </button>
                     <button 
                       onClick={handleCreateOrUpdate} 
-                      className="flex-1 py-4 bg-primary-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest shadow-xl shadow-primary-500/30 hover:bg-primary-700 transition-all"
+                      className="flex-1 py-4 bg-primary-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest shadow-xl shadow-primary-500/30 hover:bg-primary-700 transition-all hover:scale-105 active:scale-95"
                     >
                       {language === 'zh' ? (editingId ? '确认修改' : '确认添加') : (editingId ? 'Update' : 'Confirm')}
                     </button>

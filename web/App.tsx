@@ -116,7 +116,7 @@ const App: React.FC = () => {
                   <Route path="/questions" element={<Questions language={language} />} />
                   <Route path="/papers" element={<Papers language={language} />} />
                   <Route path="/assign" element={<Assign language={language} />} />
-                  <Route path="/reinforcements" element={<Reinforcements language={language} />} />
+                  <Route path="/reinforcements" element={<Reinforcements language={language} themeMode={themeMode} />} />
                   <Route path="/resources" element={<Resources language={language} />} />
                   <Route path="/users" element={<Users language={language} />} />
                   <Route path="/logs" element={<AuditLogs language={language} />} />
@@ -128,7 +128,7 @@ const App: React.FC = () => {
               <Route path="*" />
             </Route>
 
-            <Route path="/practice" element={user?.role === 'STUDENT' ? <PracticeSession language={language} /> : <Navigate to="/" />} />
+            <Route path="/practice" element={user?.role === 'STUDENT' ? <PracticeSession language={language} themeMode={themeMode} /> : <Navigate to="/" />} />
           </Routes>
         </div>
       </HashRouter>

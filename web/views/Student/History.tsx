@@ -29,7 +29,7 @@ const History: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     setLoading(true);
     api.history.list(page, pageSize)
       .then(res => {
-        setHistory(res.list);
+        setHistory(res.list || []);
         setTotal(res.total);
       })
       .catch(console.error)
@@ -87,7 +87,7 @@ const History: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
               <p className="text-gray-500 mt-2 flex items-center gap-2"><Clock className="w-4 h-4" /> {selectedItem.date}</p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-500 uppercase font-bold">{language === 'zh' ? '成绩 / 结果' : 'Result'}</p>
+              <p className="text-sm text-gray-500 uppercase font-bold">{language === 'zh' ? '正确/错误' : 'Correct/Incorrect'}</p>
               <div className="mt-1 text-2xl">{getResultDisplay(selectedItem)}</div>
             </div>
           </div>
@@ -156,7 +156,7 @@ const History: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                 <th className="px-6 py-4 text-xs font-black text-gray-500 uppercase tracking-wider">{language === 'zh' ? '类型' : 'Type'}</th>
                 <th className="px-6 py-4 text-xs font-black text-gray-500 uppercase tracking-wider">{language === 'zh' ? '名称' : 'Name'}</th>
                 <th className="px-6 py-4 text-xs font-black text-gray-500 uppercase tracking-wider">{language === 'zh' ? '日期' : 'Date'}</th>
-                <th className="px-6 py-4 text-xs font-black text-gray-500 uppercase tracking-wider">{language === 'zh' ? '成绩 / 结果' : 'Result'}</th>
+                <th className="px-6 py-4 text-xs font-black text-gray-500 uppercase tracking-wider">{language === 'zh' ? '正确/错误' : 'Correct/Incorrect'}</th>
                 <th className="px-6 py-4 text-xs font-black text-gray-500 uppercase tracking-wider">{language === 'zh' ? '操作' : 'Action'}</th>
               </tr>
             </thead>

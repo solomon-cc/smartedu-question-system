@@ -64,13 +64,16 @@ type DashboardStats struct {
 }
 
 type Reinforcement struct {
-	ID        string `json:"id" gorm:"primaryKey;type:varchar(191)"`
-	Name      string `json:"name" gorm:"type:varchar(191)"`
-	Type      string `json:"type" gorm:"type:varchar(191)"`
-	Image     string `json:"image,omitempty" gorm:"type:text"`
-	Prompt    string `json:"prompt,omitempty" gorm:"type:text"`
-	Duration  int    `json:"duration,omitempty"`
-	Condition string `json:"condition" gorm:"type:varchar(191)"`
+	ID               string   `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	Name             string   `json:"name" gorm:"type:varchar(191)"`
+	Type             string   `json:"type" gorm:"type:varchar(191)"`
+	Image            string   `json:"image,omitempty" gorm:"type:text"`
+	Prompt           string   `json:"prompt,omitempty" gorm:"type:text"`
+	Duration         int      `json:"duration,omitempty"`
+	IsGlobal         bool     `json:"isGlobal"`
+	TargetStudentIDs []string `json:"targetStudentIds" gorm:"serializer:json"`
+	RuleType         string   `json:"ruleType" gorm:"type:varchar(191)"` // "fixed", "correct_count", "average"
+	RuleValue        int      `json:"ruleValue"`
 }
 
 type Paper struct {

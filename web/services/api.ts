@@ -152,11 +152,12 @@ export const api = {
     }
   },
   history: {
-    list: async (page = 1, pageSize = 10): Promise<{ list: any[], total: number }> => {
+    list: async (page = 1, pageSize = 10, homeworkId?: string): Promise<{ list: any[], total: number }> => {
       const params = new URLSearchParams({
         page: page.toString(),
         pageSize: pageSize.toString()
       });
+      if (homeworkId) params.append('homeworkId', homeworkId);
       const res = await fetch(`${API_URL}/history?${params.toString()}`, { headers: getHeaders() });
       return handleResponse(res);
     },

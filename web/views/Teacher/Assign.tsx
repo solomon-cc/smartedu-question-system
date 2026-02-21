@@ -1,21 +1,25 @@
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Send, User, Book, Search, CheckCircle2, LayoutGrid, FileCheck, ChevronRight, UserCircle, Clock, ArrowLeft } from 'lucide-react';
 import { api } from '../../services/api.ts';
 import { Role } from '../../types';
 import Loading from '../../components/Loading';
 
 const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'assign' | 'status'>('assign');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [selectedHw, setSelectedHw] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [hwDetailsLoading, setHwDetailsLoading] = useState(false);
   
   // Data State
   const [students, setStudents] = useState<any[]>([]);
   const [papers, setPapers] = useState<any[]>([]);
   const [historicalHw, setHistoricalHw] = useState<any[]>([]);
   const [historyRecords, setHistoryRecords] = useState<any[]>([]);
+  const [viewingRecord, setViewingRecord] = useState<any>(null);
   
   // Form State
   const [selectedPaperId, setSelectedPaperId] = useState('');
@@ -25,6 +29,19 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     fetchData();
   }, []);
 
+  // Freshly fetch history records when selecting a specific homework
+  useEffect(() => {
+    if (selectedHw) {
+      setHwDetailsLoading(true);
+      // Fetch specifically for this homework to ensure we get all records even if pagination limits total
+      api.history.list(1, 1000, selectedHw.id)
+        .then(data => {
+          setHistoryRecords(data.list || []);
+        })
+        .finally(() => setHwDetailsLoading(false));
+    }
+  }, [selectedHw]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -32,10 +49,10 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         api.students.list(),
         api.papers.list(),
         api.homework.list(),
-        api.history.list()
+        api.history.list(1, 1000) // Initial fetch
       ]);
 
-      setHistoryRecords(historyData);
+      setHistoryRecords(historyData.list || []);
 
       setStudents(studentsData.map((u: any) => ({
         id: u.id,
@@ -51,8 +68,25 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         title: h.name,
         date: h.startDate,
         total: h.total,
-        submitted: h.completed
+        submitted: h.completed,
+        studentIds: h.studentIds || []
       })));
+
+      const autoOpenId = searchParams.get('id');
+      if (autoOpenId) {
+        const target = hwData.find((h: any) => h.id === autoOpenId);
+        if (target) {
+          setActiveTab('status');
+          setSelectedHw({
+            id: target.id,
+            title: target.name,
+            date: target.startDate,
+            total: target.total,
+            submitted: target.completed,
+            studentIds: target.studentIds || []
+          });
+        }
+      }
 
       if (papersData.length > 0) {
         setSelectedPaperId(papersData[0].id);
@@ -93,16 +127,77 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     );
   };
 
+  if (viewingRecord) {
+    return (
+      <div className="space-y-6 animate-in slide-in-from-right duration-300">
+        <button 
+          onClick={() => setViewingRecord(null)}
+          className="flex items-center gap-2 text-primary-600 font-bold hover:underline"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          {language === 'zh' ? '返回作业明细' : 'Back to Detail'}
+        </button>
+
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border dark:border-gray-700">
+          <div className="flex justify-between items-center mb-8 border-b dark:border-gray-700 pb-6">
+            <h2 className="text-2xl font-black dark:text-white">{viewingRecord.studentName} {language === 'zh' ? '的答题记录' : 'History'}</h2>
+            <div className="text-right">
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{language === 'zh' ? '完成时间' : 'Finished At'}</p>
+              <p className="font-bold dark:text-white">{viewingRecord.date}</p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {viewingRecord.questions?.map((q: any, idx: number) => {
+               const stemText = typeof q.stem === 'string' ? q.stem : q.stem?.text || '';
+               return (
+                <div key={idx} className="p-6 rounded-[2rem] bg-gray-50 dark:bg-gray-900/50 border dark:border-gray-700 relative overflow-hidden">
+                   <div className={`absolute top-0 left-0 w-2 h-full ${q.status === 'correct' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                   <div className="flex justify-between items-start mb-4">
+                      <p className="font-bold dark:text-white text-lg">{idx + 1}. {stemText}</p>
+                      {q.status === 'correct' ? <CheckCircle2 className="text-green-500 w-6 h-6" /> : <X className="text-red-500 w-6 h-6" />}
+                   </div>
+                   
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-green-50 dark:bg-green-900/10 rounded-2xl border border-green-100 dark:border-green-800">
+                        <p className="text-[10px] text-green-600 font-black mb-1">{language === 'zh' ? '正确答案' : 'Correct'}</p>
+                        <p className="text-green-700 dark:text-green-400 font-bold">{q.answer}</p>
+                      </div>
+                      <div className={`p-4 rounded-2xl border ${q.status === 'correct' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-100 dark:border-primary-800' : 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-800'}`}>
+                        <p className={`text-[10px] font-black mb-1 ${q.status === 'correct' ? 'text-primary-600' : 'text-red-600'}`}>{language === 'zh' ? '回答' : 'Answer'}</p>
+                        <p className={`font-bold ${q.status === 'correct' ? 'text-primary-700 dark:text-primary-400' : 'text-red-700 dark:text-red-400'}`}>{q.userAnswer}</p>
+                      </div>
+                   </div>
+                </div>
+               );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (selectedHw) {
-    const hwHistory = historyRecords.filter(h => h.homeworkId === selectedHw.id);
-    const enrichedStudents = students.map(s => {
-      const record = hwHistory.find(h => h.studentId === s.id);
-      return {
-        ...s,
-        completion: record ? '100%' : '0%',
-        isDone: !!record
-      };
-    });
+    const hwHistory = historyRecords.filter(h => String(h.homeworkId) === String(selectedHw.id));
+    const targetStudentIds = selectedHw.studentIds || [];
+
+    const enrichedStudents = students
+      .filter(s => targetStudentIds.includes(String(s.id)))
+      .map(s => {
+        const record = hwHistory.find(h => String(h.studentId) === String(s.id));
+        let completion = '0%';
+        if (record) {
+          const total = parseInt(record.total) || 1;
+          const answered = (record.correctCount || 0) + (record.wrongCount || 0);
+          completion = Math.round((answered / total) * 100) + '%';
+        }
+        return {
+          ...s,
+          completion: completion,
+          isDone: !!record,
+          rawRecord: record
+        };
+      });
 
     return (
       <div className="space-y-6 animate-in slide-in-from-right duration-300">
@@ -118,14 +213,16 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
           <h2 className="text-2xl font-black dark:text-white mb-2">{selectedHw.title}</h2>
           <p className="text-gray-500 mb-8 flex items-center gap-2"><Clock className="w-4 h-4" /> {selectedHw.date}</p>
           
+          {hwDetailsLoading ? <Loading /> : (
+          <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-2xl border dark:border-gray-700">
                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{language === 'zh' ? '提交人数' : 'Submitted'}</p>
-               <p className="text-2xl font-black dark:text-white">{selectedHw.submitted} / {selectedHw.total}</p>
+               <p className="text-2xl font-black dark:text-white">{enrichedStudents.filter(s => s.isDone).length} / {targetStudentIds.length}</p>
             </div>
             <div className="p-6 bg-green-50 dark:bg-green-900/20 rounded-2xl border border-green-100 dark:border-green-800">
                <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mb-1">{language === 'zh' ? '提交率' : 'Rate'}</p>
-               <p className="text-2xl font-black text-green-600">{selectedHw.total > 0 ? Math.round((selectedHw.submitted / selectedHw.total) * 100) : 0}%</p>
+               <p className="text-2xl font-black text-green-600">{targetStudentIds.length > 0 ? Math.round((enrichedStudents.filter(s => s.isDone).length / targetStudentIds.length) * 100) : 0}%</p>
             </div>
           </div>
 
@@ -133,7 +230,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
              <h3 className="font-bold dark:text-white mb-4">{language === 'zh' ? '学生完成明细' : 'Student Detail'}</h3>
              <div className="divide-y dark:divide-gray-700">
                 {enrichedStudents.map(s => (
-                  <div key={s.id} className="py-4 flex items-center justify-between">
+                  <div key={s.id} className="py-4 flex items-center justify-between group">
                      <div className="flex items-center gap-3">
                         <UserCircle className="w-10 h-10 text-gray-300" />
                         <div>
@@ -141,14 +238,26 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                            <p className="text-[10px] text-gray-400">{s.grade}</p>
                         </div>
                      </div>
-                     <div className="text-right">
-                        <p className={`text-sm font-black ${s.isDone ? 'text-green-500' : 'text-red-500'}`}>{s.completion}</p>
-                        <p className="text-[10px] text-gray-400">{s.isDone ? (language === 'zh' ? '已完成' : 'Done') : (language === 'zh' ? '待完成' : 'Pending')}</p>
+                     <div className="flex items-center gap-6">
+                        <div className="text-right">
+                           <p className={`text-sm font-black ${s.isDone ? 'text-green-500' : 'text-red-500'}`}>{s.completion}</p>
+                           <p className="text-[10px] text-gray-400">{s.isDone ? (language === 'zh' ? '已完成' : 'Done') : (language === 'zh' ? '待完成' : 'Pending')}</p>
+                        </div>
+                        {s.isDone && (
+                          <button 
+                            onClick={() => setViewingRecord({ ...s.rawRecord, studentName: s.name })}
+                            className="p-2 bg-gray-50 dark:bg-gray-700 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-400 hover:text-primary-600 transition-all"
+                          >
+                            <ChevronRight className="w-5 h-5" />
+                          </button>
+                        )}
                      </div>
                   </div>
                 ))}
              </div>
           </div>
+          </>
+          )}
         </div>
       </div>
     )
