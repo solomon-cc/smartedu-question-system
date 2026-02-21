@@ -30,6 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
     if (auth?.user?.role === Role.TEACHER) {
       return [
         { icon: Home, label: '控制台', labelEn: 'Dashboard', path: '/' },
+        { icon: Users, label: '学生管理', labelEn: 'Students', path: '/students' },
         { icon: BookOpen, label: '题目管理', labelEn: 'Questions', path: '/questions' },
         { icon: ClipboardList, label: '素材管理', labelEn: 'Resource Assets', path: '/resources' },
         { icon: ClipboardList, label: '试卷管理', labelEn: 'Papers', path: '/papers' },

@@ -18,6 +18,8 @@ interface OptionRowProps {
   formOptions: { text: string; image?: string; value: string }[];
 }
 
+import ConfirmationModal from '../../components/ConfirmationModal';
+
 const OptionRow: React.FC<OptionRowProps> = ({ 
   i, opt, formAnswer, formType, language, handleToggleAnswer, setFormOptions, handleFileUpload, formOptions 
 }) => {
@@ -96,6 +98,17 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [total, setTotal] = useState(0);
   const pageSize = 10;
 
+  // Modal State for Alerts
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
+  const [confirmationModalProps, setConfirmationModalProps] = useState({
+    title: '',
+    message: '',
+    type: 'info' as 'info' | 'success' | 'warning' | 'error' | 'confirm' | 'delete',
+    onConfirm: () => {},
+    confirmText: '',
+    cancelText: '',
+  });
+
   // ... (existing states)
 
   const downloadTemplate = () => {
@@ -168,7 +181,14 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
           
           setImportData(allFormatted);
         } catch (err) {
-          alert('Invalid Excel file');
+          setConfirmationModalProps({
+            title: language === 'zh' ? '文件错误' : 'File Error',
+            message: language === 'zh' ? '无效的 Excel 文件，请检查格式。' : 'Invalid Excel file. Please check the format.',
+            type: 'error',
+            language: language,
+            onConfirm: () => setIsConfirmationModalOpen(false),
+          });
+          setIsConfirmationModalOpen(true);
         }
       };
       reader.readAsArrayBuffer(file);
@@ -181,10 +201,24 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       setIsImportModalOpen(false);
       setImportData([]);
       if (page === 1) fetchQuestions(); else setPage(1);
-      alert(language === 'zh' ? '导入成功' : 'Import successful');
+      setConfirmationModalProps({
+        title: language === 'zh' ? '导入成功' : 'Import Successful',
+        message: language === 'zh' ? '题目已成功导入。' : 'Questions imported successfully.',
+        type: 'success',
+        language: language,
+        onConfirm: () => setIsConfirmationModalOpen(false),
+      });
+      setIsConfirmationModalOpen(true);
     } catch (e) {
       console.error(e);
-      alert('Import failed');
+      setConfirmationModalProps({
+        title: language === 'zh' ? '导入失败' : 'Import Failed',
+        message: language === 'zh' ? '题目导入失败，请检查文件内容或重试。' : 'Failed to import questions. Please check file content or try again.',
+        type: 'error',
+        language: language,
+        onConfirm: () => setIsConfirmationModalOpen(false),
+      });
+      setIsConfirmationModalOpen(true);
     }
   };
 
@@ -326,19 +360,43 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       setIsModalOpen(false);
     } catch (error) {
       console.error("Failed to save question", error);
-      alert(language === 'zh' ? '保存失败' : 'Failed to save');
+      setConfirmationModalProps({
+        title: language === 'zh' ? '保存失败' : 'Failed to Save',
+        message: language === 'zh' ? '题目保存失败，请检查数据或重试。' : 'Failed to save question. Please check your data or try again.',
+        type: 'error',
+        language: language,
+        onConfirm: () => setIsConfirmationModalOpen(false),
+      });
+      setIsConfirmationModalOpen(true);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm(language === 'zh' ? '确定删除吗？' : 'Delete?')) {
-      try {
-        await api.questions.delete(id);
-        fetchQuestions();
-      } catch (error) {
-        console.error("Failed to delete", error);
-      }
-    }
+    setConfirmationModalProps({
+      title: language === 'zh' ? '确认删除' : 'Confirm Delete',
+      message: language === 'zh' ? '确定删除这道题目吗？此操作不可逆。' : 'Are you sure you want to delete this question? This action cannot be undone.',
+      type: 'delete',
+      language: language,
+      onConfirm: async () => {
+        try {
+          await api.questions.delete(id);
+          fetchQuestions();
+        } catch (error) {
+          console.error("Failed to delete", error);
+          setConfirmationModalProps({
+            title: language === 'zh' ? '删除失败' : 'Delete Failed',
+            message: language === 'zh' ? '删除题目失败，请重试。' : 'Failed to delete question. Please try again.',
+            type: 'error',
+            language: language,
+            onConfirm: () => setIsConfirmationModalOpen(false),
+          });
+          setIsConfirmationModalOpen(true);
+        }
+      },
+      cancelText: language === 'zh' ? '取消' : 'Cancel',
+      confirmText: language === 'zh' ? '删除' : 'Delete',
+    });
+    setIsConfirmationModalOpen(true);
   };
 
   const subjects = ['数学', '语言词汇', '阅读', '识字'];
@@ -726,6 +784,14 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
               </div>
            </div>
         </div>
+      )}
+
+      {isConfirmationModalOpen && (
+        <ConfirmationModal
+          isOpen={isConfirmationModalOpen}
+          onClose={() => setIsConfirmationModalOpen(false)}
+          {...confirmationModalProps}
+        />
       )}
     </div>
   );

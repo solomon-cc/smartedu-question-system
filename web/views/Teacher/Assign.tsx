@@ -5,6 +5,7 @@ import { Send, User, Book, Search, CheckCircle2, LayoutGrid, FileCheck, ChevronR
 import { api } from '../../services/api.ts';
 import { Role } from '../../types';
 import Loading from '../../components/Loading';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -14,6 +15,16 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [loading, setLoading] = useState(false);
   const [hwDetailsLoading, setHwDetailsLoading] = useState(false);
   
+  // Modal State for Alerts
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
+  const [confirmationModalProps, setConfirmationModalProps] = useState({
+    title: '',
+    message: '',
+    type: 'info' as 'info' | 'success' | 'warning' | 'error' | 'confirm' | 'delete',
+    onConfirm: () => {},
+    confirmText: '',
+    cancelText: '',
+  });
   // Data State
   const [students, setStudents] = useState<any[]>([]);
   const [papers, setPapers] = useState<any[]>([]);
@@ -111,13 +122,27 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         endDate: deadline,
         studentIds: selectedStudents // Backend needs to handle this (currently AssignHomework takes generic 'h')
       });
-      alert(language === 'zh' ? '发布成功' : 'Assigned successfully');
+      setConfirmationModalProps({
+        title: language === 'zh' ? '发布成功' : 'Assignment Success',
+        message: language === 'zh' ? '家庭作业已成功发布给所选学生。' : 'Homework has been successfully assigned to selected students.',
+        type: 'success',
+        language: language,
+        onConfirm: () => setIsConfirmationModalOpen(false),
+      });
+      setIsConfirmationModalOpen(true);
       setSelectedStudents([]);
       setDeadline('');
       fetchData(); // Refresh list
     } catch (e) {
       console.error(e);
-      alert('Failed to assign');
+      setConfirmationModalProps({
+        title: language === 'zh' ? '发布失败' : 'Assignment Failed',
+        message: language === 'zh' ? '发布家庭作业失败，请检查数据或重试。' : 'Failed to assign homework. Please check your data or try again.',
+        type: 'error',
+        language: language,
+        onConfirm: () => setIsConfirmationModalOpen(false),
+      });
+      setIsConfirmationModalOpen(true);
     }
   };
 
@@ -421,6 +446,14 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
               </tbody>
            </table>
         </div>
+      )}
+
+      {isConfirmationModalOpen && (
+        <ConfirmationModal
+          isOpen={isConfirmationModalOpen}
+          onClose={() => setIsConfirmationModalOpen(false)}
+          {...confirmationModalProps}
+        />
       )}
     </div>
   );

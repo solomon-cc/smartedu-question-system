@@ -4,6 +4,8 @@ import { api } from '../../services/api.ts';
 import { Role } from '../../types';
 import Loading from '../../components/Loading';
 
+import ConfirmationModal from '../../components/ConfirmationModal';
+
 const BUILTIN_ASSETS = [
   { id: 'dino', name: '快乐恐龙', nameEn: 'Happy Dino', icon: '🦕', color: 'bg-green-100 text-green-600' },
   { id: 'fireworks', name: '绚丽烟花', nameEn: 'Fireworks', icon: '🎆', color: 'bg-purple-100 text-purple-600' },
@@ -43,6 +45,17 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Modal State for Alerts
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
+  const [confirmationModalProps, setConfirmationModalProps] = useState({
+    title: '',
+    message: '',
+    type: 'info' as 'info' | 'success' | 'warning' | 'error' | 'confirm' | 'delete',
+    onConfirm: () => {},
+    confirmText: '',
+    cancelText: '',
+  });
 
   const getEffectiveDarkMode = () => {
     if (themeMode === 'auto') {
@@ -98,13 +111,27 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
     
     if (assetType === 'builtin' || assetType === 'game') {
       if (!selectedBuiltin) {
-        alert(language === 'zh' ? '请选择一个项目' : 'Please select an item');
+        setConfirmationModalProps({
+          title: language === 'zh' ? '选择错误' : 'Selection Error',
+          message: language === 'zh' ? '请选择一个项目' : 'Please select an item',
+          type: 'warning',
+          language: language,
+          onConfirm: () => setIsConfirmationModalOpen(false),
+        });
+        setIsConfirmationModalOpen(true);
         return;
       }
       finalImage = selectedBuiltin;
     } else {
       if (!uploadedFile) {
-        alert(language === 'zh' ? '请上传文件' : 'Please upload a file');
+        setConfirmationModalProps({
+          title: language === 'zh' ? '文件错误' : 'File Error',
+          message: language === 'zh' ? '请上传文件' : 'Please upload a file',
+          type: 'warning',
+          language: language,
+          onConfirm: () => setIsConfirmationModalOpen(false),
+        });
+        setIsConfirmationModalOpen(true);
         return;
       }
       finalImage = uploadedFile;
@@ -138,7 +165,14 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
       resetForm();
     } catch (e) {
       console.error(e);
-      alert('Failed to save');
+      setConfirmationModalProps({
+        title: language === 'zh' ? '保存失败' : 'Failed to Save',
+        message: language === 'zh' ? '强化物保存失败，请检查数据或重试。' : 'Failed to save reinforcement. Please check your data or try again.',
+        type: 'error',
+        language: language,
+        onConfirm: () => setIsConfirmationModalOpen(false),
+      });
+      setIsConfirmationModalOpen(true);
     }
   };
 
@@ -175,6 +209,10 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
         setAssetType('game');
         setSelectedBuiltin(item.image);
         setUploadedFile(null);
+      } else if (isGame) {
+        setAssetType('game');
+        setSelectedBuiltin(item.image);
+        setUploadedFile(null);
       } else if (isBuiltin) {
         setAssetType('builtin');
         setSelectedBuiltin(item.image);
@@ -187,15 +225,53 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
       setIsUploadModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm(language === 'zh' ? '确定删除这个强化物资源吗？' : 'Delete this reinforcement?')) {
-      try {
-        await api.reinforcements.delete(id);
-        fetchData();
-      } catch (e) {
-        console.error(e);
-      }
+  const handleToggleActive = async (e: React.MouseEvent, item: any) => {
+    e.stopPropagation();
+    try {
+      await api.reinforcements.update(item.id, {
+        ...item,
+        isActive: !item.isActive
+      });
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      setConfirmationModalProps({
+        title: language === 'zh' ? '操作失败' : 'Operation Failed',
+        message: language === 'zh' ? '切换强化物状态失败，请重试。' : 'Failed to toggle reinforcement status. Please try again.',
+        type: 'error',
+        language: language,
+        onConfirm: () => setIsConfirmationModalOpen(false),
+      });
+      setIsConfirmationModalOpen(true);
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    setConfirmationModalProps({
+      title: language === 'zh' ? '确认删除' : 'Confirm Delete',
+      message: language === 'zh' ? '确定删除这个强化物资源吗？此操作不可逆。' : 'Are you sure you want to delete this reinforcement? This action cannot be undone.',
+      type: 'delete',
+      language: language,
+      onConfirm: async () => {
+        try {
+          await api.reinforcements.delete(id);
+          fetchData();
+        } catch (e) {
+          console.error(e);
+          setConfirmationModalProps({
+            title: language === 'zh' ? '删除失败' : 'Delete Failed',
+            message: language === 'zh' ? '删除强化物失败，请重试。' : 'Failed to delete reinforcement. Please try again.',
+            type: 'error',
+            language: language,
+            onConfirm: () => setIsConfirmationModalOpen(false),
+          });
+          setIsConfirmationModalOpen(true);
+        }
+      },
+      cancelText: language === 'zh' ? '取消' : 'Cancel',
+      confirmText: language === 'zh' ? '删除' : 'Delete',
+    });
+    setIsConfirmationModalOpen(true);
   };
 
   const getIconForAsset = (item: any) => {
@@ -310,10 +386,14 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
                       {item.isGlobal ? (language === 'zh' ? '全局' : 'Global') : (language === 'zh' ? '定向' : 'Targeted')}
                     </span>
                     <span>·</span>
-                    <span className={`flex items-center gap-1 ${item.isActive !== false ? 'text-green-500' : 'text-gray-400'}`}>
+                    <button 
+                      onClick={(e) => handleToggleActive(e, item)}
+                      className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all ${item.isActive !== false ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                      title={language === 'zh' ? (item.isActive !== false ? '点击停用' : '点击启用') : (item.isActive !== false ? 'Click to deactivate' : 'Click to activate')}
+                    >
                       {item.isActive !== false ? <CheckCircle className="w-2.5 h-2.5" /> : <X className="w-2.5 h-2.5" />}
                       {item.isActive !== false ? (language === 'zh' ? '启用' : 'On') : (language === 'zh' ? '停用' : 'Off')}
-                    </span>
+                    </button>
                  </div>
                  <div className="text-[10px] text-primary-600 font-bold bg-primary-50 dark:bg-primary-950/20 px-2 py-1 rounded-lg border border-primary-100 dark:border-primary-900/50 w-fit">
                    {getRuleLabel(item.ruleType, item.ruleValue)}
@@ -623,6 +703,14 @@ const Reinforcements: React.FC<{ language: 'zh' | 'en', themeMode: 'light' | 'da
               </div>
            </div>
         </div>
+      )}
+
+      {isConfirmationModalOpen && (
+        <ConfirmationModal
+          isOpen={isConfirmationModalOpen}
+          onClose={() => setIsConfirmationModalOpen(false)}
+          {...confirmationModalProps}
+        />
       )}
     </div>
   );

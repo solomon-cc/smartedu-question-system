@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Lock, Unlock, Shield, X, Check, Layout, BookOpen, ClipboardList, Settings, Database, FileText, BarChart, Eye, Cpu, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Lock, Unlock, Shield, X, Check, Layout, BookOpen, ClipboardList, Settings, Database, FileText, BarChart, Eye, Cpu, AlertCircle, ShieldCheck, Users } from 'lucide-react';
 
 interface ModulePermission {
   id: string;
@@ -17,6 +17,7 @@ interface PermissionRole {
 
 const ALL_MODULES = [
   { id: 'dashboard', label: '仪表盘', icon: Layout },
+  { id: 'students', label: '学生管理', icon: Users },
   { id: 'questions', label: '题目管理', icon: BookOpen },
   { id: 'papers', label: '试卷管理', icon: ClipboardList },
   { id: 'assignments', label: '作业管理', icon: FileText },
@@ -36,11 +37,13 @@ const Permissions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       permissions: ALL_MODULES.map(m => ({ id: m.id, ui: true, api: true })), 
       level: 'FULL' 
     },
+
     { 
       role: '教师', 
       roleEn: 'Teacher', 
       permissions: [
         { id: 'dashboard', ui: true, api: true },
+        { id: 'students', ui: true, api: false }, // Teachers can view student data, but usually don't modify globally
         { id: 'questions', ui: true, api: true },
         { id: 'papers', ui: true, api: true },
         { id: 'assignments', ui: true, api: true },
@@ -57,6 +60,7 @@ const Permissions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       roleEn: 'Student', 
       permissions: [
         { id: 'dashboard', ui: true, api: false },
+        { id: 'students', ui: false, api: false },
         { id: 'assignments', ui: true, api: true },
         { id: 'stats', ui: true, api: false },
         { id: 'questions', ui: false, api: false },

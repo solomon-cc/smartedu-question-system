@@ -4,7 +4,7 @@ import { AuthContext } from '../App';
 import { Role, Subject } from '../types';
 import { api } from '../services/api.ts';
 import { useNavigate } from 'react-router-dom';
-import { PlayCircle, FileText, ChevronRight, BarChart2, Users, TrendingUp, Activity } from 'lucide-react';
+import { PlayCircle, FileText, ChevronRight, BarChart2, Users, TrendingUp, Activity, Award, CheckCircle } from 'lucide-react';
 import Loading from '../components/Loading';
 
 interface DashboardProps {
@@ -151,7 +151,7 @@ const TeacherDashboard: React.FC<DashboardProps> = ({ language }) => {
   if (!stats) return <Loading />;
 
   return (
-    <div className="p-4 space-y-6 animate-in slide-in-from-right-4 duration-500">
+    <div className="p-4 space-y-8 animate-in slide-in-from-right-4 duration-500">
       <h1 className="text-2xl font-bold dark:text-white">{language === 'zh' ? '教师控制台' : 'Teacher Console'}</h1>
       <div className="grid md:grid-cols-3 gap-6">
         <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm">
@@ -208,6 +208,67 @@ const TeacherDashboard: React.FC<DashboardProps> = ({ language }) => {
           </div>
         </div>
       </div>
+
+      {/* Student Overview Section */}
+      <section className="bg-white dark:bg-gray-800 rounded-[2rem] p-8 border dark:border-gray-700 shadow-sm">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-xl font-bold dark:text-white flex items-center gap-2">
+            <Users className="w-6 h-6 text-primary-600" />
+            {language === 'zh' ? '学生学习概览' : 'Student Overview'}
+          </h2>
+          <button 
+            onClick={() => navigate('/students')}
+            className="text-primary-600 text-sm font-bold flex items-center gap-1 hover:underline"
+          >
+            {language === 'zh' ? '查看全部学生' : 'View All Students'}
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {stats.studentSummaries?.map((student: any) => (
+            <div 
+              key={student.id}
+              onClick={() => navigate('/students')}
+              className="bg-gray-50 dark:bg-gray-900 rounded-3xl p-6 border dark:border-gray-700 hover:border-primary-300 hover:shadow-md transition-all cursor-pointer group"
+            >
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary-500/20">
+                  {student.username.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="font-bold dark:text-white group-hover:text-primary-600 transition-colors">{student.username}</h3>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-widest">{language === 'zh' ? '学生' : 'Student'}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-black uppercase mb-1 tracking-tighter">{language === 'zh' ? '正确率' : 'Accuracy'}</p>
+                    <p className={`text-xl font-black ${student.accuracy > 80 ? 'text-green-500' : student.accuracy > 60 ? 'text-primary-500' : 'text-amber-500'}`}>
+                      {(student.accuracy || 0).toFixed(1)}%
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-gray-400 font-black uppercase mb-1 tracking-tighter">{language === 'zh' ? '作业完成' : 'HW Done'}</p>
+                    <p className="text-xl font-black dark:text-white">
+                      {student.hwCompleted} / {student.hwAssigned}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary-500 rounded-full transition-all duration-1000"
+                    style={{ width: `${(student.hwCompleted / (student.hwAssigned || 1)) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 };

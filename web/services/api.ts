@@ -182,6 +182,10 @@ export const api = {
       const res = await fetch(`${API_URL}/students`, { headers: getHeaders() });
       const data = await handleResponse(res);
       return data || [];
+    },
+    getDetail: async (id: string): Promise<any> => {
+      const res = await fetch(`${API_URL}/students/${id}`, { headers: getHeaders() });
+      return handleResponse(res);
     }
   },
   teacher: {

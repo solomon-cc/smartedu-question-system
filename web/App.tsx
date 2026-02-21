@@ -14,6 +14,7 @@ import Papers from './views/Teacher/Papers';
 import Assign from './views/Teacher/Assign';
 import Reinforcements from './views/Teacher/Reinforcements';
 import Resources from './views/Teacher/Resources';
+import Students from './views/Teacher/Students';
 import Users from './views/Admin/Users';
 import Permissions from './views/Admin/Permissions';
 import AuditLogs from './views/Admin/AuditLogs';
@@ -116,6 +117,7 @@ const App: React.FC = () => {
                   <Route path="/questions" element={<Questions language={language} />} />
                   <Route path="/papers" element={<Papers language={language} />} />
                   <Route path="/assign" element={<Assign language={language} />} />
+                  <Route path="/students" element={<Students language={language} />} />
                   <Route path="/reinforcements" element={<Reinforcements language={language} themeMode={themeMode} />} />
                   <Route path="/resources" element={<Resources language={language} />} />
                   <Route path="/users" element={<Users language={language} />} />

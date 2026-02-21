@@ -3,6 +3,7 @@ import { Plus, Search, Trash2, Edit2, Copy, Eye, X, UploadCloud, Globe, Lock, Ch
 import { api } from '../../services/api.ts';
 import { Resource } from '../../types.ts';
 import Loading from '../../components/Loading';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 const Resources: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [loading, setLoading] = useState(true);
@@ -25,6 +26,17 @@ const Resources: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Modal State for Alerts
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
+  const [confirmationModalProps, setConfirmationModalProps] = useState({
+    title: '',
+    message: '',
+    type: 'info' as 'info' | 'success' | 'warning' | 'error' | 'confirm' | 'delete',
+    onConfirm: () => {},
+    confirmText: '',
+    cancelText: '',
+  });
+
   useEffect(() => {
     fetchData();
   }, [page, keyword]);
@@ -46,7 +58,14 @@ const Resources: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 20 * 1024 * 1024) {
-        alert(language === 'zh' ? '文件大小不能超过 20MB' : 'File size exceeds 20MB');
+        setConfirmationModalProps({
+          title: language === 'zh' ? '文件过大' : 'File Too Large',
+          message: language === 'zh' ? '文件大小不能超过 20MB。' : 'File size cannot exceed 20MB.',
+          type: 'warning',
+          language: language,
+          onConfirm: () => setIsConfirmationModalOpen(false),
+        });
+        setIsConfirmationModalOpen(true);
         return;
       }
       const reader = new FileReader();
@@ -59,7 +78,14 @@ const Resources: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
   const handleSave = async () => {
     if (!formName.trim()) {
-      alert(language === 'zh' ? '请输入素材名称' : 'Please enter resource name');
+      setConfirmationModalProps({
+        title: language === 'zh' ? '信息不完整' : 'Incomplete Information',
+        message: language === 'zh' ? '请输入素材名称。' : 'Please enter resource name.',
+        type: 'warning',
+        language: language,
+        onConfirm: () => setIsConfirmationModalOpen(false),
+      });
+      setIsConfirmationModalOpen(true);
       return;
     }
 
@@ -76,7 +102,14 @@ const Resources: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         await api.resources.update(editingItem.id, payload);
       } else {
         if (!uploadedFile) {
-          alert(language === 'zh' ? '请选择图片上传' : 'Please upload an image');
+          setConfirmationModalProps({
+            title: language === 'zh' ? '缺少图片' : 'Missing Image',
+            message: language === 'zh' ? '请选择图片上传。' : 'Please upload an image.',
+            type: 'warning',
+            language: language,
+            onConfirm: () => setIsConfirmationModalOpen(false),
+          });
+          setIsConfirmationModalOpen(true);
           return;
         }
         await api.resources.create(payload);
@@ -85,19 +118,44 @@ const Resources: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       resetForm();
       fetchData();
     } catch (e) {
-      alert('Failed to save');
+      console.error(e);
+      setConfirmationModalProps({
+        title: language === 'zh' ? '保存失败' : 'Save Failed',
+        message: language === 'zh' ? '素材保存失败，请检查或重试。' : 'Failed to save resource. Please check or try again.',
+        type: 'error',
+        language: language,
+        onConfirm: () => setIsConfirmationModalOpen(false),
+      });
+      setIsConfirmationModalOpen(true);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm(language === 'zh' ? '确定删除该素材吗？' : 'Delete this resource?')) {
-      try {
-        await api.resources.delete(id);
-        fetchData();
-      } catch (e) {
-        console.error(e);
-      }
-    }
+    setConfirmationModalProps({
+      title: language === 'zh' ? '确认删除' : 'Confirm Delete',
+      message: language === 'zh' ? '确定删除该素材吗？此操作不可逆。' : 'Are you sure you want to delete this resource? This action cannot be undone.',
+      type: 'delete',
+      language: language,
+      onConfirm: async () => {
+        try {
+          await api.resources.delete(id);
+          fetchData();
+        } catch (e) {
+          console.error(e);
+          setConfirmationModalProps({
+            title: language === 'zh' ? '删除失败' : 'Delete Failed',
+            message: language === 'zh' ? '删除素材失败，请重试。' : 'Failed to delete resource. Please try again.',
+            type: 'error',
+            language: language,
+            onConfirm: () => setIsConfirmationModalOpen(false),
+          });
+          setIsConfirmationModalOpen(true);
+        }
+      },
+      cancelText: language === 'zh' ? '取消' : 'Cancel',
+      confirmText: language === 'zh' ? '删除' : 'Delete',
+    });
+    setIsConfirmationModalOpen(true);
   };
 
   const resetForm = () => {
@@ -351,6 +409,14 @@ const Resources: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {isConfirmationModalOpen && (
+        <ConfirmationModal
+          isOpen={isConfirmationModalOpen}
+          onClose={() => setIsConfirmationModalOpen(false)}
+          {...confirmationModalProps}
+        />
       )}
     </div>
   );

@@ -90,6 +90,7 @@ func main() {
 
 			// Students
 			protected.GET("/students", GetStudents)
+			protected.GET("/students/:id", GetStudentDetail)
 
 			// Student Stats
 			protected.GET("/student/stats", GetStudentStats)

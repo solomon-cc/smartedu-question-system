@@ -225,6 +225,7 @@ When generating code:
 * Maintain modular clean architecture
 * Ensure pagination compatibility
 * Ensure JWT protection consistency
+* 如果左侧侧边栏有修改、新增、删除，管理员对应的权限设置也要更新
 
 ---
 

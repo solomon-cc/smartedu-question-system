@@ -5,6 +5,7 @@ import { api } from '../../services/api.ts';
 import { Question } from '../../types.ts';
 import { REVERSE_TYPE_MAP } from '../../utils.ts';
 import Loading from '../../components/Loading';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [isPaperModalOpen, setIsPaperModalOpen] = useState(false);
@@ -19,6 +20,17 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [paperTitle, setPaperTitle] = useState('');
   const [editingPaperId, setEditingPaperId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Modal State for Alerts
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
+  const [confirmationModalProps, setConfirmationModalProps] = useState({
+    title: '',
+    message: '',
+    type: 'info' as 'info' | 'success' | 'warning' | 'error' | 'confirm' | 'delete',
+    onConfirm: () => {},
+    confirmText: '',
+    cancelText: '',
+  });
 
   const fetchData = async () => {
     try {
@@ -80,7 +92,17 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       setSelectedIds([]);
       setEditingPaperId(null);
     } catch (e) {
-      alert(editingPaperId ? 'Failed to update paper' : 'Failed to create paper');
+      console.error(e);
+      setConfirmationModalProps({
+        title: language === 'zh' ? '保存失败' : 'Save Failed',
+        message: editingPaperId 
+          ? (language === 'zh' ? '更新试卷失败，请检查数据或重试。' : 'Failed to update paper. Please check your data or try again.') 
+          : (language === 'zh' ? '创建试卷失败，请检查数据或重试。' : 'Failed to create paper. Please check your data or try again.'),
+        type: 'error',
+        language: language,
+        onConfirm: () => setIsConfirmationModalOpen(false),
+      });
+      setIsConfirmationModalOpen(true);
     } finally {
       setSaving(false);
     }
@@ -92,14 +114,31 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   // Wait, I need to check api.ts for delete paper support.
 
   const handleDeletePaper = async (id: string) => {
-    if (confirm(language === 'zh' ? '确定要删除这份试卷吗？' : 'Are you sure you want to delete this paper?')) {
-      try {
-        await api.papers.delete(id);
-        fetchData();
-      } catch (e) {
-        alert(language === 'zh' ? '删除失败' : 'Failed to delete');
-      }
-    }
+    setConfirmationModalProps({
+      title: language === 'zh' ? '确认删除' : 'Confirm Delete',
+      message: language === 'zh' ? '确定要删除这份试卷吗？此操作不可逆。' : 'Are you sure you want to delete this paper? This action cannot be undone.',
+      type: 'delete',
+      language: language,
+      onConfirm: async () => {
+        try {
+          await api.papers.delete(id);
+          fetchData();
+        } catch (e) {
+          console.error(e);
+          setConfirmationModalProps({
+            title: language === 'zh' ? '删除失败' : 'Delete Failed',
+            message: language === 'zh' ? '删除试卷失败，请重试。' : 'Failed to delete paper. Please try again.',
+            type: 'error',
+            language: language,
+            onConfirm: () => setIsConfirmationModalOpen(false),
+          });
+          setIsConfirmationModalOpen(true);
+        }
+      },
+      cancelText: language === 'zh' ? '取消' : 'Cancel',
+      confirmText: language === 'zh' ? '删除' : 'Delete',
+    });
+    setIsConfirmationModalOpen(true);
   };
 
   const filteredQuestions = availableQuestions
@@ -361,6 +400,14 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
               </div>
            </div>
         </div>
+      )}
+
+      {isConfirmationModalOpen && (
+        <ConfirmationModal
+          isOpen={isConfirmationModalOpen}
+          onClose={() => setIsConfirmationModalOpen(false)}
+          {...confirmationModalProps}
+        />
       )}
     </div>
   );

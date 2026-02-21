@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -75,6 +76,129 @@ func GetStudents(c *gin.Context) {
 	var students []User
 	DB.Where("role = ?", RoleStudent).Find(&students)
 	SendJSON(c, 0, "", students)
+}
+
+func GetStudentDetail(c *gin.Context) {
+	studentId := c.Param("id")
+	
+	var student User
+	if err := DB.First(&student, "id = ? AND role = ?", studentId, RoleStudent).Error; err != nil {
+		SendJSON(c, 1, "Student not found", nil)
+		return
+	}
+
+	// 1. Fetch targeted reinforcements
+	reinforcements := make([]Reinforcement, 0)
+	DB.Where("target_student_ids LIKE ?", "%\""+studentId+"\"%").Find(&reinforcements)
+
+	// 2. Fetch recent learning logs (last 20)
+	history := make([]History, 0)
+	DB.Where("student_id = ?", studentId).Order("date DESC").Limit(20).Find(&history)
+
+	// 3. Learning progress & stats (Accuracy trend last 14 days)
+    // ... (keeping trend logic as is for now)
+	type ProgressPoint struct {
+		Date     string  `json:"date"`
+		Accuracy float64 `json:"accuracy"`
+	}
+	progress := make([]ProgressPoint, 0)
+	
+	now := time.Now()
+	for i := 13; i >= 0; i-- {
+		day := now.AddDate(0, 0, -i)
+		dateStr := day.Format("2006-01-02")
+		
+		var results struct {
+			Correct int
+			Total   int
+		}
+		DB.Model(&History{}).
+			Select("SUM(correct_count) as correct, SUM(CAST(total AS UNSIGNED)) as total").
+			Where("student_id = ? AND date LIKE ?", studentId, dateStr+"%").
+			Scan(&results)
+
+		acc := 0.0
+		if results.Total > 0 {
+			acc = (float64(results.Correct) / float64(results.Total)) * 100
+		}
+		progress = append(progress, ProgressPoint{
+			Date:     day.Format("01-02"),
+			Accuracy: acc,
+		})
+	}
+
+	// 4. Homework completion overview
+	type HomeworkBrief struct {
+		ID           string  `json:"id"`
+		Name         string  `json:"name"`
+		Status       string  `json:"status"` // "pending", "completed", "overdue"
+		StartDate    string  `json:"startDate"`
+		EndDate      string  `json:"endDate"`
+		Score        string  `json:"score"`
+		Total        string  `json:"total"`
+		CorrectCount int     `json:"correctCount"`
+		AccuracyRate float64 `json:"accuracyRate"`
+	}
+	
+	homeworkOverview := make([]HomeworkBrief, 0)
+	
+	// Fetch all homeworks where this student is assigned
+	var assignedHomeworks []Homework
+	DB.Where("student_ids LIKE ?", "%\""+studentId+"\"%").Find(&assignedHomeworks)
+
+	for _, hw := range assignedHomeworks {
+		brief := HomeworkBrief{
+			ID:           hw.ID,
+			Name:         hw.Name,
+			StartDate:    hw.StartDate,
+			EndDate:      hw.EndDate,
+			Status:       "pending",
+			Score:        "0",
+			Total:        "0",
+			CorrectCount: 0,
+			AccuracyRate: 0.0,
+		}
+
+		var latestHistory History
+		// Find the latest history entry for this homework and student
+		err := DB.Where("student_id = ? AND homework_id = ?", studentId, hw.ID).
+			Order("date DESC").
+			First(&latestHistory).Error
+		
+		if err == nil { // Found a submission
+			brief.Status = "completed"
+			brief.Score = strconv.Itoa(latestHistory.CorrectCount) // Set score to correct count
+			brief.Total = latestHistory.Total
+			brief.CorrectCount = latestHistory.CorrectCount
+			
+			totalInt, _ := strconv.Atoi(latestHistory.Total)
+			if totalInt > 0 {
+				brief.AccuracyRate = (float64(latestHistory.CorrectCount) / float64(totalInt)) * 100
+			}
+		} else { // No submission found
+			// Check if homework is overdue
+			if hw.EndDate != "" {
+				endDate, err := time.Parse("2006-01-02", hw.EndDate)
+				if err == nil && time.Now().After(endDate) {
+					brief.Status = "overdue"
+				}
+			}
+		}
+		homeworkOverview = append(homeworkOverview, brief)
+	}
+
+	// Sort homeworks by start date
+	sort.Slice(homeworkOverview, func(i, j int) bool {
+		return homeworkOverview[i].StartDate > homeworkOverview[j].StartDate
+	})
+
+	SendJSON(c, 0, "", gin.H{
+		"student":        student,
+		"reinforcements": reinforcements,
+		"history":        history,
+		"progress":       progress,
+		"homework":       homeworkOverview,
+	})
 }
 
 func CreateUser(c *gin.Context) {
@@ -767,11 +891,64 @@ func GetTeacherStats(c *gin.Context) {
 		}
 	}
 
+	// Calculate per-student summaries
+	var students []User
+	DB.Where("role = ?", RoleStudent).Find(&students)
+	
+	studentSummaries := make([]gin.H, 0)
+	for _, s := range students {
+		// 1. Accuracy
+		var res struct {
+			Correct int
+			Total   int
+		}
+		DB.Model(&History{}).
+			Select("SUM(correct_count) as correct, SUM(CAST(total AS UNSIGNED)) as total").
+			Where("student_id = ?", s.ID).
+			Scan(&res)
+		
+		acc := 0.0
+		if res.Total > 0 {
+			acc = (float64(res.Correct) / float64(res.Total)) * 100
+		}
+
+		// 2. Homework completion
+		var hwAssigned int64
+		var hwCompleted int64
+
+		// Count homeworks where the student is targeted
+		DB.Model(&Homework{}).
+			Where("teacher_id = ? AND student_ids LIKE ?", teacherId, "%\""+s.ID+"\"%").
+			Count(&hwAssigned)
+
+		// Count unique homeworks the student has submitted (latest only)
+		DB.Table("histories").
+			Select("COUNT(DISTINCT homework_id)").
+			Where("student_id = ? AND homework_id != ''", s.ID).
+			Where("id IN (?)",
+				DB.Table("histories").
+					Select("MAX(id)").
+					Where("student_id = ?", s.ID).
+					Group("homework_id"),
+			).
+			Count(&hwCompleted)
+		
+		studentSummaries = append(studentSummaries, gin.H{
+			"id":             s.ID,
+			"username":       s.Username,
+			"accuracy":       acc,
+			"hwAssigned":     hwAssigned,
+			"hwCompleted":    hwCompleted,
+			"lastActiveDate": "", // Can be extended later
+		})
+	}
+
 	SendJSON(c, 0, "", gin.H{
-		"todayAssigned":   int(todayAssigned),
-		"completionRate":  completionRate,
-		"accuracyRate":    accuracy,
-		"recentHomeworks": recentFormatted,
+		"todayAssigned":    int(todayAssigned),
+		"completionRate":   completionRate,
+		"accuracyRate":     accuracy,
+		"recentHomeworks":  recentFormatted,
+		"studentSummaries": studentSummaries,
 	})
 }
 

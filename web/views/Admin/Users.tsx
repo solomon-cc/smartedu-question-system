@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { UserPlus, MoreHorizontal, User as UserIcon, X, Search, Filter, Edit2, Trash2, CheckCircle, XCircle, Lock, Key } from 'lucide-react';
 import { Role } from '../../types';
 import { api } from '../../services/api.ts';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 interface UserItem {
   id: string;
@@ -19,6 +20,16 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Modal State for Alerts
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
+  const [confirmationModalProps, setConfirmationModalProps] = useState({
+    title: '',
+    message: '',
+    type: 'info' as 'info' | 'success' | 'warning' | 'error' | 'confirm' | 'delete',
+    onConfirm: () => {},
+    confirmText: '',
+    cancelText: '',
+  });
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -92,19 +103,43 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       fetchUsers();
     } catch (error) {
       console.error("Failed to save user", error);
-      alert(language === 'zh' ? '保存失败' : 'Failed to save');
+      setConfirmationModalProps({
+        title: language === 'zh' ? '保存失败' : 'Save Failed',
+        message: language === 'zh' ? '保存用户失败，请检查数据或重试。' : 'Failed to save user. Please check your data or try again.',
+        type: 'error',
+        language: language,
+        onConfirm: () => setIsConfirmationModalOpen(false),
+      });
+      setIsConfirmationModalOpen(true);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm(language === 'zh' ? '确定删除该用户吗？' : 'Are you sure you want to delete this user?')) {
-      try {
-        await api.admin.deleteUser(id);
-        fetchUsers();
-      } catch (error) {
-        console.error("Failed to delete", error);
-      }
-    }
+    setConfirmationModalProps({
+      title: language === 'zh' ? '确认删除' : 'Confirm Delete',
+      message: language === 'zh' ? '确定删除该用户吗？此操作不可逆。' : 'Are you sure you want to delete this user? This action cannot be undone.',
+      type: 'delete',
+      language: language,
+      onConfirm: async () => {
+        try {
+          await api.admin.deleteUser(id);
+          fetchUsers();
+        } catch (error) {
+          console.error("Failed to delete", error);
+          setConfirmationModalProps({
+            title: language === 'zh' ? '删除失败' : 'Delete Failed',
+            message: language === 'zh' ? '删除用户失败，请重试。' : 'Failed to delete user. Please try again.',
+            type: 'error',
+            language: language,
+            onConfirm: () => setIsConfirmationModalOpen(false),
+          });
+          setIsConfirmationModalOpen(true);
+        }
+      },
+      cancelText: language === 'zh' ? '取消' : 'Cancel',
+      confirmText: language === 'zh' ? '删除' : 'Delete',
+    });
+    setIsConfirmationModalOpen(true);
   };
 
   return (
@@ -300,6 +335,14 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
               </div>
            </div>
         </div>
+      )}
+
+      {isConfirmationModalOpen && (
+        <ConfirmationModal
+          isOpen={isConfirmationModalOpen}
+          onClose={() => setIsConfirmationModalOpen(false)}
+          {...confirmationModalProps}
+        />
       )}
     </div>
   );
