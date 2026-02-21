@@ -65,7 +65,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
       <aside className={`
         fixed lg:sticky top-0 h-screen w-64 bg-white dark:bg-gray-800 transform transition-transform duration-300 z-50
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0
+        border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0 overflow-y-auto
       `}>
         <div className="p-6 flex justify-between items-center border-b dark:border-gray-700 shrink-0">
           <Link to="/" className="text-xl font-bold text-primary-600">一粒麦子</Link>
@@ -74,7 +74,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
           </button>
         </div>
 
-        <nav className="flex-1 mt-6 px-4 space-y-2 overflow-y-auto scrollbar-thin">
+        <nav className="mt-6 px-4 space-y-2">
           {menuItems.map((item, idx) => {
             const isActive = location.pathname === item.path;
             return (
