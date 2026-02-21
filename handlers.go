@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -430,7 +429,7 @@ func GetHomeworks(c *gin.Context) {
 		Status       string  `json:"status"`
 		Total        int     `json:"total"`       // Assigned count
 		Completed    int     `json:"completed"`   // Submitted count
-		StudentIDs   json.RawMessage `json:"studentIds"`
+		StudentIDs   any     `json:"studentIds"`
 	}
 
 	var results []HomeworkStat

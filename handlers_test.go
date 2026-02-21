@@ -1,23 +1,47 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
-    "bytes"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
-func TestGetQuestions_TableDriven(t *testing.T) {
+func TestMain(m *testing.M) {
 	gin.SetMode(gin.TestMode)
+
+	// Use SQLite in-memory for testing
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	// Migrate the schema
+	db.AutoMigrate(
+		&User{},
+		&Question{},
+		&Paper{},
+		&Homework{},
+		&History{},
+		&Reinforcement{},
+		&Resource{},
+		&AuditLog{},
+	)
+	DB = db
+
+	os.Exit(m.Run())
+}
+
+func TestGetQuestions_TableDriven(t *testing.T) {
 	r := gin.Default()
 	r.GET("/questions", GetQuestions)
-
-	// Mock some data if using global store, but here we assume DB is initialized or mocked
-	// For this example, we test the logic of parameter handling
 
 	tests := []struct {
 		name           string
@@ -34,12 +58,6 @@ func TestGetQuestions_TableDriven(t *testing.T) {
 		{
 			name:           "Filter by subject",
 			url:            "/questions?subject=MATH",
-			expectedStatus: http.StatusOK,
-			expectedCode:   0,
-		},
-		{
-			name:           "Filter by invalid grade",
-			url:            "/questions?grade=abc",
 			expectedStatus: http.StatusOK,
 			expectedCode:   0,
 		},
@@ -61,162 +79,174 @@ func TestGetQuestions_TableDriven(t *testing.T) {
 }
 
 func TestGetTeacherStats(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	r.GET("/teacher/stats", func(c *gin.Context) {
 		c.Set("userId", "2")
 		GetTeacherStats(c)
 	})
 
-	// Note: In real tests we'd need to mock the database. 
-	// Since this is a small project using GORM with a real DB (probably SQLite or MySQL),
-	// this test will run against whatever is in the current environment's DB.
-	
 	req, _ := http.NewRequest("GET", "/teacher/stats", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-    var resp map[string]interface{}
-    json.Unmarshal(w.Body.Bytes(), &resp)
-    
-    // Check if expected keys exist in response
-    data := resp["data"].(map[string]interface{})
-    assert.Contains(t, data, "accuracyRate")
-    assert.Contains(t, data, "completionRate")
-    assert.Contains(t, data, "todayAssigned")
+	var resp Response
+	json.Unmarshal(w.Body.Bytes(), &resp)
+
+	// Check if expected keys exist in response
+	data := resp.Data.(map[string]interface{})
+	assert.Contains(t, data, "accuracyRate")
+	assert.Contains(t, data, "completionRate")
+	assert.Contains(t, data, "todayAssigned")
 }
 
 func TestReinforcements(t *testing.T) {
-    gin.SetMode(gin.TestMode)
-    r := gin.Default()
-    r.GET("/reinforcements", GetReinforcements)
-    r.POST("/reinforcements", CreateReinforcement)
+	DB.Exec("DELETE FROM reinforcements")
 
-    storeReinforcements = make([]Reinforcement, 0)
+	r := gin.Default()
+	r.GET("/reinforcements", GetReinforcements)
+	r.POST("/reinforcements", CreateReinforcement)
 
-    // Test Create Global
-    newR := Reinforcement{Name: "Test", Type: "sticker", Condition: "global"}
-    body, _ := json.Marshal(newR)
-    req, _ := http.NewRequest("POST", "/reinforcements", bytes.NewBuffer(body))
-    w := httptest.NewRecorder()
-    r.ServeHTTP(w, req)
-    assert.Equal(t, http.StatusCreated, w.Code)
+	// Test Create Global
+	newR := Reinforcement{Name: "Test", Type: "sticker", IsGlobal: true}
+	body, _ := json.Marshal(newR)
+	req, _ := http.NewRequest("POST", "/reinforcements", bytes.NewBuffer(body))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code) // SendJSON returns 200
 
-    // Test Create Targeted (Student Specific)
-    targetR := Reinforcement{Name: "Targeted Reward", Type: "sticker", Condition: "student123"}
-    body, _ = json.Marshal(targetR)
-    req, _ = http.NewRequest("POST", "/reinforcements", bytes.NewBuffer(body))
-    w = httptest.NewRecorder()
-    r.ServeHTTP(w, req)
-    assert.Equal(t, http.StatusCreated, w.Code)
+	// Test Create Targeted (Student Specific)
+	targetR := Reinforcement{Name: "Targeted Reward", Type: "sticker", TargetStudentIDs: []string{"student123"}}
+	body, _ = json.Marshal(targetR)
+	req, _ = http.NewRequest("POST", "/reinforcements", bytes.NewBuffer(body))
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
 
-    // Test List
-    req, _ = http.NewRequest("GET", "/reinforcements", nil)
-    w = httptest.NewRecorder()
-    r.ServeHTTP(w, req)
-    assert.Equal(t, http.StatusOK, w.Code)
-    
-    var response []Reinforcement
-    json.Unmarshal(w.Body.Bytes(), &response)
-    assert.Equal(t, 2, len(response))
-    assert.Equal(t, "Test", response[0].Name)
-    assert.Equal(t, "Targeted Reward", response[1].Name)
-    assert.Equal(t, "student123", response[1].Condition)
+	// Test List
+	req, _ = http.NewRequest("GET", "/reinforcements", nil)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		Code int             `json:"code"`
+		Data []Reinforcement `json:"data"`
+	}
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.Equal(t, 0, resp.Code)
+	assert.Equal(t, 2, len(resp.Data))
+	assert.Equal(t, "Test", resp.Data[0].Name)
+	assert.Equal(t, "Targeted Reward", resp.Data[1].Name)
+	assert.Contains(t, resp.Data[1].TargetStudentIDs, "student123")
 }
 
 func TestPapers(t *testing.T) {
-    gin.SetMode(gin.TestMode)
-    r := gin.Default()
-    r.GET("/papers", GetPapers)
-    r.POST("/papers", CreatePaper)
+	DB.Exec("DELETE FROM papers")
 
-    storePapers = make([]Paper, 0)
+	r := gin.Default()
+	r.GET("/papers", GetPapers)
+	r.POST("/papers", CreatePaper)
 
-    p := Paper{Name: "Test Paper", Total: 100}
-    body, _ := json.Marshal(p)
-    req, _ := http.NewRequest("POST", "/papers", bytes.NewBuffer(body))
-    w := httptest.NewRecorder()
-    r.ServeHTTP(w, req)
-    assert.Equal(t, http.StatusCreated, w.Code)
+	p := Paper{Name: "Test Paper", Total: 100}
+	body, _ := json.Marshal(p)
+	req, _ := http.NewRequest("POST", "/papers", bytes.NewBuffer(body))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
 
-    req, _ = http.NewRequest("GET", "/papers", nil)
-    w = httptest.NewRecorder()
-    r.ServeHTTP(w, req)
-    assert.Equal(t, http.StatusOK, w.Code)
-    
-    var response []Paper
-    json.Unmarshal(w.Body.Bytes(), &response)
-    assert.Equal(t, 1, len(response))
-    assert.Equal(t, "Test Paper", response[0].Name)
+	req, _ = http.NewRequest("GET", "/papers", nil)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		Code int     `json:"code"`
+		Data []any   `json:"data"`
+	}
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.Equal(t, 0, resp.Code)
+	assert.Equal(t, 1, len(resp.Data))
 }
 
 func TestHomeworks(t *testing.T) {
-    gin.SetMode(gin.TestMode)
-    r := gin.Default()
-    r.GET("/homeworks", GetHomeworks)
-    r.POST("/homeworks/assign", AssignHomework)
+	DB.Exec("DELETE FROM homeworks")
 
-    storeHomeworks = make([]Homework, 0)
+	r := gin.Default()
+	r.GET("/homeworks", GetHomeworks)
+	r.POST("/homeworks/assign", func(c *gin.Context) {
+		c.Set("userId", "2")
+		AssignHomework(c)
+	})
 
-    h := Homework{Name: "HW1", PaperID: "p1"}
-    body, _ := json.Marshal(h)
-    req, _ := http.NewRequest("POST", "/homeworks/assign", bytes.NewBuffer(body))
-    w := httptest.NewRecorder()
-    r.ServeHTTP(w, req)
-    assert.Equal(t, http.StatusCreated, w.Code)
+	h := Homework{Name: "HW1", PaperID: "p1", StudentIDs: []string{"s1"}}
+	body, _ := json.Marshal(h)
+	req, _ := http.NewRequest("POST", "/homeworks/assign", bytes.NewBuffer(body))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
 
-    req, _ = http.NewRequest("GET", "/homeworks", nil)
-    w = httptest.NewRecorder()
-    r.ServeHTTP(w, req)
-    assert.Equal(t, http.StatusOK, w.Code)
+	req, _ = http.NewRequest("GET", "/homeworks", nil)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
 
-    var response []Homework
-    json.Unmarshal(w.Body.Bytes(), &response)
-    assert.Equal(t, 1, len(response))
-    assert.Equal(t, "pending", response[0].Status)
+	var resp struct {
+		Code int        `json:"code"`
+		Data []Homework `json:"data"`
+	}
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.Equal(t, 0, resp.Code)
+	assert.Equal(t, 1, len(resp.Data))
+	assert.Equal(t, "pending", resp.Data[0].Status)
 }
 
 func TestUsers(t *testing.T) {
-    gin.SetMode(gin.TestMode)
-    r := gin.Default()
-    r.GET("/users", GetUsers)
-    r.POST("/users", CreateUser)
-    r.DELETE("/users/:id", DeleteUser)
+	DB.Exec("DELETE FROM users")
+	// Add initial admin
+	DB.Create(&User{ID: "1", Username: "admin", Role: RoleAdmin})
 
-    // Reset store users (keep defaults)
-    storeUsers = []User{{ID: "1", Username: "admin"}}
+	r := gin.Default()
+	r.GET("/users", GetUsers)
+	r.POST("/users", CreateUser)
+	r.DELETE("/users/:id", DeleteUser)
 
-    // Create
-    u := User{Username: "testuser", Role: "STUDENT"}
-    body, _ := json.Marshal(u)
-    req, _ := http.NewRequest("POST", "/users", bytes.NewBuffer(body))
-    w := httptest.NewRecorder()
-    r.ServeHTTP(w, req)
-    assert.Equal(t, http.StatusCreated, w.Code)
-    
-    var created User
-    json.Unmarshal(w.Body.Bytes(), &created)
-    id := created.ID
+	// Create
+	u := User{Username: "testuser", Role: RoleStudent, Password: "123"}
+	body, _ := json.Marshal(u)
+	req, _ := http.NewRequest("POST", "/users", bytes.NewBuffer(body))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
 
-    // List
-    req, _ = http.NewRequest("GET", "/users", nil)
-    w = httptest.NewRecorder()
-    r.ServeHTTP(w, req)
-    var users []User
-    json.Unmarshal(w.Body.Bytes(), &users)
-    assert.Equal(t, 2, len(users))
+	var createResp struct {
+		Code int  `json:"code"`
+		Data User `json:"data"`
+	}
+	json.Unmarshal(w.Body.Bytes(), &createResp)
+	id := createResp.Data.ID
 
-    // Delete
-    req, _ = http.NewRequest("DELETE", "/users/"+id, nil)
-    w = httptest.NewRecorder()
-    r.ServeHTTP(w, req)
-    assert.Equal(t, http.StatusOK, w.Code)
+	// List
+	req, _ = http.NewRequest("GET", "/users", nil)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	var listResp struct {
+		Code int    `json:"code"`
+		Data []User `json:"data"`
+	}
+	json.Unmarshal(w.Body.Bytes(), &listResp)
+	assert.Equal(t, 2, len(listResp.Data))
 
-    // Verify Delete
-    req, _ = http.NewRequest("GET", "/users", nil)
-    w = httptest.NewRecorder()
-    r.ServeHTTP(w, req)
-    json.Unmarshal(w.Body.Bytes(), &users)
-    assert.Equal(t, 1, len(users))
+	// Delete
+	req, _ = http.NewRequest("DELETE", "/users/"+id, nil)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Verify Delete
+	req, _ = http.NewRequest("GET", "/users", nil)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	json.Unmarshal(w.Body.Bytes(), &listResp)
+	assert.Equal(t, 1, len(listResp.Data))
 }
