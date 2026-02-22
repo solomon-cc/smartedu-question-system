@@ -45,6 +45,8 @@ func InitDB() error {
 		&Reinforcement{},
 		&Resource{},
 		&AuditLog{},
+		&StudentWrongQuestion{},
+		&SystemConfig{},
 	)
 	if err != nil {
 		return err
@@ -61,6 +63,24 @@ func InitDB() error {
 			{ID: "3", Username: "student", Password: string(hashed), Role: RoleStudent, Status: "active"},
 		}
 		DB.Create(&initialUsers)
+	}
+
+	// Seed default config
+	var configCount int64
+	DB.Model(&SystemConfig{}).Where("`key` = ?", "error_logic").Count(&configCount)
+	if configCount == 0 {
+		defaultConfig := `{
+			"globalEnabled": true,
+			"excludeMistakesFromPractice": false,
+			"stages": {
+				"1": {"nextWrong": 2, "nextCorrect": 4, "showAnswer": false, "label": "出错"},
+				"2": {"nextWrong": 3, "nextCorrect": 4, "showAnswer": true, "label": "重试 (有答案)"},
+				"3": {"nextWrong": 5, "nextCorrect": 4, "showAnswer": false, "label": "重试 (无答案)"},
+				"4": {"nextWrong": 1, "nextCorrect": 4, "showAnswer": false, "label": "已知"},
+				"5": {"nextWrong": 5, "nextCorrect": 5, "showAnswer": false, "label": "困难"}
+			}
+		}`
+		DB.Create(&SystemConfig{Key: "error_logic", Value: defaultConfig})
 	}
 
 	return nil

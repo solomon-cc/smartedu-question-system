@@ -225,7 +225,6 @@ When generating code:
 * Maintain modular clean architecture
 * Ensure pagination compatibility
 * Ensure JWT protection consistency
-* 如果左侧侧边栏有修改、新增、删除，管理员对应的权限设置也要更新
 
 ---
 
@@ -240,6 +239,30 @@ When generating code:
 * [ ] No hardcoded demo logic
 
 ---
+
+Sidebar & Permission Strong Binding Rule (Mandatory)
+
+If any sidebar item is:
+
+Added
+
+Modified
+
+Removed
+
+Then the following MUST be updated simultaneously:
+
+Backend permission model
+
+Role-permission mapping
+
+JWT authorization logic
+
+Frontend route guard logic
+
+❌ Sidebar and permission cannot be maintained independently
+❌ No frontend-only visibility control
+✅ Sidebar rendering MUST be based on permission data returned from backend
 
 **This system is no longer a demo.
 All data must come from real backend APIs.**

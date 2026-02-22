@@ -190,6 +190,8 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
   const [queue, setQueue] = useState<Question[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [attemptMap, setAttemptMap] = useState<Record<string, number>>({});
+  const attemptLogs = useRef<Record<string, { answer: string; isCorrect: boolean; timestamp: number }[]>>({});
+  const questionMap = useRef<Record<string, Question>>({});
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [multiAnswers, setMultiAnswers] = useState<string[]>([]);
   const [isShowingFeedback, setIsShowingFeedback] = useState(false);
@@ -199,7 +201,7 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
   const [totalAnswered, setTotalAnswered] = useState(0);
   const [totalInitial, setTotalInitial] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [sessionDetails, setSessionDetails] = useState<any[]>([]);
+  const [sessionDetails, setSessionDetails] = useState<any[]>([]); // Keep for compatibility if needed, but we'll build final result from logs
   const [reinforcements, setReinforcements] = useState<any[]>([]);
   const [activeReinforcement, setActiveReinforcement] = useState<any>(null);
 
@@ -239,6 +241,15 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
           const res = await api.questions.list({ subject, grade, pageSize: 100 });
           data = res.list || [];
         }
+        
+        // Populate question map
+        data.forEach(q => {
+          questionMap.current[q.id] = q;
+        });
+        
+        // Reset logs for new session
+        attemptLogs.current = {};
+
         setQueue(data);
         setTotalInitial(data.length);
       } catch (e) {
@@ -251,15 +262,34 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
     fetchQuestions();
   }, [searchParams]);
 
-  const handleCompleteHomework = async (finalDetails?: any[]) => {
+  const handleCompleteHomework = async () => {
     const homeworkId = searchParams.get('homeworkId');
     const subject = searchParams.get('subject') || (homeworkId ? '作业' : '自主练习');
     
-    const currentDetails = finalDetails || sessionDetails;
+    // Construct results from attemptLogs
+    const results = Object.entries(attemptLogs.current).map(([id, logs]: [string, any[]]) => {
+      const q = questionMap.current[id];
+      if (!q) return null;
+      
+      const lastLog = logs[logs.length - 1];
+      const isCorrect = lastLog?.isCorrect || false;
+      
+      return {
+        id: q.id,
+        subject: q.subject,
+        stem: q.stemText,
+        stemImage: q.stemImage,
+        options: q.options,
+        status: isCorrect ? 'correct' : 'wrong',
+        answer: q.answer,
+        userAnswer: lastLog?.answer || '',
+        attempts: logs.length,
+        attemptLog: logs
+      };
+    }).filter(Boolean);
 
-    // Use currentDetails to calculate counts to ensure consistency
-    const correctCount = currentDetails.filter(d => d.status === 'correct').length;
-    const wrongCount = currentDetails.filter(d => d.status === 'wrong').length;
+    const correctCount = results.filter(r => r?.status === 'correct').length;
+    const wrongCount = results.filter(r => r?.status === 'wrong').length;
 
     try {
       await api.history.create({
@@ -270,7 +300,7 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
         wrongCount: wrongCount,
         total: totalInitial.toString(),
         homeworkId: homeworkId || "",
-        questions: currentDetails 
+        questions: results 
       });
 
       if (homeworkId) {
@@ -302,26 +332,25 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
     setTotalAnswered(prev => prev + 1);
     
     const isCorrect = val === currentQuestion.answer;
+    
+    // Log the attempt
+    if (!attemptLogs.current[currentQuestion.id]) {
+      attemptLogs.current[currentQuestion.id] = [];
+    }
+    attemptLogs.current[currentQuestion.id].push({ 
+      answer: val, 
+      isCorrect, 
+      timestamp: Date.now() 
+    });
+
     const currentAttempts = attemptMap[currentQuestion.id] || 0;
 
     if (isCorrect) {
       const newFinishedCount = finishedCount + 1;
       setFinishedCount(newFinishedCount);
       
-      const newDetail = {
-        id: currentQuestion.id,
-        stem: currentQuestion.stemText,
-        stemImage: currentQuestion.stemImage,
-        options: currentQuestion.options,
-        status: 'correct',
-        answer: currentQuestion.answer,
-        userAnswer: val,
-        attempts: currentAttempts + 1
-      };
+      // We don't strictly need sessionDetails anymore for logic, but we keep it minimal or ignore
       
-      const updatedDetails = [...sessionDetails, newDetail];
-      setSessionDetails(updatedDetails);
-
       // Rule Evaluation
       const userStr = localStorage.getItem('user');
       const userData = userStr ? JSON.parse(userStr).user : null;
@@ -351,15 +380,15 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
             setTimeout(() => {
                 setShowReinforcement(false);
                 if (queue.length === 1) {
-                    handleCompleteHomework(updatedDetails);
+                    handleCompleteHomework();
                 }
             }, (selectedRein?.duration || 3) * 1000);
           }
         } else if (queue.length === 1) {
-          handleCompleteHomework(updatedDetails);
+          handleCompleteHomework();
         }
       } else if (queue.length === 1) {
-        handleCompleteHomework(updatedDetails);
+        handleCompleteHomework();
       }
 
       if (queue.length > 1) {
@@ -380,23 +409,10 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
       } else {
         setIsShowingCorrectAnswer(true);
         
-        const newDetail = {
-          id: currentQuestion.id,
-          stem: currentQuestion.stemText,
-          stemImage: currentQuestion.stemImage,
-          options: currentQuestion.options,
-          status: 'wrong',
-          answer: currentQuestion.answer,
-          userAnswer: val,
-          attempts: nextAttemptCount
-        };
-        const updatedDetails = [...sessionDetails, newDetail];
-        setSessionDetails(updatedDetails);
-
         setTimeout(() => {
           setIsShowingCorrectAnswer(false);
           if (queue.length === 1) {
-              handleCompleteHomework(updatedDetails);
+              handleCompleteHomework();
           } else {
               proceedToNext(false, false); 
           }
@@ -425,7 +441,7 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
   const handleGameClose = () => {
     setShowReinforcement(false);
     if (queue.length === 1) {
-      handleCompleteHomework(); // Uses sessionDetails from state, which should be updated
+      handleCompleteHomework(); 
     }
   };
 

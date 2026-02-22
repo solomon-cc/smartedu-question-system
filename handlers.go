@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -65,6 +66,70 @@ func LoginHandler(c *gin.Context) {
 	})
 }
 
+func RegisterHandler(c *gin.Context) {
+	var req RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		SendJSON(c, 1, "Invalid request", nil)
+		return
+	}
+
+	// Check if registration is enabled
+	var sysConf SystemConfig
+	var settings SystemSettingsConfig
+	// Default to false if not configured
+	if err := DB.Where("`key` = ?", "system_settings").First(&sysConf).Error; err == nil {
+		json.Unmarshal([]byte(sysConf.Value), &settings)
+	}
+	
+	if !settings.RegistrationEnabled {
+		SendJSON(c, 1, "Registration is currently disabled", nil)
+		return
+	}
+
+	// Validate Phone Number (Simple check, can be improved with regex)
+	// Assuming 11 digits for CN
+	if len(req.PhoneNumber) != 11 || !strings.HasPrefix(req.PhoneNumber, "1") {
+		SendJSON(c, 1, "Invalid phone number format", nil)
+		return
+	}
+	// Check if number contains only digits
+	if _, err := strconv.ParseInt(req.PhoneNumber, 10, 64); err != nil {
+		SendJSON(c, 1, "Invalid phone number format", nil)
+		return
+	}
+
+	// Check if user exists
+	var count int64
+	DB.Model(&User{}).Where("username = ?", req.PhoneNumber).Count(&count)
+	if count > 0 {
+		SendJSON(c, 1, "User already exists", nil)
+		return
+	}
+
+	// Create User
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		SendJSON(c, 1, "Internal server error", nil)
+		return
+	}
+
+	newUser := User{
+		ID:       strconv.FormatInt(time.Now().UnixNano(), 36),
+		Username: req.PhoneNumber,
+		Password: string(hashed),
+		Role:     RoleStudent,
+		Status:   "active",
+	}
+
+	if err := DB.Create(&newUser).Error; err != nil {
+		SendJSON(c, 1, "Failed to create user", nil)
+		return
+	}
+
+	AddAuditLog(c, "REGISTER", fmt.Sprintf("New user registered: %s", newUser.Username))
+	SendJSON(c, 0, "", gin.H{"message": "Registration successful"})
+}
+
 // User Handlers (Admin)
 func GetUsers(c *gin.Context) {
 	var users []User
@@ -96,7 +161,6 @@ func GetStudentDetail(c *gin.Context) {
 	DB.Where("student_id = ?", studentId).Order("date DESC").Limit(20).Find(&history)
 
 	// 3. Learning progress & stats (Accuracy trend last 14 days)
-    // ... (keeping trend logic as is for now)
 	type ProgressPoint struct {
 		Date     string  `json:"date"`
 		Accuracy float64 `json:"accuracy"`
@@ -360,6 +424,40 @@ func GetQuestions(c *gin.Context) {
 	if gradeStr != "" {
 		if g, err := strconv.Atoi(gradeStr); err == nil {
 			query = query.Where("grade = ?", g)
+		}
+	}
+
+	// Check exclusion logic
+	var sysConf SystemConfig
+	var conf ErrorLogicConfig
+	if err := DB.Where("`key` = ?", "error_logic").First(&sysConf).Error; err == nil {
+		json.Unmarshal([]byte(sysConf.Value), &conf)
+	}
+
+	if conf.GlobalEnabled && conf.ExcludeMistakesFromPractice {
+		userId, exists := c.Get("userId")
+		if exists {
+			var wrongQIDs []string
+			// Get IDs of questions in wrong book (status != 4 means active mistake)
+			// Actually status 4 is "Known", status 1,2,3,5 are active mistakes usually.
+			// But requirement says "Mistakes in Wrong Book shouldn't appear".
+			// If "Known" (4) is considered "in wrong book" but mastered, maybe we should exclude only active errors?
+			// User said "Question in Wrong Book... should not appear again".
+			// Usually "Wrong Book" contains all questions the student has ever gotten wrong unless they are "mastered" and removed.
+			// Based on previous logic, all 1-5 are in the table. 4 is "Known".
+			// Let's assume we exclude ANY question currently in the `student_wrong_questions` table for this student,
+			// OR maybe just active errors (1,2,3,5).
+			// Let's exclude ALL for now as "Wrong Book" usually implies the collection.
+			// Re-reading: "错题本中的题目...不要再次出现".
+			// If status 4 is "Known", maybe it's okay to appear?
+			// But stage 5 is "Difficult" -> "Excluded from homework".
+			// Let's filter out ALL IDs found in StudentWrongQuestion table for this student.
+			
+			DB.Model(&StudentWrongQuestion{}).Where("student_id = ?", fmt.Sprintf("%v", userId)).Pluck("question_id", &wrongQIDs)
+			
+			if len(wrongQIDs) > 0 {
+				query = query.Where("id NOT IN ?", wrongQIDs)
+			}
 		}
 	}
 
@@ -674,6 +772,7 @@ func GetHistory(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
 	homeworkId := c.Query("homeworkId")
+	targetStudentId := c.Query("studentId")
 
 	histories := make([]History, 0)
 	var total int64
@@ -683,22 +782,28 @@ func GetHistory(c *gin.Context) {
 	if fmt.Sprintf("%v", role) == string(RoleStudent) {
 		query = query.Where("student_id = ?", fmt.Sprintf("%v", userId))
 	} else if fmt.Sprintf("%v", role) == string(RoleTeacher) {
-		// Two-step approach to avoid JOIN issues
-		// 1. Get all homework IDs for this teacher
-		var homeworkIDs []string
-		
-		hwQuery := DB.Model(&Homework{}).Where("teacher_id = ?", fmt.Sprintf("%v", userId))
-		if homeworkId != "" {
-			hwQuery = hwQuery.Where("id = ?", homeworkId)
-		}
-		
-		hwQuery.Pluck("id", &homeworkIDs)
-		
-		if len(homeworkIDs) > 0 {
-			query = query.Where("homework_id IN ?", homeworkIDs)
+		if targetStudentId != "" {
+			// Teacher viewing specific student history
+			query = query.Where("student_id = ?", targetStudentId)
 		} else {
-			// No homeworks found for this teacher (or the specific one doesn't belong to them)
-			query = query.Where("1 = 0")
+			// Teacher viewing all their assigned homeworks' history
+			// Two-step approach to avoid JOIN issues
+			// 1. Get all homework IDs for this teacher
+			var homeworkIDs []string
+			
+			hwQuery := DB.Model(&Homework{}).Where("teacher_id = ?", fmt.Sprintf("%v", userId))
+			if homeworkId != "" {
+				hwQuery = hwQuery.Where("id = ?", homeworkId)
+			}
+			
+			hwQuery.Pluck("id", &homeworkIDs)
+			
+			if len(homeworkIDs) > 0 {
+				query = query.Where("homework_id IN ?", homeworkIDs)
+			} else {
+				// No homeworks found for this teacher (or the specific one doesn't belong to them)
+				query = query.Where("1 = 0")
+			}
 		}
 	}
 
@@ -721,9 +826,10 @@ func CreateHistory(c *gin.Context) {
 	}
 	
 	userId, _ := c.Get("userId")
+	studentId := fmt.Sprintf("%v", userId)
 
 	h.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
-	h.StudentID = fmt.Sprintf("%v", userId)
+	h.StudentID = studentId
 	h.Date = time.Now().Format("2006-01-02 15:04:05")
 
 	if err := DB.Create(&h).Error; err != nil {
@@ -731,8 +837,130 @@ func CreateHistory(c *gin.Context) {
 		return
 	}
 	
+	// Process Wrong Questions Logic
+	// Questions are stored as []any (serialized JSON)
+	// We need to marshal then unmarshal to access the fields
+	go func(history History) {
+		questionsBytes, _ := json.Marshal(history.Questions)
+		var results []HistoryQuestionResult
+		if err := json.Unmarshal(questionsBytes, &results); err == nil {
+			for _, res := range results {
+				isCorrect := res.Status == "correct"
+				
+				// Calculate wrong attempts
+				wrongCount := 0
+				if len(res.AttemptLog) > 0 {
+					for _, att := range res.AttemptLog {
+						if !att.IsCorrect {
+							wrongCount++
+						}
+					}
+				} else {
+					// Fallback if no detailed log
+					if isCorrect {
+						if res.Attempts > 1 {
+							wrongCount = res.Attempts - 1
+						}
+					} else {
+						wrongCount = res.Attempts
+						if wrongCount == 0 { wrongCount = 1 }
+					}
+				}
+
+				processWrongQuestion(history.StudentID, res.ID, isCorrect, wrongCount)
+			}
+		}
+	}(h)
+
 	AddAuditLog(c, "PRACTICE_FINISH", fmt.Sprintf("Completed session: %s (Score: %d/%s)", h.Name, h.CorrectCount, h.Total))
 	SendJSON(c, 0, "", h)
+}
+
+// processWrongQuestion implements the Error Logic state machine
+func processWrongQuestion(studentID string, questionID string, isCorrect bool, wrongIncrement int) {
+	var state StudentWrongQuestion
+	// Check if record exists
+	err := DB.Where("student_id = ? AND question_id = ?", studentID, questionID).First(&state).Error
+	exists := err == nil
+
+	now := time.Now().Format("2006-01-02 15:04:05")
+
+	// Load Config
+	var sysConf SystemConfig
+	var conf ErrorLogicConfig
+	// Default hardcoded logic if config missing
+	conf = ErrorLogicConfig{
+		GlobalEnabled: true,
+		Stages: map[int]StageConfig{
+			1: {NextWrong: 2, NextCorrect: 4, ShowAnswer: false, Label: "Error"},
+			2: {NextWrong: 3, NextCorrect: 4, ShowAnswer: true, Label: "Retry (Ans)"},
+			3: {NextWrong: 5, NextCorrect: 4, ShowAnswer: false, Label: "Retry (No Ans)"},
+			4: {NextWrong: 1, NextCorrect: 4, ShowAnswer: false, Label: "Known"},
+			5: {NextWrong: 5, NextCorrect: 5, ShowAnswer: false, Label: "Difficult"},
+		},
+	}
+	
+	if err := DB.Where("`key` = ?", "error_logic").First(&sysConf).Error; err == nil {
+		json.Unmarshal([]byte(sysConf.Value), &conf)
+	}
+
+	if !conf.GlobalEnabled {
+		return // Logic disabled
+	}
+
+	if isCorrect {
+		if exists {
+			state.ErrorCount += wrongIncrement
+			
+			currentStage := state.Status
+			if stageConf, ok := conf.Stages[currentStage]; ok {
+				state.Status = stageConf.NextCorrect
+			} else {
+				state.Status = 4 // Default fallback
+			}
+			
+			state.LastUpdated = now
+			DB.Save(&state)
+		} else if wrongIncrement > 0 {
+			// Correct now, but had errors -> Known (4)
+			newState := StudentWrongQuestion{
+				ID:          strconv.FormatInt(time.Now().UnixNano(), 36),
+				StudentID:   studentID,
+				QuestionID:  questionID,
+				Status:      4, // Usually straight to known
+				ErrorCount:  wrongIncrement,
+				LastUpdated: now,
+			}
+			DB.Create(&newState)
+		}
+		return
+	}
+
+	// If Wrong (Final status is wrong)
+	if !exists {
+		// New Error -> Stage 1
+		newState := StudentWrongQuestion{
+			ID:          strconv.FormatInt(time.Now().UnixNano(), 36),
+			StudentID:   studentID,
+			QuestionID:  questionID,
+			Status:      1,
+			ErrorCount:  wrongIncrement,
+			LastUpdated: now,
+		}
+		DB.Create(&newState)
+	} else {
+		// Existing Error -> State Transition
+		state.ErrorCount += wrongIncrement
+		state.LastUpdated = now
+		
+		currentStage := state.Status
+		if stageConf, ok := conf.Stages[currentStage]; ok {
+			state.Status = stageConf.NextWrong
+		} else {
+			state.Status = 1 // Default reset
+		}
+		DB.Save(&state)
+	}
 }
 
 // Student Stats
@@ -1207,4 +1435,133 @@ func AddAuditLog(c *gin.Context, action, details string) {
 	
 	DB.Create(&log)
 	fmt.Printf("[AUDIT] %s | %s | %s\n", log.Username, log.Action, log.Details)
+}
+
+// Wrong Question Handlers
+func GetWrongBook(c *gin.Context) {
+	// If student: get own. If teacher: get specific student's or ALL if empty
+	requesterId, _ := c.Get("userId")
+	role, _ := c.Get("role")
+
+	targetStudentId := c.Query("studentId")
+	
+	query := DB.Preload("Question").Where("status != 4")
+
+	if fmt.Sprintf("%v", role) == string(RoleStudent) {
+		query = query.Where("student_id = ?", fmt.Sprintf("%v", requesterId))
+	} else {
+		// Teacher/Admin
+		if targetStudentId != "" {
+			query = query.Where("student_id = ?", targetStudentId)
+		}
+		// If empty, return all (Teacher view)
+	}
+
+	var wrongs []StudentWrongQuestion
+	query.Find(&wrongs)
+
+	SendJSON(c, 0, "", wrongs)
+}
+
+// Admin Config Handlers
+func GetSystemConfig(c *gin.Context) {
+	var conf SystemConfig
+	if err := DB.Where("`key` = ?", "error_logic").First(&conf).Error; err != nil {
+		// Return default if not found
+		defaultConf := ErrorLogicConfig{
+			GlobalEnabled: true,
+			ExcludeMistakesFromPractice: false,
+			Stages: map[int]StageConfig{
+				1: {NextWrong: 2, NextCorrect: 4, ShowAnswer: false, Label: "Error"},
+				2: {NextWrong: 3, NextCorrect: 4, ShowAnswer: true, Label: "Retry (Ans)"},
+				3: {NextWrong: 5, NextCorrect: 4, ShowAnswer: false, Label: "Retry (No Ans)"},
+				4: {NextWrong: 1, NextCorrect: 4, ShowAnswer: false, Label: "Known"},
+				5: {NextWrong: 5, NextCorrect: 5, ShowAnswer: false, Label: "Difficult"},
+			},
+		}
+		SendJSON(c, 0, "", defaultConf)
+		return
+	}
+	
+	// Parse JSON
+	var parsedConf ErrorLogicConfig
+	if err := json.Unmarshal([]byte(conf.Value), &parsedConf); err != nil {
+		SendJSON(c, 1, "Invalid config format", nil)
+		return
+	}
+	
+	SendJSON(c, 0, "", parsedConf)
+}
+
+func UpdateSystemConfig(c *gin.Context) {
+	var parsedConf ErrorLogicConfig
+	if err := c.ShouldBindJSON(&parsedConf); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+
+	confJSON, _ := json.Marshal(parsedConf)
+	
+	// Create or Update
+	var conf SystemConfig
+	if err := DB.Where("`key` = ?", "error_logic").First(&conf).Error; err != nil {
+		conf = SystemConfig{
+			Key: "error_logic",
+			Value: string(confJSON),
+		}
+		DB.Create(&conf)
+	} else {
+		conf.Value = string(confJSON)
+		DB.Save(&conf)
+	}
+	
+	SendJSON(c, 0, "", parsedConf)
+}
+
+func GetSystemSettings(c *gin.Context) {
+	var conf SystemConfig
+	var settings SystemSettingsConfig
+	
+	// Default settings
+	settings.RegistrationEnabled = false 
+
+	if err := DB.Where("`key` = ?", "system_settings").First(&conf).Error; err == nil {
+		json.Unmarshal([]byte(conf.Value), &settings)
+	}
+	SendJSON(c, 0, "", settings)
+}
+
+func UpdateSystemSettings(c *gin.Context) {
+	var settings SystemSettingsConfig
+	if err := c.ShouldBindJSON(&settings); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+
+	confJSON, _ := json.Marshal(settings)
+	
+	var conf SystemConfig
+	if err := DB.Where("`key` = ?", "system_settings").First(&conf).Error; err != nil {
+		conf = SystemConfig{
+			Key: "system_settings",
+			Value: string(confJSON),
+		}
+		DB.Create(&conf)
+	} else {
+		conf.Value = string(confJSON)
+		DB.Save(&conf)
+	}
+	SendJSON(c, 0, "", settings)
+}
+
+func GetPublicConfig(c *gin.Context) {
+	var conf SystemConfig
+	var settings SystemSettingsConfig
+	if err := DB.Where("`key` = ?", "system_settings").First(&conf).Error; err == nil {
+		json.Unmarshal([]byte(conf.Value), &settings)
+	}
+	// Only return public safe config
+	SendJSON(c, 0, "", gin.H{
+		"registrationEnabled": settings.RegistrationEnabled,
+	})
 }

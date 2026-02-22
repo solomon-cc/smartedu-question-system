@@ -22,7 +22,7 @@ const StudentDashboard: React.FC<DashboardProps> = ({ language }) => {
     setLoading(true);
     Promise.all([
       api.homework.list().then(data => setHwCount(data.filter((h: any) => h.status === 'pending').length)),
-      api.history.list().then(data => setHistoryCount(data.length))
+      api.history.list().then(data => setHistoryCount(data.total))
     ])
     .catch(console.error)
     .finally(() => setLoading(false));

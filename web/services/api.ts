@@ -1,4 +1,4 @@
-import { Question, User } from '../types';
+import { Question, User, Resource } from '../types';
 
 const isProd = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PROD;
 const API_URL = isProd
@@ -40,6 +40,20 @@ export const api = {
       });
       return handleResponse(res);
     },
+    register: async (phoneNumber: string, password: string): Promise<any> => {
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber, password }),
+      });
+      return handleResponse(res);
+    },
+  },
+  config: {
+    getPublic: async (): Promise<any> => {
+      const res = await fetch(`${API_URL}/config/public`, { headers: { 'Content-Type': 'application/json' } });
+      return handleResponse(res);
+    }
   },
   questions: {
     list: async (params: { page?: number; pageSize?: number; subject?: string; grade?: number } = {}): Promise<{ list: Question[]; total: number }> => {
@@ -153,12 +167,13 @@ export const api = {
     }
   },
   history: {
-    list: async (page = 1, pageSize = 10, homeworkId?: string): Promise<{ list: any[], total: number }> => {
+    list: async (page = 1, pageSize = 10, homeworkId?: string, studentId?: string): Promise<{ list: any[], total: number }> => {
       const params = new URLSearchParams({
         page: page.toString(),
         pageSize: pageSize.toString()
       });
       if (homeworkId) params.append('homeworkId', homeworkId);
+      if (studentId) params.append('studentId', studentId);
       const res = await fetch(`${API_URL}/history?${params.toString()}`, { headers: getHeaders() });
       return handleResponse(res);
     },
@@ -242,6 +257,40 @@ export const api = {
        const res = await fetch(`${API_URL}/admin/practices`, { headers: getHeaders() });
        const data = await handleResponse(res);
        return data || [];
+    },
+    getConfig: async (): Promise<any> => {
+      const res = await fetch(`${API_URL}/admin/config`, { headers: getHeaders() });
+      return handleResponse(res);
+    },
+    updateConfig: async (data: any): Promise<any> => {
+       const res = await fetch(`${API_URL}/admin/config`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    getSettings: async (): Promise<any> => {
+      const res = await fetch(`${API_URL}/admin/settings`, { headers: getHeaders() });
+      return handleResponse(res);
+    },
+    updateSettings: async (data: any): Promise<any> => {
+       const res = await fetch(`${API_URL}/admin/settings`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    }
+  },
+  wrongBook: {
+    list: async (studentId?: string): Promise<any[]> => {
+      const url = studentId 
+        ? `${API_URL}/wrong-book?studentId=${studentId}`
+        : `${API_URL}/wrong-book`;
+      const res = await fetch(url, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
     }
   },
   reinforcements: {

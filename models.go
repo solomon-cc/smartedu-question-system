@@ -21,6 +21,11 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type RegisterRequest struct {
+	PhoneNumber string `json:"phoneNumber" binding:"required"`
+	Password    string `json:"password" binding:"required"`
+}
+
 type Question struct {
 	ID         string   `json:"id" gorm:"primaryKey;type:varchar(191)"`
 	Subject    string   `json:"subject" gorm:"type:varchar(191)"`
@@ -111,7 +116,26 @@ type History struct {
 	Total        string   `json:"total,omitempty" gorm:"type:varchar(191)"`
 	CorrectCount int      `json:"correctCount,omitempty"`
 	WrongCount   int      `json:"wrongCount,omitempty"`
-	Questions    []any    `json:"questions" gorm:"serializer:json"`
+	Questions    []any    `json:"questions" gorm:"serializer:json"` // Stores HistoryQuestionResult
+}
+
+// HistoryQuestionResult is a helper struct to define the JSON structure inside History.Questions
+type HistoryQuestionResult struct {
+	ID          string       `json:"id"`
+	Subject     string       `json:"subject"` // Added for filtering
+	Stem        string       `json:"stem"`
+	Answer      string       `json:"answer"`
+	UserAnswer  string       `json:"userAnswer"`
+	Status      string       `json:"status"` // "correct", "wrong"
+	Attempts    int          `json:"attempts"`
+	AttemptLog  []AttemptLog `json:"attemptLog,omitempty"`
+	Options     []Option     `json:"options,omitempty"`
+}
+
+type AttemptLog struct {
+	Answer    string `json:"answer"`
+	Timestamp int64  `json:"timestamp"`
+	IsCorrect bool   `json:"isCorrect"`
 }
 
 type Resource struct {
@@ -132,4 +156,40 @@ type AuditLog struct {
 	Action    string `json:"action" gorm:"type:varchar(191)"`
 	Details   string `json:"details" gorm:"type:text"`
 	Timestamp string `json:"timestamp" gorm:"type:varchar(191)"`
+}
+
+// New Models for Error Processing Logic
+
+type StudentWrongQuestion struct {
+	ID          string   `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	StudentID   string   `json:"studentId" gorm:"type:varchar(191);index"`
+	QuestionID  string   `json:"questionId" gorm:"type:varchar(191);index"`
+	Question    Question `json:"question" gorm:"foreignKey:QuestionID"`
+	Status      int      `json:"status"`     // 1:Error, 2:Retry+Ans, 3:Retry, 4:Known, 5:Difficult
+	ErrorCount  int      `json:"errorCount"` // Total times answered wrong
+	LastUpdated string   `json:"lastUpdated" gorm:"type:varchar(191)"`
+}
+
+type SystemConfig struct {
+	Key   string `json:"key" gorm:"primaryKey;type:varchar(191)"`
+	Value string `json:"value" gorm:"type:text"` // JSON encoded value
+}
+
+// ConfigValue defines the structure for "error_logic" config
+type ErrorLogicConfig struct {
+	GlobalEnabled               bool                `json:"globalEnabled"`
+	ExcludeMistakesFromPractice bool                `json:"excludeMistakesFromPractice"` // New Field
+	Stages                      map[int]StageConfig `json:"stages"`
+}
+
+type StageConfig struct {
+	NextWrong   int    `json:"nextWrong"`
+	NextCorrect int    `json:"nextCorrect"`
+	ShowAnswer  bool   `json:"showAnswer"` // For frontend hint
+	Label       string `json:"label"`
+}
+
+// SystemSettingsConfig defines general system settings
+type SystemSettingsConfig struct {
+	RegistrationEnabled bool `json:"registrationEnabled"`
 }

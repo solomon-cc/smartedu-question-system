@@ -9,6 +9,7 @@ import PracticeSession from './views/Student/PracticeSession';
 import Homework from './views/Student/Homework';
 import History from './views/Student/History';
 import Stats from './views/Student/Stats';
+import WrongBook from './views/Student/WrongBook';
 import Questions from './views/Teacher/Questions';
 import Papers from './views/Teacher/Papers';
 import Assign from './views/Teacher/Assign';
@@ -19,6 +20,7 @@ import Users from './views/Admin/Users';
 import Permissions from './views/Admin/Permissions';
 import AuditLogs from './views/Admin/AuditLogs';
 import HomeworkAudit from './views/Admin/HomeworkAudit';
+import SystemConfig from './views/Admin/SystemConfig';
 import Layout from './components/Layout';
 
 interface AuthContextType {
@@ -113,6 +115,7 @@ const App: React.FC = () => {
                   <Route path="/" element={<Dashboard language={language} />} />
                   <Route path="/homework" element={<Homework language={language} />} />
                   <Route path="/history" element={<History language={language} />} />
+                  <Route path="/wrong-book" element={<WrongBook language={language} />} />
                   <Route path="/stats" element={<Stats language={language} />} />
                   <Route path="/questions" element={<Questions language={language} />} />
                   <Route path="/papers" element={<Papers language={language} />} />
@@ -124,6 +127,7 @@ const App: React.FC = () => {
                   <Route path="/logs" element={<AuditLogs language={language} />} />
                   <Route path="/permissions" element={<Permissions language={language} />} />
                   <Route path="/admin/audit" element={<HomeworkAudit language={language} />} />
+                  <Route path="/admin/config" element={<SystemConfig language={language} />} />
                 </Routes>
               </Layout>
             ) : <Navigate to="/login" />}>

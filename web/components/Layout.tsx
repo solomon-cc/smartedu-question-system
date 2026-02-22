@@ -3,7 +3,7 @@ import React, { useState, useContext } from 'react';
 import { AuthContext } from '../App';
 import { Role } from '../types';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, BookOpen, Clock, BarChart2, PlusCircle, Settings, Users, ClipboardList, Sun, Moon, Languages, ShieldCheck, FileText } from 'lucide-react';
+import { Menu, X, Home, BookOpen, Clock, BarChart2, PlusCircle, Settings, Users, ClipboardList, Sun, Moon, Languages, ShieldCheck, FileText, AlertTriangle } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,6 +24,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
         { icon: Home, label: '首页', labelEn: 'Home', path: '/' },
         { icon: ClipboardList, label: '家庭作业', labelEn: 'Homework', path: '/homework' },
         { icon: Clock, label: '答题历史', labelEn: 'History', path: '/history' },
+        { icon: AlertTriangle, label: '错题本', labelEn: 'Mistakes', path: '/wrong-book' },
         { icon: BarChart2, label: '统计分析', labelEn: 'Stats', path: '/stats' },
       ];
     }
@@ -44,6 +45,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
         { icon: Users, label: '用户管理', labelEn: 'Users', path: '/users' },
         { icon: ShieldCheck, label: '作业审计', labelEn: 'Homework Audit', path: '/admin/audit' },
         { icon: FileText, label: '审计日志', labelEn: 'Audit Logs', path: '/logs' },
+        { icon: Settings, label: '系统配置', labelEn: 'System Config', path: '/admin/config' },
         { icon: Settings, label: '权限设置', labelEn: 'Permissions', path: '/permissions' },
       ];
     }

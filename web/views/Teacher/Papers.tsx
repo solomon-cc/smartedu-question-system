@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, MoreVertical, X, Check, Search, Eye, BookOpen, Trash2, Edit } from 'lucide-react';
+import { FileText, Plus, MoreVertical, X, Check, Search, Eye, BookOpen, Trash2, Edit, AlertTriangle } from 'lucide-react';
 import { api } from '../../services/api.ts';
 import { Question } from '../../types.ts';
 import { REVERSE_TYPE_MAP } from '../../utils.ts';
@@ -16,6 +16,8 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   
   const [papers, setPapers] = useState<any[]>([]);
   const [availableQuestions, setAvailableQuestions] = useState<Question[]>([]);
+  const [wrongQuestions, setWrongQuestions] = useState<any[]>([]);
+  const [modalTab, setModalTab] = useState<'bank' | 'mistakes'>('bank');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [paperTitle, setPaperTitle] = useState('');
   const [editingPaperId, setEditingPaperId] = useState<string | null>(null);
@@ -35,12 +37,14 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [papersData, questionsData] = await Promise.all([
+      const [papersData, questionsData, wrongData] = await Promise.all([
         api.papers.list(),
-        api.questions.list({ pageSize: 10000 })
+        api.questions.list({ pageSize: 10000 }),
+        api.wrongBook.list()
       ]);
       setPapers(papersData);
       setAvailableQuestions(questionsData.list || []);
+      setWrongQuestions(wrongData);
     } catch (e) {
       console.error(e);
     } finally {
@@ -152,8 +156,24 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   };
 
 
+  const aggregatedMistakes = React.useMemo(() => {
+    const map = new Map();
+    wrongQuestions.forEach((w: any) => {
+      if (!w.question) return;
+      const q = w.question;
+      if (!map.has(q.id)) {
+        map.set(q.id, { ...q, totalErrors: 0, studentCount: 0 });
+      }
+      const entry = map.get(q.id);
+      entry.totalErrors += w.errorCount;
+      entry.studentCount += 1;
+    });
+    return Array.from(map.values());
+  }, [wrongQuestions]);
+
   return (
     <div className="space-y-6 relative animate-in fade-in duration-500" onClick={() => setMenuOpenId(null)}>
+      {/* ... header ... */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold dark:text-white">{language === 'zh' ? '试卷管理' : 'Paper Library'}</h2>
         <button 
@@ -165,8 +185,10 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         </button>
       </div>
 
+      {/* ... list ... */}
       {loading ? <Loading /> : (
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* ... existing papers list logic ... */}
         {papers.length === 0 && (
           <div className="col-span-3 text-center py-20 bg-white dark:bg-gray-800 rounded-[3rem] border-2 border-dashed dark:border-gray-700">
             <div className="bg-gray-50 dark:bg-gray-900 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -232,7 +254,7 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
       {isPaperModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in zoom-in-95 duration-300">
-           <div className="bg-white dark:bg-gray-800 w-full max-w-5xl rounded-[3rem] shadow-2xl p-10 max-h-[92vh] flex flex-col border dark:border-gray-700">
+           <div className="bg-white dark:bg-gray-800 w-full max-w-6xl rounded-[3rem] shadow-2xl p-10 max-h-[92vh] flex flex-col border dark:border-gray-700">
               <div className="flex justify-between items-center mb-8 border-b dark:border-gray-700 pb-6">
                  <h3 className="text-3xl font-black dark:text-white">
                    {editingPaperId 
@@ -260,7 +282,22 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                     {/* Available List */}
                     <div className="flex flex-col border dark:border-gray-700 rounded-[2rem] p-6 bg-gray-50/50 dark:bg-gray-900/30">
                        <div className="flex justify-between items-center mb-6">
-                          <h4 className="font-black dark:text-white flex items-center gap-2"><BookOpen className="w-5 h-5" /> {language === 'zh' ? '可选题目' : 'Available Bank'}</h4>
+                          <div className="flex bg-white dark:bg-gray-800 rounded-xl p-1 border dark:border-gray-700">
+                             <button 
+                               onClick={() => setModalTab('bank')}
+                               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${modalTab === 'bank' ? 'bg-primary-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                             >
+                               {language === 'zh' ? '全部题库' : 'All Questions'}
+                             </button>
+                             <button 
+                               onClick={() => setModalTab('mistakes')}
+                               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${modalTab === 'mistakes' ? 'bg-red-500 text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                             >
+                               <AlertTriangle className="w-3 h-3" />
+                               {language === 'zh' ? '错题库' : 'Mistakes'}
+                             </button>
+                          </div>
+                          
                           <select 
                             value={subjectFilter}
                             onChange={(e) => setSubjectFilter(e.target.value)}
@@ -268,16 +305,26 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                           >
                              <option value="全部">全部科目</option>
                              <option value="数学">数学</option>
-                             <option value="语文">语文</option>
-                             <option value="英语">英语</option>
+                             <option value="语言词汇">语言词汇</option>
+                             <option value="阅读">阅读</option>
+                             <option value="识字">识字</option>
                           </select>
                        </div>
+                       
                        <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
-                          {filteredQuestions.length > 0 ? filteredQuestions.map(q => {
+                          {(modalTab === 'bank' ? filteredQuestions : aggregatedMistakes).map((q: any) => {
+                            if (selectedIds.includes(q.id)) return null; // Don't show selected in source list
+                            if (subjectFilter !== '全部' && q.subject !== subjectFilter) return null;
+
                             return (
                               <div key={q.id} className="p-4 rounded-2xl flex items-center justify-between shadow-sm bg-white dark:bg-gray-800 border border-transparent hover:border-primary-500 transition-all">
                                  <div className="flex-1">
                                     <div className="flex gap-2 mb-1">
+                                       {modalTab === 'mistakes' && (
+                                         <span className="text-[8px] font-black uppercase text-red-600 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded">
+                                           {q.totalErrors} {language === 'zh' ? '次错误' : 'Errors'}
+                                         </span>
+                                       )}
                                        <span className="text-[8px] font-black uppercase text-primary-600 bg-primary-50 dark:bg-primary-900/20 px-1.5 py-0.5 rounded">{q.subject}</span>
                                        <span className="text-[8px] font-black uppercase text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{REVERSE_TYPE_MAP[q.type as string] || q.type}</span>
                                     </div>
@@ -296,7 +343,8 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                                  </div>
                               </div>
                             );
-                          }) : (
+                          })}
+                          {(modalTab === 'bank' ? filteredQuestions : aggregatedMistakes).length === 0 && (
                             <div className="flex flex-col items-center justify-center py-12 text-gray-400">
                               <Search className="w-8 h-8 opacity-20 mb-2" />
                               <p className="text-xs">{language === 'zh' ? '暂无可添加题目' : 'No more questions to add'}</p>

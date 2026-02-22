@@ -132,6 +132,30 @@ const History: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                         </p>
                       </div>
                    </div>
+
+                   {q.attemptLog && q.attemptLog.length > 0 && (
+                      <div className="mt-6 pt-4 border-t border-dashed dark:border-gray-700">
+                        <h4 className="text-[10px] font-black uppercase text-gray-400 mb-3 tracking-wider">
+                          {language === 'zh' ? '答题过程' : 'Attempt History'}
+                        </h4>
+                        <div className="space-y-2">
+                          {q.attemptLog.map((log: any, i: number) => (
+                            <div key={i} className="flex items-center gap-3 text-sm p-2 rounded-lg hover:bg-white/50 dark:hover:bg-black/20 transition-colors">
+                               <span className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                                 {i + 1}
+                               </span>
+                               <span className={`font-mono font-bold flex-1 ${log.isCorrect ? 'text-green-600' : 'text-red-500'}`}>
+                                 {log.answer}
+                               </span>
+                               <span className="text-gray-400 text-[10px]">
+                                 {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : ''}
+                               </span>
+                               {log.isCorrect ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-red-500" />}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                   )}
                 </div>
               );
             }) : (

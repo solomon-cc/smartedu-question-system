@@ -35,6 +35,40 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [viewingHistory, setViewingHistory] = useState<any>(null);
   const [viewingHomework, setViewingHomework] = useState<any>(null);
   const [viewingReinforcement, setViewingReinforcement] = useState<any>(null);
+  const [viewingWrongBook, setViewingWrongBook] = useState(false);
+  const [viewingHistoryList, setViewingHistoryList] = useState(false);
+  const [historyList, setHistoryList] = useState<any[]>([]);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPageSize] = useState(10);
+  const [historyFilterSubject, setHistoryFilterSubject] = useState('全部');
+  const [historyFilterDate, setHistoryFilterDate] = useState('');
+  const [wrongBook, setWrongBook] = useState<any[]>([]);
+  
+  // Wrong Book Filters
+  const [wbSubjectFilter, setWbSubjectFilter] = useState('全部');
+  const [wbErrorSort, setWbErrorSort] = useState<'desc' | 'asc'>('desc');
+
+  const fetchHistoryList = async (studentId: string, page = 1) => {
+    try {
+      setHistoryPage(page);
+      const res = await api.history.list(page, historyPageSize, undefined, studentId);
+      setHistoryList(res.list || []);
+      setHistoryTotal(res.total);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const filteredWrongBook = wrongBook
+    .filter(item => {
+        if (wbSubjectFilter === '全部') return true;
+        if (wbSubjectFilter === '语文') {
+             return item.question?.subject === '语文' || item.question?.subject === '语言词汇' || item.question?.subject === 'LANGUAGE';
+        }
+        return item.question?.subject === wbSubjectFilter;
+    })
+    .sort((a, b) => wbErrorSort === 'desc' ? b.errorCount - a.errorCount : a.errorCount - b.errorCount);
 
   useEffect(() => {
     fetchStudents();
@@ -58,9 +92,21 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const handleSelectStudent = async (id: string) => {
     setSelectedStudent(id);
     setLoadingDetail(true);
+    // Reset view states
+    setViewingHistory(null); 
+    setViewingHomework(null);
+    setViewingReinforcement(null);
+    setViewingWrongBook(false);
+    setViewingHistoryList(false);
+    setHistoryList([]);
+    
     try {
-      const data = await api.students.getDetail(id);
+      const [data, wrongData] = await Promise.all([
+        api.students.getDetail(id),
+        api.wrongBook.list(id)
+      ]);
       setDetail(data);
+      setWrongBook(wrongData);
     } catch (e) {
       console.error(e);
     } finally {
@@ -153,14 +199,29 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                   </div>
                </div>
                
-               <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border dark:border-gray-700 text-center">
+               <div className="grid grid-cols-3 gap-4">
+                  <div 
+                    onClick={() => {
+                        if (detail.student?.id) {
+                           setViewingHistoryList(true);
+                           fetchHistoryList(detail.student.id);
+                        }
+                    }}
+                    className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border dark:border-gray-700 text-center cursor-pointer hover:shadow-md transition-shadow"
+                  >
                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">{language === 'zh' ? '学习记录' : 'History'}</p>
                     <p className="text-xl font-bold dark:text-white">{(detail.history || []).length}</p>
                   </div>
                   <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border dark:border-gray-700 text-center">
                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">{language === 'zh' ? '专属强化' : 'Personalized'}</p>
                     <p className="text-xl font-bold dark:text-white">{(detail.reinforcements || []).length}</p>
+                  </div>
+                  <div 
+                    onClick={() => setViewingWrongBook(true)}
+                    className="p-4 bg-red-50 dark:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-800/30 text-center cursor-pointer hover:shadow-md transition-shadow"
+                  >
+                    <p className="text-[10px] text-red-500 font-black uppercase tracking-widest mb-1">{language === 'zh' ? '错题本' : 'Mistakes'}</p>
+                    <p className="text-xl font-bold text-red-600">{wrongBook.length}</p>
                   </div>
                </div>
             </div>
@@ -265,7 +326,7 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                </div>
 
                {/* Learning History */}
-               <div className="space-y-4">
+               <div className="space-y-4" id="history-list-section">
                   <h3 className="text-lg font-bold dark:text-white flex items-center gap-2">
                      <History className="w-5 h-5 text-purple-500" />
                      {language === 'zh' ? '最近练习记录' : 'Recent Activity'}
@@ -306,6 +367,141 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
           </div>
         )}
       </div>
+
+      {/* All History List Modal */}
+      {viewingHistoryList && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in zoom-in-95 duration-300">
+           <div className="bg-white dark:bg-gray-800 w-full max-w-4xl rounded-[2.5rem] shadow-2xl p-10 border dark:border-gray-700 max-h-[90vh] flex flex-col">
+              <div className="flex justify-between items-center mb-8 border-b dark:border-gray-700 pb-6 shrink-0">
+                 <h3 className="text-2xl font-black dark:text-white uppercase tracking-tight flex items-center gap-3">
+                    <History className="w-6 h-6 text-purple-500" />
+                    {language === 'zh' ? '全部练习记录' : 'All Practice History'}
+                 </h3>
+                 <div className="flex gap-4 items-center">
+                    <select 
+                      value={historyFilterSubject}
+                      onChange={(e) => setHistoryFilterSubject(e.target.value)}
+                      className="p-2 bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-lg text-sm font-bold outline-none"
+                    >
+                       <option value="全部">{language === 'zh' ? '全部科目' : 'All Subjects'}</option>
+                       <option value="数学">{language === 'zh' ? '数学' : 'Math'}</option>
+                       <option value="语文">{language === 'zh' ? '语文' : 'Language'}</option>
+                       <option value="阅读">{language === 'zh' ? '阅读' : 'Reading'}</option>
+                       <option value="识字">{language === 'zh' ? '识字' : 'Literacy'}</option>
+                    </select>
+                    <input 
+                      type="date"
+                      value={historyFilterDate}
+                      onChange={(e) => setHistoryFilterDate(e.target.value)}
+                      className="p-2 bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-lg text-sm font-bold outline-none dark:text-white"
+                    />
+                    <button onClick={() => setViewingHistoryList(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                        <X className="w-6 h-6 dark:text-gray-400" />
+                    </button>
+                 </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+                 {historyList
+                   .filter(h => {
+                      if (historyFilterSubject === '全部') return true;
+                      let match = false;
+                      // Check first question's subject
+                      if (h.questions && h.questions.length > 0) {
+                          const subj = h.questions[0].subject;
+                          if (historyFilterSubject === '语文') {
+                              match = subj === '语文' || subj === '语言词汇' || subj === 'LANGUAGE';
+                          } else {
+                              match = subj === historyFilterSubject;
+                          }
+                      }
+                      // Fallback to name check
+                      if (!match) {
+                          match = h.name.includes(historyFilterSubject);
+                          if (!match && historyFilterSubject === '语文') {
+                              match = h.name.includes('语言') || h.name.includes('语文');
+                          }
+                      }
+                      return match;
+                   })
+                   .filter(h => !historyFilterDate || h.date.startsWith(historyFilterDate))
+                   .length === 0 ? (
+                   <div className="py-20 text-center text-gray-400 italic">
+                     {language === 'zh' ? '暂无符合条件的记录。' : 'No matching records found.'}
+                   </div>
+                 ) : (
+                   historyList
+                   .filter(h => {
+                      if (historyFilterSubject === '全部') return true;
+                      let match = false;
+                      if (h.questions && h.questions.length > 0) {
+                          const subj = h.questions[0].subject;
+                          if (historyFilterSubject === '语文') {
+                              match = subj === '语文' || subj === '语言词汇' || subj === 'LANGUAGE';
+                          } else {
+                              match = subj === historyFilterSubject;
+                          }
+                      }
+                      if (!match) {
+                          match = h.name.includes(historyFilterSubject);
+                          if (!match && historyFilterSubject === '语文') {
+                              match = h.name.includes('语言') || h.name.includes('语文');
+                          }
+                      }
+                      return match;
+                   })
+                   .filter(h => !historyFilterDate || h.date.startsWith(historyFilterDate))
+                   .map((h) => (
+                     <div 
+                        key={h.id} 
+                        onClick={() => setViewingHistory(h)}
+                        className="p-4 bg-white dark:bg-gray-900 rounded-2xl flex items-center justify-between shadow-sm border dark:border-gray-700 cursor-pointer hover:border-primary-400 transition-all"
+                     >
+                        <div className="flex items-center gap-4">
+                           <div className={`p-2 rounded-xl ${h.type === 'homework' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}`}>
+                              {h.type === 'homework' ? <BookOpen className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                           </div>
+                           <div>
+                              <p className="font-bold text-sm dark:text-white">{h.name}</p>
+                              <p className="text-[10px] text-gray-400">{h.date}</p>
+                           </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                           <div className="text-right">
+                              <p className="text-xs font-black text-primary-600">{h.correctCount}/{h.total}</p>
+                              <p className="text-[8px] text-gray-400 text-center">{Math.round((h.correctCount/(parseInt(h.total) || 1))*100)}%</p>
+                           </div>
+                           <ChevronRight className="w-4 h-4 text-gray-300" />
+                        </div>
+                     </div>
+                   ))
+                 )}
+              </div>
+
+              {historyTotal > historyPageSize && (
+                <div className="p-4 border-t dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 rounded-b-[2.5rem] mt-4">
+                   <button 
+                     disabled={historyPage === 1}
+                     onClick={() => fetchHistoryList(selectedStudent!, historyPage - 1)}
+                     className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 transition-colors"
+                   >
+                     <ChevronRight className="w-5 h-5 rotate-180" />
+                   </button>
+                   <span className="text-xs font-bold text-gray-500">
+                     {historyPage} / {Math.ceil(historyTotal / historyPageSize)}
+                   </span>
+                   <button 
+                     disabled={historyPage >= Math.ceil(historyTotal / historyPageSize)}
+                     onClick={() => fetchHistoryList(selectedStudent!, historyPage + 1)}
+                     className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 transition-colors"
+                   >
+                     <ChevronRight className="w-5 h-5" />
+                   </button>
+                </div>
+              )}
+           </div>
+        </div>
+      )}
 
       {/* History Detail Modal */}
       {viewingHistory && (
@@ -365,6 +561,27 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                                    <p className="font-black text-primary-600">{q.answer}</p>
                                 </div>
                              </div>
+
+                             {q.attemptLog && q.attemptLog.length > 0 && (
+                                <div className="mt-4 pt-3 border-t border-dashed dark:border-gray-700">
+                                  <p className="text-[8px] text-gray-400 font-black uppercase mb-2 tracking-widest">{language === 'zh' ? '答题过程' : 'Attempt History'}</p>
+                                  <div className="space-y-1">
+                                    {q.attemptLog.map((log: any, i: number) => (
+                                      <div key={i} className="flex items-center gap-2 text-[10px]">
+                                         <span className="w-4 h-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-bold text-gray-500">
+                                           {i + 1}
+                                         </span>
+                                         <span className={`font-mono font-bold ${log.isCorrect ? 'text-green-600' : 'text-red-500'}`}>
+                                           {log.answer}
+                                         </span>
+                                         <span className="text-gray-400">
+                                           {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : ''}
+                                         </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                             )}
                           </div>
                        ))}
                     </div>
@@ -430,6 +647,71 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                        {language === 'zh' ? '关闭预览' : 'Close View'}
                     </button>
                  </div>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Wrong Book Modal */}
+      {viewingWrongBook && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in zoom-in-95 duration-300">
+           <div className="bg-white dark:bg-gray-800 w-full max-w-4xl rounded-[2.5rem] shadow-2xl p-10 border dark:border-gray-700 max-h-[90vh] flex flex-col">
+              <div className="flex justify-between items-center mb-8 border-b dark:border-gray-700 pb-6 shrink-0">
+                 <h3 className="text-2xl font-black dark:text-white uppercase tracking-tight flex items-center gap-3">
+                    <span className="text-red-500">⚠</span>
+                    {language === 'zh' ? '错题明细' : 'Mistakes Detail'}
+                 </h3>
+                 <div className="flex gap-4 items-center">
+                    <select 
+                      value={wbSubjectFilter}
+                      onChange={(e) => setWbSubjectFilter(e.target.value)}
+                      className="p-2 bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-lg text-sm font-bold outline-none"
+                    >
+                       <option value="全部">{language === 'zh' ? '全部科目' : 'All Subjects'}</option>
+                       <option value="数学">{language === 'zh' ? '数学' : 'Math'}</option>
+                       <option value="语文">{language === 'zh' ? '语文' : 'Language'}</option>
+                       <option value="英语">{language === 'zh' ? '英语' : 'English'}</option>
+                    </select>
+                    <select 
+                      value={wbErrorSort}
+                      onChange={(e) => setWbErrorSort(e.target.value as any)}
+                      className="p-2 bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-lg text-sm font-bold outline-none"
+                    >
+                       <option value="desc">{language === 'zh' ? '错误次数 ↓' : 'Errors Desc'}</option>
+                       <option value="asc">{language === 'zh' ? '错误次数 ↑' : 'Errors Asc'}</option>
+                    </select>
+                    <button onClick={() => setViewingWrongBook(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                        <X className="w-6 h-6 dark:text-gray-400" />
+                    </button>
+                 </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-2 grid gap-4 grid-cols-1 md:grid-cols-2">
+                 {filteredWrongBook.length === 0 ? (
+                   <div className="col-span-full py-20 text-center text-gray-400 italic">
+                     {language === 'zh' ? '暂无符合条件的错题记录。' : 'No matching mistakes found.'}
+                   </div>
+                 ) : (
+                   filteredWrongBook.map((item) => (
+                     <div key={item.id} className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl border dark:border-gray-700 relative overflow-hidden">
+                       <div className={`absolute top-0 left-0 w-2 h-full ${item.status === 5 ? 'bg-purple-500' : 'bg-red-500'}`}></div>
+                       <div className="flex justify-between items-start mb-2">
+                         <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded tracking-wider ${item.status === 5 ? 'bg-purple-100 text-purple-600' : 'bg-red-100 text-red-600'}`}>
+                              {item.status === 5 ? (language === 'zh' ? '困难' : 'Difficult') : (language === 'zh' ? '出错' : 'Error')}
+                            </span>
+                            <span className="text-[10px] font-bold text-gray-400 bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">{item.question?.subject}</span>
+                         </div>
+                         <span className="text-xs text-red-500 font-black">{language === 'zh' ? `错误 ${item.errorCount} 次` : `${item.errorCount} Errors`}</span>
+                       </div>
+                       <p className="font-bold dark:text-white mb-3 line-clamp-3">{item.question?.stemText}</p>
+                       <div className="flex justify-between items-center mt-2 pt-2 border-t dark:border-gray-700">
+                          <p className="text-[10px] text-gray-400">ID: {item.questionId}</p>
+                          <p className="text-[10px] text-gray-400">{item.lastUpdated}</p>
+                       </div>
+                     </div>
+                   ))
+                 )}
               </div>
            </div>
         </div>

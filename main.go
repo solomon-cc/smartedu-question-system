@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -49,6 +50,8 @@ func main() {
 	{
 		// Public routes
 		api.POST("/auth/login", LoginHandler)
+		api.POST("/auth/register", RegisterHandler)
+		api.GET("/config/public", GetPublicConfig)
 
 		// Protected routes
 		protected := api.Group("/")
@@ -88,6 +91,9 @@ func main() {
 			protected.GET("/history", GetHistory)
 			protected.POST("/history", CreateHistory)
 
+			// Wrong Question Book
+			protected.GET("/wrong-book", GetWrongBook)
+
 			// Students
 			protected.GET("/students", GetStudents)
 			protected.GET("/students/:id", GetStudentDetail)
@@ -108,6 +114,12 @@ func main() {
 				admin.GET("/logs", GetAuditLogs)
 				admin.GET("/homeworks", AdminGetHomeworks)
 				admin.GET("/practices", AdminGetPractices)
+				
+				// System Config
+				admin.GET("/config", GetSystemConfig)
+				admin.POST("/config", UpdateSystemConfig)
+				admin.GET("/settings", GetSystemSettings)
+				admin.POST("/settings", UpdateSystemSettings)
 			}
 
 			// Analytics
