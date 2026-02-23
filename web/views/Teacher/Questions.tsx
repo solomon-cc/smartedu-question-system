@@ -3,7 +3,7 @@ import { Plus, Search, Filter, Edit2, Trash2, X, Image as ImageIcon, CheckCircle
 import * as XLSX from 'xlsx';
 import { api } from '../../services/api.ts';
 import { Question, QuestionType } from '../../types.ts';
-import { GRADE_MAP, REVERSE_GRADE_MAP, TYPE_MAP, REVERSE_TYPE_MAP } from '../../utils.ts';
+import { GRADE_MAP, REVERSE_GRADE_MAP, TYPE_MAP, REVERSE_TYPE_MAP, SUBJECTS } from '../../utils.ts';
 import Loading from '../../components/Loading';
 
 interface OptionRowProps {
@@ -399,7 +399,6 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     setIsConfirmationModalOpen(true);
   };
 
-  const subjects = ['数学', '语言词汇', '阅读', '识字'];
   const grades = ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级'];
 
   return (
@@ -532,7 +531,7 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                         onChange={(e) => setFormSubject(e.target.value)}
                         className="w-full p-4 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-2xl border dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 font-bold"
                      >
-                       {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+                       {SUBJECTS.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                      </select>
                    </div>
                    <div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Question, QuestionType, Subject, AttemptState } from '../../types';
 import { api } from '../../services/api.ts';
-import { REVERSE_TYPE_MAP } from '../../utils.ts';
+import { REVERSE_TYPE_MAP, SUBJECTS } from '../../utils.ts';
 import { X, ChevronRight, CheckCircle2, HelpCircle, Trophy, PlayCircle, RefreshCcw, Hand, Timer, Brain, Zap, Activity } from 'lucide-react';
 
 interface PracticeSessionProps {
@@ -264,7 +264,9 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
 
   const handleCompleteHomework = async () => {
     const homeworkId = searchParams.get('homeworkId');
-    const subject = searchParams.get('subject') || (homeworkId ? '作业' : '自主练习');
+    const subjectParam = searchParams.get('subject');
+    const targetSubject = SUBJECTS.find(s => s.id === subjectParam || s.name === subjectParam);
+    const subjectLabel = targetSubject ? targetSubject.name : (subjectParam || '自主练习');
     
     // Construct results from attemptLogs
     const results = Object.entries(attemptLogs.current).map(([id, logs]: [string, any[]]) => {
@@ -294,8 +296,8 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
     try {
       await api.history.create({
         type: homeworkId ? 'homework' : 'practice',
-        name: homeworkId ? '家庭作业完成' : `${subject}练习`,
-        nameEn: homeworkId ? 'Homework Finished' : `${subject} Practice`,
+        name: homeworkId ? '家庭作业完成' : `${subjectLabel}练习`,
+        nameEn: homeworkId ? 'Homework Finished' : `${targetSubject?.enName || subjectParam || 'Practice'} Practice`,
         correctCount: correctCount, 
         wrongCount: wrongCount,
         total: totalInitial.toString(),

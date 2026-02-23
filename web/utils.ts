@@ -34,6 +34,13 @@ export const REVERSE_TYPE_MAP: Record<string, string> = {
   [QuestionType.CALCULATION]: '计算题'
 };
 
+export const SUBJECTS = [
+  { id: 'MATH', name: '数学', enName: 'Math', color: 'bg-blue-500', icon: '➗' },
+  { id: 'LANGUAGE', name: '语言词汇', enName: 'Language', color: 'bg-green-500', icon: '🔤' },
+  { id: 'READING', name: '阅读', enName: 'Reading', color: 'bg-purple-500', icon: '📖' },
+  { id: 'LITERACY', name: '识字', enName: 'Literacy', color: 'bg-orange-500', icon: '🏮' }
+];
+
 export const isTokenExpired = (token: string): boolean => {
   if (!token) return true;
   try {

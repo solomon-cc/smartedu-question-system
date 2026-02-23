@@ -409,14 +409,17 @@ func GetQuestions(c *gin.Context) {
 		// Map English subject enums to Chinese stored values
 		subjectMap := map[string]string{
 			"MATH":     "数学",
-			"LANGUAGE": "语文",
+			"LANGUAGE": "语言词汇",
 			"READING":  "阅读",
 			"LITERACY": "识字",
 		}
 		
 		if mapped, ok := subjectMap[subject]; ok {
 			query = query.Where("subject = ? OR subject = ?", subject, mapped)
-		} else {
+		} else if subject == "语文" {
+            // Keep support for legacy "语文"
+            query = query.Where("subject = ? OR subject = ?", "LANGUAGE", "语言词汇")
+        } else {
 			query = query.Where("subject = ?", subject)
 		}
 	}

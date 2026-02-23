@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Plus, MoreVertical, X, Check, Search, Eye, BookOpen, Trash2, Edit, AlertTriangle } from 'lucide-react';
 import { api } from '../../services/api.ts';
 import { Question } from '../../types.ts';
-import { REVERSE_TYPE_MAP } from '../../utils.ts';
+import { REVERSE_TYPE_MAP, SUBJECTS } from '../../utils.ts';
 import Loading from '../../components/Loading';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
@@ -304,10 +304,9 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                             className="text-xs p-2 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 outline-none font-bold"
                           >
                              <option value="全部">全部科目</option>
-                             <option value="数学">数学</option>
-                             <option value="语言词汇">语言词汇</option>
-                             <option value="阅读">阅读</option>
-                             <option value="识字">识字</option>
+                             {SUBJECTS.map(s => (
+                               <option key={s.id} value={s.name}>{s.name}</option>
+                             ))}
                           </select>
                        </div>
                        

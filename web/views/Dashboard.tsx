@@ -3,6 +3,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../App';
 import { Role, Subject } from '../types';
 import { api } from '../services/api.ts';
+import { SUBJECTS } from '../utils.ts';
 import { useNavigate } from 'react-router-dom';
 import { PlayCircle, FileText, ChevronRight, BarChart2, Users, TrendingUp, Activity, Award, CheckCircle } from 'lucide-react';
 import Loading from '../components/Loading';
@@ -30,13 +31,6 @@ const StudentDashboard: React.FC<DashboardProps> = ({ language }) => {
 
   if (loading) return <Loading />;
 
-  const subjects = [
-    { id: Subject.MATH, name: '数学', enName: 'Math', color: 'bg-blue-500', icon: '➗' },
-    { id: Subject.LANGUAGE, name: '语言词汇', enName: 'Language', color: 'bg-green-500', icon: '🔤' },
-    { id: Subject.READING, name: '阅读', enName: 'Reading', color: 'bg-purple-500', icon: '📖' },
-    { id: Subject.LITERACY, name: '识字', enName: 'Literacy', color: 'bg-orange-500', icon: '🏮' },
-  ];
-
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {hwCount > 0 && (
@@ -63,11 +57,11 @@ const StudentDashboard: React.FC<DashboardProps> = ({ language }) => {
       <section>
         <h3 className="text-xl font-bold mb-4 dark:text-white">{language === 'zh' ? '按科目练习' : 'Practice by Subject'}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {subjects.map(s => (
+          {SUBJECTS.map(s => (
             <div 
               key={s.id}
               className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:translate-y-[-4px] transition-all cursor-pointer group"
-              onClick={() => setSelectedSubject(s.id)}
+              onClick={() => setSelectedSubject(s.id as any)}
             >
               <div className={`${s.color} w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-4 text-white shadow-lg`}>
                 {s.icon}

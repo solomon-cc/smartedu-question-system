@@ -22,6 +22,7 @@ import {
 import { api } from '../../services/api.ts';
 import { User } from '../../types';
 import Loading from '../../components/Loading';
+import { SUBJECTS } from '../../utils.ts';
 
 const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [students, setStudents] = useState<User[]>([]);
@@ -63,10 +64,11 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const filteredWrongBook = wrongBook
     .filter(item => {
         if (wbSubjectFilter === '全部') return true;
-        if (wbSubjectFilter === '语文') {
-             return item.question?.subject === '语文' || item.question?.subject === '语言词汇' || item.question?.subject === 'LANGUAGE';
-        }
-        return item.question?.subject === wbSubjectFilter;
+        // Check both ID and Name to be safe, but usually it's one of them
+        const subj = item.question?.subject;
+        const target = SUBJECTS.find(s => s.name === wbSubjectFilter || s.id === wbSubjectFilter);
+        if (!target) return subj === wbSubjectFilter;
+        return subj === target.name || subj === target.id;
     })
     .sort((a, b) => wbErrorSort === 'desc' ? b.errorCount - a.errorCount : a.errorCount - b.errorCount);
 
@@ -384,10 +386,9 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                       className="p-2 bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-lg text-sm font-bold outline-none"
                     >
                        <option value="全部">{language === 'zh' ? '全部科目' : 'All Subjects'}</option>
-                       <option value="数学">{language === 'zh' ? '数学' : 'Math'}</option>
-                       <option value="语文">{language === 'zh' ? '语文' : 'Language'}</option>
-                       <option value="阅读">{language === 'zh' ? '阅读' : 'Reading'}</option>
-                       <option value="识字">{language === 'zh' ? '识字' : 'Literacy'}</option>
+                       {SUBJECTS.map(s => (
+                         <option key={s.id} value={s.name}>{language === 'zh' ? s.name : s.enName}</option>
+                       ))}
                     </select>
                     <input 
                       type="date"
@@ -406,20 +407,23 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                    .filter(h => {
                       if (historyFilterSubject === '全部') return true;
                       let match = false;
-                      // Check first question's subject
+                      const target = SUBJECTS.find(s => s.name === historyFilterSubject || s.id === historyFilterSubject);
+                      
+                      // 1. Check questions array
                       if (h.questions && h.questions.length > 0) {
                           const subj = h.questions[0].subject;
-                          if (historyFilterSubject === '语文') {
-                              match = subj === '语文' || subj === '语言词汇' || subj === 'LANGUAGE';
-                          } else {
-                              match = subj === historyFilterSubject;
-                          }
+                          if (!target) match = subj === historyFilterSubject;
+                          else match = subj === target.name || subj === target.id;
                       }
-                      // Fallback to name check
+                      
+                      // 2. Robust name check (matches "MATH练习" or "数学练习")
                       if (!match) {
-                          match = h.name.includes(historyFilterSubject);
-                          if (!match && historyFilterSubject === '语文') {
-                              match = h.name.includes('语言') || h.name.includes('语文');
+                          if (target) {
+                              match = h.name.includes(target.name) || 
+                                      h.name.toUpperCase().includes(target.id.toUpperCase()) ||
+                                      (h.nameEn && h.nameEn.toUpperCase().includes(target.id.toUpperCase()));
+                          } else {
+                              match = h.name.includes(historyFilterSubject);
                           }
                       }
                       return match;
@@ -434,18 +438,21 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                    .filter(h => {
                       if (historyFilterSubject === '全部') return true;
                       let match = false;
+                      const target = SUBJECTS.find(s => s.name === historyFilterSubject || s.id === historyFilterSubject);
+
                       if (h.questions && h.questions.length > 0) {
                           const subj = h.questions[0].subject;
-                          if (historyFilterSubject === '语文') {
-                              match = subj === '语文' || subj === '语言词汇' || subj === 'LANGUAGE';
-                          } else {
-                              match = subj === historyFilterSubject;
-                          }
+                          if (!target) match = subj === historyFilterSubject;
+                          else match = subj === target.name || subj === target.id;
                       }
+                      
                       if (!match) {
-                          match = h.name.includes(historyFilterSubject);
-                          if (!match && historyFilterSubject === '语文') {
-                              match = h.name.includes('语言') || h.name.includes('语文');
+                          if (target) {
+                              match = h.name.includes(target.name) || 
+                                      h.name.toUpperCase().includes(target.id.toUpperCase()) ||
+                                      (h.nameEn && h.nameEn.toUpperCase().includes(target.id.toUpperCase()));
+                          } else {
+                              match = h.name.includes(historyFilterSubject);
                           }
                       }
                       return match;
@@ -668,9 +675,9 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                       className="p-2 bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-lg text-sm font-bold outline-none"
                     >
                        <option value="全部">{language === 'zh' ? '全部科目' : 'All Subjects'}</option>
-                       <option value="数学">{language === 'zh' ? '数学' : 'Math'}</option>
-                       <option value="语文">{language === 'zh' ? '语文' : 'Language'}</option>
-                       <option value="英语">{language === 'zh' ? '英语' : 'English'}</option>
+                       {SUBJECTS.map(s => (
+                         <option key={s.id} value={s.name}>{language === 'zh' ? s.name : s.enName}</option>
+                       ))}
                     </select>
                     <select 
                       value={wbErrorSort}
