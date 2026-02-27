@@ -5,7 +5,7 @@ import { Role, Subject } from '../types';
 import { api } from '../services/api.ts';
 import { SUBJECTS } from '../utils.ts';
 import { useNavigate } from 'react-router-dom';
-import { PlayCircle, FileText, ChevronRight, BarChart2, Users, TrendingUp, Activity, Award, CheckCircle } from 'lucide-react';
+import { PlayCircle, FileText, ChevronRight, BarChart2, Users, TrendingUp, Activity, Award, CheckCircle, X } from 'lucide-react';
 import Loading from '../components/Loading';
 
 interface DashboardProps {
@@ -277,6 +277,22 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
     onlineUsers: number
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isOnlineModalOpen, setIsOnlineModalOpen] = useState(false);
+  const [onlineUsersList, setOnlineUsersList] = useState<any[]>([]);
+  const [loadingOnline, setLoadingOnline] = useState(false);
+
+  const handleViewOnlineUsers = async () => {
+    setIsOnlineModalOpen(true);
+    setLoadingOnline(true);
+    try {
+      const list = await api.dashboard.onlineUsers();
+      setOnlineUsersList(list);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingOnline(false);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -333,7 +349,10 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
           </div>
         </div>
         
-        <div className="p-8 bg-white dark:bg-gray-800 rounded-[2.5rem] border dark:border-gray-700 shadow-sm relative overflow-hidden group">
+        <div 
+          onClick={handleViewOnlineUsers}
+          className="p-8 bg-white dark:bg-gray-800 rounded-[2.5rem] border dark:border-gray-700 shadow-sm relative overflow-hidden group cursor-pointer hover:border-green-400 transition-all"
+        >
           <div className="flex justify-between items-start">
             <div>
               <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{language === 'zh' ? '实时在线' : 'Active Sessions'}</h3>
@@ -508,6 +527,89 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
           </div>
         </div>
       </div>
+
+      {/* Online Users Modal */}
+      {isOnlineModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[3rem] shadow-2xl p-10 border dark:border-gray-700 animate-in zoom-in-95 duration-300 flex flex-col max-h-[80vh]">
+            <div className="flex justify-between items-center mb-8 border-b dark:border-gray-700 pb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-2xl text-green-600">
+                  <Activity className="w-6 h-6" />
+                </div>
+                <h3 className="text-2xl font-black dark:text-white uppercase tracking-tight">
+                  {language === 'zh' ? '实时在线用户' : 'Online Users'}
+                </h3>
+              </div>
+              <button 
+                onClick={() => setIsOnlineModalOpen(false)} 
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6 dark:text-gray-400" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              {loadingOnline ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="font-black text-gray-400 uppercase tracking-widest text-xs">
+                    {language === 'zh' ? '正在同步数据...' : 'Syncing Data...'}
+                  </p>
+                </div>
+              ) : onlineUsersList.length === 0 ? (
+                <div className="text-center py-20">
+                  <Users className="w-16 h-16 text-gray-200 dark:text-gray-700 mx-auto mb-4" />
+                  <p className="font-black text-gray-400 uppercase tracking-widest">
+                    {language === 'zh' ? '暂无在线用户' : 'No users online'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {onlineUsersList.map((u) => (
+                    <div key={u.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border dark:border-gray-700 hover:border-primary-400 transition-colors group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600 font-black">
+                          {u.name ? u.name[0] : (u.username ? u.username[0] : '?')}
+                        </div>
+                        <div>
+                          <p className="font-black dark:text-white group-hover:text-primary-600 transition-colors">{u.name || u.username}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-md">
+                              {u.role}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-bold tracking-tighter uppercase">ID: {u.id}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-1.5 justify-end text-green-500">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="text-[10px] font-black uppercase tracking-widest">
+                            {language === 'zh' ? '正在活跃' : 'Active Now'}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter mt-1">
+                          {new Date(u.lastActive * 1000).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 pt-6 border-t dark:border-gray-700">
+              <button 
+                onClick={() => setIsOnlineModalOpen(false)} 
+                className="w-full py-4 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
+              >
+                {language === 'zh' ? '关闭' : 'Close'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -11,6 +11,7 @@ const (
 type User struct {
 	ID       string `json:"id" gorm:"primaryKey;type:varchar(191)"`
 	Username string `json:"username" gorm:"type:varchar(191);unique"`
+	Name     string `json:"name" gorm:"type:varchar(191)"`
 	Password string `json:"password,omitempty" gorm:"type:varchar(191)"`
 	Role     Role   `json:"role" gorm:"type:varchar(191)"`
 	Status   string `json:"status" gorm:"type:varchar(191)"`
@@ -47,6 +48,14 @@ type Option struct {
 type StatPoint struct {
 	Label string  `json:"label"`
 	Value float64 `json:"value"`
+}
+
+type OnlineUser struct {
+	ID         string `json:"id"`
+	Username   string `json:"username"`
+	Name       string `json:"name"`
+	Role       string `json:"role"`
+	LastActive int64  `json:"lastActive"`
 }
 
 type Response struct {

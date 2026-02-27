@@ -124,6 +124,7 @@ func main() {
 
 			// Analytics
 			protected.GET("/dashboard/stats", GetDashboardStats)
+			protected.GET("/dashboard/online-users", GetOnlineUsers)
 		}
 	}
 

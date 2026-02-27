@@ -23,6 +23,7 @@ export enum QuestionType {
 export interface User {
   id: string;
   username: string;
+  name?: string;
   password?: string; // Kept for type compatibility but not returned by API
   role: Role;
   grade?: number;

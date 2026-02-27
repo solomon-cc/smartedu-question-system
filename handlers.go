@@ -312,6 +312,7 @@ func UpdateUser(c *gin.Context) {
 		user.Password = string(hashed)
 	}
 	user.Username = updateData.Username
+	user.Name = updateData.Name
 	user.Role = updateData.Role
 	user.Status = updateData.Status
 
@@ -394,6 +395,44 @@ func GetDashboardStats(c *gin.Context) {
 		OnlineUsers:     onlineCount,
 	}
 	SendJSON(c, 0, "", stats)
+}
+
+func GetOnlineUsers(c *gin.Context) {
+	nowUnix := time.Now().Unix()
+	var onlineUserIDs []string
+	userActiveMap := make(map[string]int64)
+
+	ActiveUsers.Range(func(key, value interface{}) bool {
+		lastActive := value.(int64)
+		if nowUnix-lastActive < 300 { // 5 minutes
+			uid := key.(string)
+			onlineUserIDs = append(onlineUserIDs, uid)
+			userActiveMap[uid] = lastActive
+		}
+		return true
+	})
+
+	var users []User
+	if len(onlineUserIDs) > 0 {
+		DB.Where("id IN ?", onlineUserIDs).Find(&users)
+	}
+
+	var onlineUsers []OnlineUser
+	for _, u := range users {
+		onlineUsers = append(onlineUsers, OnlineUser{
+			ID:         u.ID,
+			Username:   u.Username,
+			Name:       u.Name,
+			Role:       string(u.Role),
+			LastActive: userActiveMap[u.ID],
+		})
+	}
+	
+	if onlineUsers == nil {
+		onlineUsers = []OnlineUser{}
+	}
+
+	SendJSON(c, 0, "", onlineUsers)
 }
 
 // Question Handlers

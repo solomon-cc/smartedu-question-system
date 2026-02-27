@@ -164,6 +164,10 @@ export const api = {
     stats: async (): Promise<any> => {
       const res = await fetch(`${API_URL}/dashboard/stats`, { headers: getHeaders() });
       return handleResponse(res);
+    },
+    onlineUsers: async (): Promise<any> => {
+      const res = await fetch(`${API_URL}/dashboard/online-users`, { headers: getHeaders() });
+      return handleResponse(res);
     }
   },
   history: {

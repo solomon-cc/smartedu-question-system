@@ -7,8 +7,8 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 
 interface UserItem {
   id: string;
-  name: string; // Map to username for now or add name field
-  username?: string;
+  name: string;
+  username: string;
   role: Role;
   status: 'active' | 'inactive';
   lastLogin?: string; // Not in backend model yet
@@ -41,7 +41,7 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       // Map backend User to frontend UserItem
       const mapped = data.map((u: any) => ({
         id: u.id,
-        name: u.username,
+        name: u.name || u.username,
         username: u.username,
         role: u.role,
         status: u.status || 'active',
@@ -62,6 +62,7 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   // Form State
   const [formData, setFormData] = useState<Partial<UserItem>>({
     name: '',
+    username: '',
     role: Role.STUDENT,
     status: 'active',
     password: ''
@@ -70,11 +71,12 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const handleOpenModal = (user: UserItem | null = null) => {
     if (user) {
       setEditingUser(user);
-      setFormData({ ...user, name: user.name || user.username || '' });
+      setFormData({ ...user, name: user.name || '', username: user.username || '' });
     } else {
       setEditingUser(null);
       setFormData({
         name: '',
+        username: '',
         role: Role.STUDENT,
         status: 'active',
         password: ''
@@ -84,10 +86,11 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   };
 
   const handleSave = async () => {
-    if (!formData.name || (editingUser === null && !formData.password)) return;
+    if (!formData.name || !formData.username || (editingUser === null && !formData.password)) return;
 
     const payload = {
-      username: formData.name,
+      username: formData.username,
+      name: formData.name,
       role: formData.role,
       status: formData.status,
       password: formData.password
@@ -192,7 +195,7 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                       </div>
                       <div>
                         <p className="font-black dark:text-white">{u.name}</p>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">UID: {u.id}</p>
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Login: {u.username} | UID: {u.id}</p>
                       </div>
                     </div>
                   </td>
@@ -266,13 +269,25 @@ const Users: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
               <div className="space-y-6">
                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">{language === 'zh' ? '显示名称 / 登录名' : 'Display Name / Login'}</label>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">{language === 'zh' ? '显示名称' : 'Display Name'}</label>
                     <input 
                       type="text" 
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full p-4 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-2xl border dark:border-gray-700 outline-none focus:ring-4 focus:ring-primary-500/20 font-bold"
-                      placeholder={language === 'zh' ? '请输入姓名' : 'Enter name'}
+                      placeholder={language === 'zh' ? '请输入显示名称' : 'Enter display name'}
+                    />
+                 </div>
+
+                 <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">{language === 'zh' ? '登录名' : 'Login Name'}</label>
+                    <input 
+                      type="text" 
+                      value={formData.username}
+                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      className="w-full p-4 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-2xl border dark:border-gray-700 outline-none focus:ring-4 focus:ring-primary-500/20 font-bold"
+                      placeholder={language === 'zh' ? '请输入登录名' : 'Enter login name'}
+                      disabled={!!editingUser}
                     />
                  </div>
 
