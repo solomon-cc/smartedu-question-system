@@ -287,6 +287,20 @@ export const api = {
       return handleResponse(res);
     }
   },
+  me: {
+    get: async (): Promise<User> => {
+      const res = await fetch(`${API_URL}/me`, { headers: getHeaders() });
+      return handleResponse(res);
+    },
+    update: async (data: { name?: string; password?: string }): Promise<User> => {
+      const res = await fetch(`${API_URL}/me`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    }
+  },
   wrongBook: {
     list: async (studentId?: string): Promise<any[]> => {
       const url = studentId 

@@ -3,7 +3,8 @@ import React, { useState, useContext } from 'react';
 import { AuthContext } from '../App';
 import { Role } from '../types';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, BookOpen, Clock, BarChart2, PlusCircle, Settings, Users, ClipboardList, Sun, Moon, Languages, ShieldCheck, FileText, AlertTriangle, HelpCircle } from 'lucide-react';
+import { Menu, X, Home, BookOpen, Clock, BarChart2, PlusCircle, Settings, Users, ClipboardList, Sun, Moon, Languages, ShieldCheck, FileText, AlertTriangle, HelpCircle, User as UserIcon, LogOut } from 'lucide-react';
+import { ProfileModal } from './ProfileModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,8 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
   const auth = useContext(AuthContext);
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const getMenuItems = () => {
     if (auth?.user?.role === Role.STUDENT) {
@@ -52,9 +55,10 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
         { icon: HelpCircle, label: '帮助文档', labelEn: 'Help', path: '/help' },
       ];
     }
+    return [];
   };
 
-  const menuItems = getMenuItems();
+  const menuItems = getMenuItems() || [];
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -135,25 +139,79 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
                </button>
             </div>
           </div>
-          <button 
-            onClick={auth?.logout}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 transition-colors text-sm font-bold"
-          >
-            退出登录
-          </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-gray-50 dark:bg-gray-900 h-screen">
-        <header className="h-16 lg:hidden flex items-center px-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700 shrink-0">
-          <button 
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-          >
-            <Menu className="w-6 h-6 dark:text-gray-300" />
-          </button>
-          <span className="ml-4 font-bold text-primary-600">一粒麦子</span>
+      <div className="flex-1 flex flex-col min-w-0 bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden">
+        <header className="h-16 flex items-center justify-between px-6 bg-white dark:bg-gray-800 border-b dark:border-gray-700 shrink-0 shadow-sm z-30">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 lg:hidden hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <Menu className="w-6 h-6 dark:text-gray-300" />
+            </button>
+            <div className="hidden lg:block">
+              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
+                {menuItems.find(item => item.path === location.pathname)?.label || '一粒麦子'}
+              </h2>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* User Profile Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700/50 border border-gray-100 dark:border-gray-700 transition-all"
+              >
+                <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                  <UserIcon className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                </div>
+                <div className="hidden sm:block text-left">
+                  <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate max-w-[100px]">
+                    {auth?.user?.name || auth?.user?.username}
+                  </p>
+                  <p className="text-[10px] text-gray-400 font-medium">
+                    {auth?.user?.role}
+                  </p>
+                </div>
+              </button>
+
+              {isUserMenuOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsUserMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-1 z-50 animate-in fade-in zoom-in duration-200 origin-top-right">
+                    <button 
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        setIsProfileOpen(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <UserIcon className="w-4 h-4 text-gray-400" />
+                      个人中心
+                    </button>
+                    <div className="h-px bg-gray-100 dark:bg-gray-700 my-1" />
+                    <button 
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        auth?.logout();
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      退出登录
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </header>
 
         <main className="flex-1 p-4 lg:p-8 overflow-y-auto scroll-smooth">
@@ -162,6 +220,17 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
           </div>
         </main>
       </div>
+
+      <ProfileModal 
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        currentUser={auth?.user}
+        onUpdate={(updatedUser) => {
+          auth?.updateUser({
+            name: updatedUser.name
+          });
+        }}
+      />
     </div>
   );
 };

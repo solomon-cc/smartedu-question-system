@@ -62,6 +62,7 @@ func LoginHandler(c *gin.Context) {
 			"id":       foundUser.ID,
 			"username": foundUser.Username,
 			"role":     foundUser.Role,
+			"name":     foundUser.Name,
 		},
 	})
 }
@@ -317,6 +318,57 @@ func UpdateUser(c *gin.Context) {
 	user.Status = updateData.Status
 
 	DB.Save(&user)
+	SendJSON(c, 0, "", user)
+}
+
+func GetMe(c *gin.Context) {
+	userId, _ := c.Get("userId")
+	var user User
+	if err := DB.First(&user, "id = ?", userId).Error; err != nil {
+		SendJSON(c, 1, "User not found", nil)
+		return
+	}
+	// Don't send password
+	user.Password = ""
+	SendJSON(c, 0, "", user)
+}
+
+func UpdateMe(c *gin.Context) {
+	userId, _ := c.Get("userId")
+	var updateData struct {
+		Name     string `json:"name"`
+		Password string `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&updateData); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+
+	var user User
+	if err := DB.First(&user, "id = ?", userId).Error; err != nil {
+		SendJSON(c, 1, "User not found", nil)
+		return
+	}
+
+	if updateData.Name != "" {
+		user.Name = updateData.Name
+	}
+	if updateData.Password != "" {
+		hashed, err := bcrypt.GenerateFromPassword([]byte(updateData.Password), bcrypt.DefaultCost)
+		if err != nil {
+			SendJSON(c, 1, "Failed to hash password", nil)
+			return
+		}
+		user.Password = string(hashed)
+	}
+
+	if err := DB.Save(&user).Error; err != nil {
+		SendJSON(c, 1, "Failed to update user", nil)
+		return
+	}
+	
+	// Don't send password back
+	user.Password = ""
 	SendJSON(c, 0, "", user)
 }
 

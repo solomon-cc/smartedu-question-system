@@ -57,6 +57,10 @@ func main() {
 		protected := api.Group("/")
 		protected.Use(AuthMiddleware())
 		{
+			// Me
+			protected.GET("/me", GetMe)
+			protected.PUT("/me", UpdateMe)
+
 			// Questions
 			protected.GET("/questions", GetQuestions)
 			protected.POST("/questions", CreateQuestion)

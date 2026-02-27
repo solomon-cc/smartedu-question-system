@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Lock, Unlock, Shield, X, Check, Layout, BookOpen, ClipboardList, Settings, Database, FileText, BarChart, Eye, Cpu, AlertCircle, ShieldCheck, Users } from 'lucide-react';
+import { Lock, Unlock, Shield, X, Check, Layout, BookOpen, ClipboardList, Settings, Database, FileText, BarChart, Eye, Cpu, AlertCircle, ShieldCheck, Users, HelpCircle } from 'lucide-react';
 
 interface ModulePermission {
   id: string;
@@ -24,12 +24,13 @@ const ALL_MODULES = [
   { id: 'reinforcements', label: '强化物管理', icon: Settings },
   { id: 'resources', label: '素材管理', icon: ClipboardList },
   { id: 'users', label: '用户管理', icon: Database },
-  { id: 'homework_audit', label: '作业审计', icon: ShieldCheck },
-  { id: 'audit_logs', label: '审计日志', icon: ShieldCheck },
-  { id: 'stats', label: '统计报表', icon: BarChart },
-];
-
-const Permissions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
+    {id: 'homework_audit', label: '作业审计', icon: ShieldCheck },
+    { id: 'audit_logs', label: '审计日志', icon: ShieldCheck },
+    { id: 'stats', label: '统计报表', icon: BarChart },
+    { id: 'help_docs', label: '帮助文档', icon: HelpCircle },
+  ];
+  
+  const Permissions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [roles, setRoles] = useState<PermissionRole[]>([
     { 
       role: '管理员', 
@@ -52,6 +53,7 @@ const Permissions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         { id: 'users', ui: false, api: false },
         { id: 'homework_audit', ui: false, api: false },
         { id: 'audit_logs', ui: false, api: false },
+        { id: 'help_docs', ui: true, api: false },
       ], 
       level: 'PARTIAL' 
     },
@@ -69,6 +71,7 @@ const Permissions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         { id: 'users', ui: false, api: false },
         { id: 'homework_audit', ui: false, api: false },
         { id: 'audit_logs', ui: false, api: false },
+        { id: 'help_docs', ui: true, api: false },
       ], 
       level: 'RESTRICTED' 
     },

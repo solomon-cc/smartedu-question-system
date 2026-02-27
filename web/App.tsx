@@ -28,6 +28,7 @@ interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateUser: (user: Partial<User>) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -96,10 +97,18 @@ const App: React.FC = () => {
     localStorage.removeItem('user');
   };
 
+  const updateUser = (updatedFields: Partial<User>) => {
+    if (user) {
+      const newUser = { ...user, ...updatedFields };
+      setUser(newUser);
+      localStorage.setItem('user', JSON.stringify(newUser));
+    }
+  };
+
   const effectiveDarkMode = getEffectiveDarkMode(themeMode);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser }}>
       <HashRouter>
         <div className={`min-h-screen ${effectiveDarkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
           <Routes>
