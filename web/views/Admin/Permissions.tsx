@@ -1,6 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Lock, Unlock, Shield, X, Check, Layout, BookOpen, ClipboardList, Settings, Database, FileText, BarChart, Eye, Cpu, AlertCircle, ShieldCheck, Users, HelpCircle } from 'lucide-react';
+import { api } from '../../services/api';
+import { Role } from '../../types';
 
 interface ModulePermission {
   id: string;
@@ -16,7 +18,7 @@ interface PermissionRole {
 }
 
 const ALL_MODULES = [
-  { id: 'dashboard', label: '仪表盘', icon: Layout },
+  { id: 'dashboard', label: '控制台', icon: Layout },
   { id: 'students', label: '学生管理', icon: Users },
   { id: 'questions', label: '题目管理', icon: BookOpen },
   { id: 'papers', label: '试卷管理', icon: ClipboardList },
@@ -24,58 +26,55 @@ const ALL_MODULES = [
   { id: 'reinforcements', label: '强化物管理', icon: Settings },
   { id: 'resources', label: '素材管理', icon: ClipboardList },
   { id: 'users', label: '用户管理', icon: Database },
-    {id: 'homework_audit', label: '作业审计', icon: ShieldCheck },
-    { id: 'audit_logs', label: '审计日志', icon: ShieldCheck },
-    { id: 'stats', label: '统计报表', icon: BarChart },
-    { id: 'help_docs', label: '帮助文档', icon: HelpCircle },
-  ];
-  
-  const Permissions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
-  const [roles, setRoles] = useState<PermissionRole[]>([
-    { 
-      role: '管理员', 
-      roleEn: 'Admin', 
-      permissions: ALL_MODULES.map(m => ({ id: m.id, ui: true, api: true })), 
-      level: 'FULL' 
-    },
+  { id: 'homework_audit', label: '作业审计', icon: ShieldCheck },
+  { id: 'audit_logs', label: '审计日志', icon: ShieldCheck },
+  { id: 'stats', label: '统计报表', icon: BarChart },
+  { id: 'help_docs', label: '帮助文档', icon: HelpCircle },
+  { id: 'permissions', label: '权限设置', icon: Lock },
+  { id: 'system_config', label: '系统配置', icon: Settings },
+];
 
-    { 
-      role: '教师', 
-      roleEn: 'Teacher', 
-      permissions: [
-        { id: 'dashboard', ui: true, api: true },
-        { id: 'students', ui: true, api: false }, // Teachers can view student data, but usually don't modify globally
-        { id: 'questions', ui: true, api: true },
-        { id: 'papers', ui: true, api: true },
-        { id: 'assignments', ui: true, api: true },
-        { id: 'reinforcements', ui: true, api: true },
-        { id: 'stats', ui: true, api: false },
-        { id: 'users', ui: false, api: false },
-        { id: 'homework_audit', ui: false, api: false },
-        { id: 'audit_logs', ui: false, api: false },
-        { id: 'help_docs', ui: true, api: false },
-      ], 
-      level: 'PARTIAL' 
-    },
-    { 
-      role: '学生', 
-      roleEn: 'Student', 
-      permissions: [
-        { id: 'dashboard', ui: true, api: false },
-        { id: 'students', ui: false, api: false },
-        { id: 'assignments', ui: true, api: true },
-        { id: 'stats', ui: true, api: false },
-        { id: 'questions', ui: false, api: false },
-        { id: 'papers', ui: false, api: false },
-        { id: 'reinforcements', ui: false, api: false },
-        { id: 'users', ui: false, api: false },
-        { id: 'homework_audit', ui: false, api: false },
-        { id: 'audit_logs', ui: false, api: false },
-        { id: 'help_docs', ui: true, api: false },
-      ], 
-      level: 'RESTRICTED' 
-    },
+const Permissions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
+  const [roles, setRoles] = useState<PermissionRole[]>([
+    { role: '管理员', roleEn: Role.ADMIN, permissions: [], level: 'RESTRICTED' },
+    { role: '教师', roleEn: Role.TEACHER, permissions: [], level: 'RESTRICTED' },
+    { role: '学生', roleEn: Role.STUDENT, permissions: [], level: 'RESTRICTED' },
   ]);
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPermissions();
+  }, []);
+
+  const fetchPermissions = async () => {
+    try {
+      const perms = await api.admin.listPermissions();
+      const updatedRoles = roles.map(r => {
+        const rolePerms = perms.filter(p => p.role === r.roleEn).map(p => ({
+          id: p.moduleId,
+          ui: p.uiAccess,
+          api: p.apiAccess
+        }));
+        
+        // Ensure all modules are present even if not in DB
+        const fullPerms = ALL_MODULES.map(m => {
+          const found = rolePerms.find(rp => rp.id === m.id);
+          return found || { id: m.id, ui: false, api: false };
+        });
+
+        const uiCount = fullPerms.filter(p => p.ui).length;
+        const level: 'FULL' | 'PARTIAL' | 'RESTRICTED' = uiCount >= 10 ? 'FULL' : (uiCount >= 5 ? 'PARTIAL' : 'RESTRICTED');
+
+        return { ...r, permissions: fullPerms, level };
+      });
+      setRoles(updatedRoles);
+    } catch (err) {
+      console.error("Failed to fetch permissions", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<PermissionRole | null>(null);
@@ -105,14 +104,39 @@ const ALL_MODULES = [
     setEditingRole({ ...editingRole, permissions: newPerms });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingRole) return;
-    const uiCount = editingRole.permissions.filter(p => p.ui).length;
-    const level = uiCount >= 6 ? 'FULL' : (uiCount >= 3 ? 'PARTIAL' : 'RESTRICTED');
     
-    setRoles(roles.map(r => r.role === editingRole.role ? { ...editingRole, level } : r));
-    setIsModalOpen(false);
+    // Optimistic update
+    const uiCount = editingRole.permissions.filter(p => p.ui).length;
+    const level: 'FULL' | 'PARTIAL' | 'RESTRICTED' = uiCount >= 10 ? 'FULL' : (uiCount >= 5 ? 'PARTIAL' : 'RESTRICTED');
+    const newRoles = roles.map(r => r.role === editingRole.role ? { ...editingRole, level } : r);
+    setRoles(newRoles);
+
+    // Prepare for backend
+    const allPerms: any[] = [];
+    newRoles.forEach(r => {
+      r.permissions.forEach(p => {
+        allPerms.push({
+          role: r.roleEn,
+          moduleId: p.id,
+          uiAccess: p.ui,
+          apiAccess: p.api
+        });
+      });
+    });
+
+    try {
+      await api.admin.updatePermissions(allPerms);
+      setIsModalOpen(false);
+    } catch (err) {
+      alert("保存失败: " + err);
+      // Refresh to revert
+      fetchPermissions();
+    }
   };
+
+  if (loading) return <div className="flex justify-center items-center h-64"><div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div></div>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

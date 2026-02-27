@@ -55,10 +55,11 @@ func main() {
 
 		// Protected routes
 		protected := api.Group("/")
-		protected.Use(AuthMiddleware())
+		protected.Use(AuthMiddleware(), PermissionMiddleware())
 		{
 			// Me
 			protected.GET("/me", GetMe)
+			protected.GET("/me/permissions", GetMyPermissions)
 			protected.PUT("/me", UpdateMe)
 
 			// Questions
@@ -124,6 +125,8 @@ func main() {
 				admin.POST("/config", UpdateSystemConfig)
 				admin.GET("/settings", GetSystemSettings)
 				admin.POST("/settings", UpdateSystemSettings)
+				admin.GET("/permissions", GetRolePermissions)
+				admin.POST("/permissions", UpdateRolePermissions)
 			}
 
 			// Analytics

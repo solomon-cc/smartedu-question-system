@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 func SendJSON(c *gin.Context, code int, err string, data interface{}) {
@@ -1658,4 +1659,37 @@ func GetPublicConfig(c *gin.Context) {
 	SendJSON(c, 0, "", gin.H{
 		"registrationEnabled": settings.RegistrationEnabled,
 	})
+}
+
+// Role Permission Handlers
+func GetMyPermissions(c *gin.Context) {
+	role, _ := c.Get("role")
+	var perms []RolePermission
+	DB.Where("role = ?", role).Find(&perms)
+	SendJSON(c, 0, "", perms)
+}
+
+func GetRolePermissions(c *gin.Context) {
+	var perms []RolePermission
+	DB.Find(&perms)
+	SendJSON(c, 0, "", perms)
+}
+
+func UpdateRolePermissions(c *gin.Context) {
+	var perms []RolePermission
+	if err := c.ShouldBindJSON(&perms); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+
+	// Simple way: clear and replace
+	// Production might use a more surgical update
+	DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&RolePermission{})
+	if err := DB.Create(&perms).Error; err != nil {
+		SendJSON(c, 1, "Failed to update permissions", nil)
+		return
+	}
+
+	AddAuditLog(c, "UPDATE_PERMISSIONS", fmt.Sprintf("Updated %d permission rules", len(perms)))
+	SendJSON(c, 0, "", perms)
 }

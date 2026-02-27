@@ -26,6 +26,7 @@ import Layout from './components/Layout';
 
 interface AuthContextType {
   user: User | null;
+  permissions: any[];
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
@@ -35,6 +36,7 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [permissions, setPermissions] = useState<any[]>([]);
   const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'auto'>('light');
   const [language, setLanguage] = useState<'zh' | 'en'>('zh');
 
@@ -62,6 +64,10 @@ const App: React.FC = () => {
            setUser(null);
          } else {
            setUser(parsed);
+           // Fetch permissions on restore
+           api.me.getPermissions().then(perms => {
+             setPermissions(perms);
+           }).catch(err => console.error("Restore permissions error", err));
          }
       } catch (e) {
          localStorage.removeItem('user');
@@ -85,6 +91,11 @@ const App: React.FC = () => {
       const userWithToken = { ...user, token };
       setUser(userWithToken);
       localStorage.setItem('user', JSON.stringify(userWithToken));
+      
+      // Fetch permissions on login
+      const perms = await api.me.getPermissions();
+      setPermissions(perms);
+      
       return true;
     } catch (error) {
       console.error("Login failed", error);
@@ -94,6 +105,7 @@ const App: React.FC = () => {
 
   const logout = () => {
     setUser(null);
+    setPermissions([]);
     localStorage.removeItem('user');
   };
 
@@ -108,7 +120,7 @@ const App: React.FC = () => {
   const effectiveDarkMode = getEffectiveDarkMode(themeMode);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, permissions, login, logout, updateUser }}>
       <HashRouter>
         <div className={`min-h-screen ${effectiveDarkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
           <Routes>

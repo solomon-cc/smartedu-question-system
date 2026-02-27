@@ -47,6 +47,7 @@ func InitDB() error {
 		&AuditLog{},
 		&StudentWrongQuestion{},
 		&SystemConfig{},
+		&RolePermission{},
 	)
 	if err != nil {
 		return err
@@ -58,11 +59,45 @@ func InitDB() error {
 	if count == 0 {
 		hashed, _ := bcrypt.GenerateFromPassword([]byte("123"), bcrypt.DefaultCost)
 		initialUsers := []User{
-			{ID: "1", Username: "admin", Password: string(hashed), Role: RoleAdmin, Status: "active"},
-			{ID: "2", Username: "teacher", Password: string(hashed), Role: RoleTeacher, Status: "active"},
-			{ID: "3", Username: "student", Password: string(hashed), Role: RoleStudent, Status: "active"},
+			{ID: "1", Username: "admin", Password: string(hashed), Role: RoleAdmin, Status: "active", Name: "超级管理员"},
 		}
 		DB.Create(&initialUsers)
+	}
+
+	// Seed default permissions
+	var permCount int64
+	DB.Model(&RolePermission{}).Count(&permCount)
+	if permCount == 0 {
+		allModules := []string{"dashboard", "students", "questions", "papers", "assignments", "reinforcements", "resources", "users", "homework_audit", "audit_logs", "stats", "help_docs", "permissions", "system_config"}
+		
+		var defaultPerms []RolePermission
+		
+		// Admin: Full access
+		for _, m := range allModules {
+			defaultPerms = append(defaultPerms, RolePermission{Role: RoleAdmin, ModuleID: m, UIAccess: true, APIAccess: true})
+		}
+		
+		// Teacher
+		teacherModules := map[string]bool{"dashboard":true, "students":true, "questions":true, "papers":true, "assignments":true, "reinforcements":true, "resources":true, "stats":true, "help_docs":true}
+		for _, m := range allModules {
+			if teacherModules[m] {
+				api := true
+				if m == "students" || m == "stats" { api = false }
+				defaultPerms = append(defaultPerms, RolePermission{Role: RoleTeacher, ModuleID: m, UIAccess: true, APIAccess: api})
+			}
+		}
+		
+		// Student
+		studentModules := map[string]bool{"dashboard":true, "assignments":true, "stats":true, "help_docs":true}
+		for _, m := range allModules {
+			if studentModules[m] {
+				api := false
+				if m == "assignments" { api = true }
+				defaultPerms = append(defaultPerms, RolePermission{Role: RoleStudent, ModuleID: m, UIAccess: true, APIAccess: api})
+			}
+		}
+		
+		DB.Create(&defaultPerms)
 	}
 
 	// Seed default config

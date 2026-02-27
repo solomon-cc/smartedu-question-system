@@ -21,6 +21,11 @@ const handleResponse = async (res: Response) => {
     throw new Error('Unauthorized');
   }
   
+  if (res.status === 403) {
+    const result = await res.json();
+    throw new Error(result.error || '您没有执行此操作的权限');
+  }
+  
   const result = await res.json();
   
   if (!res.ok || result.code !== 0) {
@@ -285,6 +290,19 @@ export const api = {
         body: JSON.stringify(data),
       });
       return handleResponse(res);
+    },
+    listPermissions: async (): Promise<any[]> => {
+      const res = await fetch(`${API_URL}/admin/permissions`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
+    },
+    updatePermissions: async (data: any[]): Promise<any> => {
+      const res = await fetch(`${API_URL}/admin/permissions`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
     }
   },
   me: {
@@ -299,6 +317,11 @@ export const api = {
         body: JSON.stringify(data),
       });
       return handleResponse(res);
+    },
+    getPermissions: async (): Promise<any[]> => {
+      const res = await fetch(`${API_URL}/me/permissions`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
     }
   },
   wrongBook: {

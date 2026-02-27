@@ -3,7 +3,7 @@ import React, { useState, useContext } from 'react';
 import { AuthContext } from '../App';
 import { Role } from '../types';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, BookOpen, Clock, BarChart2, PlusCircle, Settings, Users, ClipboardList, Sun, Moon, Languages, ShieldCheck, FileText, AlertTriangle, HelpCircle, User as UserIcon, LogOut } from 'lucide-react';
+import { Menu, X, Home, BookOpen, Clock, BarChart2, PlusCircle, Settings, Users, ClipboardList, Sun, Moon, Languages, ShieldCheck, FileText, AlertTriangle, HelpCircle, User as UserIcon, LogOut, Lock } from 'lucide-react';
 import { ProfileModal } from './ProfileModal';
 
 interface LayoutProps {
@@ -22,40 +22,69 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const getMenuItems = () => {
+    // 1. Define the module registry with default settings
+    const registry: Record<string, any> = {
+      'dashboard': { icon: Home, label: '控制台', labelEn: 'Dashboard', path: '/' },
+      'students': { icon: Users, label: '学生管理', labelEn: 'Students', path: '/students' },
+      'questions': { icon: BookOpen, label: '题目管理', labelEn: 'Questions', path: '/questions' },
+      'resources': { icon: ClipboardList, label: '素材管理', labelEn: 'Resource Assets', path: '/resources' },
+      'papers': { icon: ClipboardList, label: '试卷管理', labelEn: 'Papers', path: '/papers' },
+      'assignments': { icon: PlusCircle, label: '作业管理', labelEn: 'Assignments', path: '/assign' },
+      'reinforcements': { icon: Settings, label: '强化物管理', labelEn: 'Reinforcements', path: '/reinforcements' },
+      'users': { icon: Users, label: '用户管理', labelEn: 'Users', path: '/users' },
+      'homework_audit': { icon: ShieldCheck, label: '作业审计', labelEn: 'Homework Audit', path: '/admin/audit' },
+      'audit_logs': { icon: ShieldCheck, label: '审计日志', labelEn: 'Audit Logs', path: '/logs' },
+      'system_config': { icon: Settings, label: '系统配置', labelEn: 'System Config', path: '/admin/config' },
+      'permissions': { icon: Lock, label: '权限设置', labelEn: 'Permissions', path: '/permissions' },
+      'help_docs': { icon: HelpCircle, label: '帮助文档', labelEn: 'Help', path: '/help' },
+      'stats': { icon: BarChart2, label: '统计分析', labelEn: 'Stats', path: '/stats' },
+    };
+
+    // 2. Build the candidate list based on role-specific requirements
+    let candidateItems: any[] = [];
+    
     if (auth?.user?.role === Role.STUDENT) {
-      return [
-        { icon: Home, label: '首页', labelEn: 'Home', path: '/' },
-        { icon: ClipboardList, label: '家庭作业', labelEn: 'Homework', path: '/homework' },
-        { icon: Clock, label: '答题历史', labelEn: 'History', path: '/history' },
-        { icon: AlertTriangle, label: '错题本', labelEn: 'Mistakes', path: '/wrong-book' },
-        { icon: BarChart2, label: '统计分析', labelEn: 'Stats', path: '/stats' },
-        { icon: HelpCircle, label: '帮助文档', labelEn: 'Help', path: '/help' },
+      candidateItems = [
+        { id: 'dashboard', ...registry.dashboard, label: '首页', labelEn: 'Home' },
+        { id: 'assignments', icon: ClipboardList, label: '家庭作业', labelEn: 'Homework', path: '/homework' },
+        { id: 'assignments', icon: Clock, label: '答题历史', labelEn: 'History', path: '/history' },
+        { id: 'dashboard', icon: AlertTriangle, label: '错题本', labelEn: 'Mistakes', path: '/wrong-book' },
+        { id: 'stats', ...registry.stats },
+        { id: 'help_docs', ...registry.help_docs },
+        // Include others from registry in case they are enabled via backend
+        ...Object.keys(registry)
+          .filter(id => !['dashboard', 'assignments', 'stats', 'help_docs'].includes(id))
+          .map(id => ({ id, ...registry[id] }))
       ];
-    }
-    if (auth?.user?.role === Role.TEACHER) {
-      return [
-        { icon: Home, label: '控制台', labelEn: 'Dashboard', path: '/' },
-        { icon: Users, label: '学生管理', labelEn: 'Students', path: '/students' },
-        { icon: BookOpen, label: '题目管理', labelEn: 'Questions', path: '/questions' },
-        { icon: ClipboardList, label: '素材管理', labelEn: 'Resource Assets', path: '/resources' },
-        { icon: ClipboardList, label: '试卷管理', labelEn: 'Papers', path: '/papers' },
-        { icon: PlusCircle, label: '作业管理', labelEn: 'HW Management', path: '/assign' },
-        { icon: Settings, label: '强化物管理', labelEn: 'Reinforcements', path: '/reinforcements' },
-        { icon: HelpCircle, label: '帮助文档', labelEn: 'Help', path: '/help' },
+    } else if (auth?.user?.role === Role.TEACHER) {
+      candidateItems = [
+        { id: 'dashboard', ...registry.dashboard },
+        { id: 'students', ...registry.students },
+        { id: 'questions', ...registry.questions },
+        { id: 'resources', ...registry.resources },
+        { id: 'papers', ...registry.papers },
+        { id: 'assignments', ...registry.assignments },
+        { id: 'reinforcements', ...registry.reinforcements },
+        { id: 'help_docs', ...registry.help_docs },
+        // Include others
+        ...Object.keys(registry)
+          .filter(id => !['dashboard', 'students', 'questions', 'resources', 'papers', 'assignments', 'reinforcements', 'help_docs'].includes(id))
+          .map(id => ({ id, ...registry[id] }))
       ];
+    } else {
+      // Admin defaults
+      candidateItems = Object.keys(registry).map(id => ({ id, ...registry[id] }));
     }
-    if (auth?.user?.role === Role.ADMIN) {
-      return [
-        { icon: Home, label: '控制台', labelEn: 'Dashboard', path: '/' },
-        { icon: Users, label: '用户管理', labelEn: 'Users', path: '/users' },
-        { icon: ShieldCheck, label: '作业审计', labelEn: 'Homework Audit', path: '/admin/audit' },
-        { icon: FileText, label: '审计日志', labelEn: 'Audit Logs', path: '/logs' },
-        { icon: Settings, label: '系统配置', labelEn: 'System Config', path: '/admin/config' },
-        { icon: Settings, label: '权限设置', labelEn: 'Permissions', path: '/permissions' },
-        { icon: HelpCircle, label: '帮助文档', labelEn: 'Help', path: '/help' },
-      ];
+
+    // 3. Filter by backend permissions
+    if (auth?.permissions) {
+      return candidateItems.filter(item => {
+        const perm = auth.permissions.find(p => p.moduleId === item.id);
+        return perm ? perm.uiAccess : false;
+      });
     }
-    return [];
+
+    return candidateItems;
   };
 
   const menuItems = getMenuItems() || [];

@@ -31,6 +31,7 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [loadingList, setLoadingList] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [search, setSearch] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   // Detail View State
   const [viewingHistory, setViewingHistory] = useState<any>(null);
@@ -78,14 +79,16 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
 
   const fetchStudents = async () => {
     setLoadingList(true);
+    setError(null);
     try {
       const data = await api.students.list();
       setStudents(data);
       if (data.length > 0) {
         handleSelectStudent(data[0].id);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setError(e.message || '获取列表失败');
     } finally {
       setLoadingList(false);
     }
@@ -144,6 +147,19 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         <div className="flex-1 overflow-y-auto p-2">
           {loadingList ? (
             <div className="py-10"><Loading /></div>
+          ) : error ? (
+            <div className="p-6 m-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800 rounded-2xl">
+              <div className="flex flex-col items-center text-center gap-3">
+                <Info className="w-8 h-8 text-red-500" />
+                <p className="text-xs font-bold text-red-600 dark:text-red-400 leading-relaxed">{error}</p>
+                <button 
+                   onClick={fetchStudents}
+                   className="mt-2 px-4 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-[10px] font-black uppercase rounded-lg hover:bg-red-200 transition-colors"
+                >
+                   {language === 'zh' ? '重试' : 'RETRY'}
+                </button>
+              </div>
+            </div>
           ) : filteredStudents.length === 0 ? (
             <div className="py-10 text-center text-gray-400 text-sm">{language === 'zh' ? '未找到学生' : 'No students'}</div>
           ) : (

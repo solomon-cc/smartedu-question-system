@@ -1,4 +1,8 @@
-.PHONY: all test-backend test-frontend build-backend build-frontend clean
+# Source files
+BACKEND_SRCS := $(wildcard *.go) go.mod go.sum
+FRONTEND_SRCS := $(shell find web -type f -not -path "*/node_modules/*" -not -path "*/dist/*" -not -path "*/dist.tar.gz")
+
+.PHONY: all test-backend test-frontend clean deploy test
 
 # Default target
 all: test build
@@ -7,9 +11,9 @@ all: test build
 test: test-backend test-frontend
 
 # Build everything
-build: build-backend build-frontend
+build: smartedu-question-bank web/dist.tar.gz
 
-deploy: build
+deploy: smartedu-question-bank web/dist.tar.gz
 	@echo "Deploying to production server..."
 	scp smartedu-question-bank root@ylmz:/data/
 	scp web/dist.tar.gz root@ylmz:/data/web/go
@@ -20,8 +24,8 @@ test-backend:
 	@echo "Running backend tests..."
 	go test -v -cover ./...
 
-build-backend:
-	@echo "Building backend for Linux (amd64)..."
+smartedu-question-bank: $(BACKEND_SRCS)
+	@echo "Detected backend changes. Building backend for Linux (amd64)..."
 	GOOS=linux GOARCH=amd64 go build -o smartedu-question-bank .
 
 # Frontend targets
@@ -34,8 +38,8 @@ web/node_modules: web/package.json
 	cd web && npm install
 	@touch web/node_modules
 
-build-frontend: web/node_modules
-	@echo "Building frontend..."
+web/dist.tar.gz: $(FRONTEND_SRCS) web/node_modules
+	@echo "Detected frontend changes. Building frontend..."
 	cd web && npm run build
 	@echo "Packaging frontend (including dist directory)..."
 	cd web && tar -czf dist.tar.gz dist

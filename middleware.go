@@ -78,3 +78,71 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func PermissionMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role, exists := c.Get("role")
+		if !exists {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Role not found"})
+			c.Abort()
+			return
+		}
+
+		// Skip check for Admin - but GEMINI.md says "everything based on backend"
+		// Let's check even for Admin to be safe, but usually Admin has all true.
+		
+		path := c.Request.URL.Path
+
+		// Map paths to Module IDs
+		module := ""
+		if strings.HasPrefix(path, "/api/questions") {
+			module = "questions"
+		} else if strings.HasPrefix(path, "/api/papers") {
+			module = "papers"
+		} else if strings.HasPrefix(path, "/api/homeworks") {
+			module = "assignments"
+		} else if strings.HasPrefix(path, "/api/reinforcements") {
+			module = "reinforcements"
+		} else if strings.HasPrefix(path, "/api/resources") {
+			module = "resources"
+		} else if strings.HasPrefix(path, "/api/admin/users") {
+			module = "users"
+		} else if strings.HasPrefix(path, "/api/admin/permissions") {
+			module = "permissions"
+		} else if strings.HasPrefix(path, "/api/admin/config") || strings.HasPrefix(path, "/api/admin/settings") {
+			module = "system_config"
+		} else if strings.HasPrefix(path, "/api/admin/logs") {
+			module = "audit_logs"
+		} else if strings.HasPrefix(path, "/api/admin/homeworks") || strings.HasPrefix(path, "/api/admin/practices") {
+			module = "homework_audit"
+		} else if strings.HasPrefix(path, "/api/students") {
+			module = "students"
+		} else if strings.HasPrefix(path, "/api/history") {
+			module = "assignments"
+		} else if strings.HasPrefix(path, "/api/wrong-book") {
+			module = "dashboard"
+		}
+
+		if module != "" {
+			var perm RolePermission
+			err := DB.Where("role = ? AND module_id = ?", role, module).First(&perm).Error
+			
+			if err != nil {
+				// If no record, default to no access
+				c.JSON(http.StatusForbidden, gin.H{"error": "Access denied for module: " + module})
+				c.Abort()
+				return
+			}
+
+			// All API calls (GET, POST, PUT, DELETE) now strictly require APIAccess to be true
+			// This ensures that "Read/Write" controls the actual data capability
+			if !perm.APIAccess {
+				c.JSON(http.StatusForbidden, gin.H{"error": "API access denied (Read/Write) for module: " + module})
+				c.Abort()
+				return
+			}
+		}
+
+		c.Next()
+	}
+}

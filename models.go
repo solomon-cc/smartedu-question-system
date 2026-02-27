@@ -202,3 +202,10 @@ type StageConfig struct {
 type SystemSettingsConfig struct {
 	RegistrationEnabled bool `json:"registrationEnabled"`
 }
+
+type RolePermission struct {
+	Role        Role   `json:"role" gorm:"primaryKey;type:varchar(191)"`
+	ModuleID    string `json:"moduleId" gorm:"primaryKey;type:varchar(191)"`
+	UIAccess    bool   `json:"uiAccess"`
+	APIAccess   bool   `json:"apiAccess"`
+}
