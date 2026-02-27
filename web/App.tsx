@@ -21,6 +21,7 @@ import Permissions from './views/Admin/Permissions';
 import AuditLogs from './views/Admin/AuditLogs';
 import HomeworkAudit from './views/Admin/HomeworkAudit';
 import SystemConfig from './views/Admin/SystemConfig';
+import Help from './views/Help';
 import Layout from './components/Layout';
 
 interface AuthContextType {
@@ -128,6 +129,7 @@ const App: React.FC = () => {
                   <Route path="/permissions" element={<Permissions language={language} />} />
                   <Route path="/admin/audit" element={<HomeworkAudit language={language} />} />
                   <Route path="/admin/config" element={<SystemConfig language={language} />} />
+                  <Route path="/help" element={<Help language={language} />} />
                 </Routes>
               </Layout>
             ) : <Navigate to="/login" />}>

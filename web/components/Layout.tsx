@@ -3,7 +3,7 @@ import React, { useState, useContext } from 'react';
 import { AuthContext } from '../App';
 import { Role } from '../types';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, BookOpen, Clock, BarChart2, PlusCircle, Settings, Users, ClipboardList, Sun, Moon, Languages, ShieldCheck, FileText, AlertTriangle } from 'lucide-react';
+import { Menu, X, Home, BookOpen, Clock, BarChart2, PlusCircle, Settings, Users, ClipboardList, Sun, Moon, Languages, ShieldCheck, FileText, AlertTriangle, HelpCircle } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -26,6 +26,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
         { icon: Clock, label: '答题历史', labelEn: 'History', path: '/history' },
         { icon: AlertTriangle, label: '错题本', labelEn: 'Mistakes', path: '/wrong-book' },
         { icon: BarChart2, label: '统计分析', labelEn: 'Stats', path: '/stats' },
+        { icon: HelpCircle, label: '帮助文档', labelEn: 'Help', path: '/help' },
       ];
     }
     if (auth?.user?.role === Role.TEACHER) {
@@ -37,6 +38,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
         { icon: ClipboardList, label: '试卷管理', labelEn: 'Papers', path: '/papers' },
         { icon: PlusCircle, label: '作业管理', labelEn: 'HW Management', path: '/assign' },
         { icon: Settings, label: '强化物管理', labelEn: 'Reinforcements', path: '/reinforcements' },
+        { icon: HelpCircle, label: '帮助文档', labelEn: 'Help', path: '/help' },
       ];
     }
     if (auth?.user?.role === Role.ADMIN) {
@@ -47,6 +49,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
         { icon: FileText, label: '审计日志', labelEn: 'Audit Logs', path: '/logs' },
         { icon: Settings, label: '系统配置', labelEn: 'System Config', path: '/admin/config' },
         { icon: Settings, label: '权限设置', labelEn: 'Permissions', path: '/permissions' },
+        { icon: HelpCircle, label: '帮助文档', labelEn: 'Help', path: '/help' },
       ];
     }
   };

@@ -1,7 +1,7 @@
 
 import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../App';
-import { Lock, User as UserIcon, AlertCircle, UserPlus, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Lock, User as UserIcon, AlertCircle, UserPlus, ArrowRight, CheckCircle2, X } from 'lucide-react';
 import { api } from '../services/api.ts';
 
 interface LoginProps {
@@ -16,6 +16,8 @@ const Login: React.FC<LoginProps> = ({ language }) => {
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [error, setError] = useState(false);
   const [errMsg, setErrMsg] = useState('');
   const [success, setSuccess] = useState(false);
@@ -35,6 +37,12 @@ const Login: React.FC<LoginProps> = ({ language }) => {
     if (isRegister) {
       if (!regPhone || !regPassword || !regConfirmPassword) return;
       
+      if (!agreedToPrivacy) {
+        setError(true);
+        setErrMsg(language === 'zh' ? '请先同意隐私政策' : 'Please agree to the privacy policy');
+        return;
+      }
+
       if (regPassword !== regConfirmPassword) {
         setError(true);
         setErrMsg(language === 'zh' ? '两次输入的密码不一致' : 'Passwords do not match');
@@ -153,6 +161,26 @@ const Login: React.FC<LoginProps> = ({ language }) => {
                   />
                 </div>
               </div>
+              
+              <div className="flex items-center gap-2 px-2">
+                <input
+                  type="checkbox"
+                  id="privacy"
+                  checked={agreedToPrivacy}
+                  onChange={(e) => setAgreedToPrivacy(e.target.checked)}
+                  className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                />
+                <label htmlFor="privacy" className="text-sm text-gray-500 dark:text-gray-400">
+                  {language === 'zh' ? '我已阅读并同意' : 'I have read and agree to the '}
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPrivacyModal(true)}
+                    className="text-primary-600 hover:underline"
+                  >
+                    {language === 'zh' ? '隐私政策' : 'Privacy Policy'}
+                  </button>
+                </label>
+              </div>
             </>
           ) : (
             <>
@@ -227,6 +255,64 @@ const Login: React.FC<LoginProps> = ({ language }) => {
           </div>
         )}
       </div>
+
+      {showPrivacyModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-300">
+            <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center bg-primary-50 dark:bg-primary-950/20">
+              <h3 className="text-xl font-black text-primary-600">
+                {language === 'zh' ? '隐私政策' : 'Privacy Policy'}
+              </h3>
+              <button 
+                onClick={() => setShowPrivacyModal(false)}
+                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="p-8 overflow-y-auto prose dark:prose-invert max-w-none">
+              {language === 'zh' ? (
+                <div className="space-y-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                  <p className="font-bold text-gray-900 dark:text-white">一粒麦子尊重您的隐私并致力于保护您的个人数据。</p>
+                  <h4 className="font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider text-xs">1. 我们收集的信息</h4>
+                  <p>为了提供核心服务，我们收集您的手机号作为唯一账号标识。在您答题过程中，系统会记录您的答题历史、正确率及错题数据，用于生成个性化学习报告。</p>
+                  <h4 className="font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider text-xs">2. 信息的使用方式</h4>
+                  <p>收集的数据仅用于评估学习进度、向老师反馈教学成果以及优化个性化题目推荐。我们绝不会将您的个人数据共享、出售或出租给任何第三方用于营销目的。</p>
+                  <h4 className="font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider text-xs">3. 数据安全</h4>
+                  <p>我们采用行业标准的加密技术和存储方案（JWT、数据库加密等）来确保您的数据安全。您的密码经过不可逆加密存储。</p>
+                  <h4 className="font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider text-xs">4. 您的权利</h4>
+                  <p>您可以随时通过系统查看您的学习数据。如需注销账号或删除个人信息，请联系系统管理员。</p>
+                </div>
+              ) : (
+                <div className="space-y-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                  <p className="font-bold text-gray-900 dark:text-white">SmartEdu respects your privacy and is committed to protecting your personal data.</p>
+                  <h4 className="font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider text-xs">1. Information We Collect</h4>
+                  <p>To provide core services, we collect your phone number as a unique account identifier. During practice, we record history, accuracy, and mistake data to generate personalized learning reports.</p>
+                  <h4 className="font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider text-xs">2. How We Use Information</h4>
+                  <p>Collected data is used solely for evaluating progress, providing feedback to teachers, and optimizing recommendations. We never share, sell, or rent your data to third parties for marketing.</p>
+                  <h4 className="font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider text-xs">3. Data Security</h4>
+                  <p>We use industry-standard encryption and storage (JWT, encrypted DB) to ensure data safety. Passwords are stored using irreversible encryption.</p>
+                  <h4 className="font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider text-xs">4. Your Rights</h4>
+                  <p>You can view your learning data anytime. To delete your account or personal info, please contact the administrator.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-end">
+              <button 
+                onClick={() => {
+                  setAgreedToPrivacy(true);
+                  setShowPrivacyModal(false);
+                }}
+                className="px-8 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 shadow-lg shadow-primary-600/20 transition-all active:scale-95"
+              >
+                {language === 'zh' ? '我已了解并同意' : 'I Understand & Agree'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
