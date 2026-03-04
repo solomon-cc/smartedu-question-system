@@ -1744,6 +1744,78 @@ func GetSkillTopics(c *gin.Context) {
 	SendJSON(c, 0, "", topics)
 }
 
+func CreateSkillTopic(c *gin.Context) {
+	var topic SkillTopic
+	if err := c.ShouldBindJSON(&topic); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+	topic.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
+	DB.Create(&topic)
+	SendJSON(c, 0, "", topic)
+}
+
+func UpdateSkillTopic(c *gin.Context) {
+	id := c.Param("id")
+	var topic SkillTopic
+	if err := DB.First(&topic, "id = ?", id).Error; err != nil {
+		SendJSON(c, 1, "Topic not found", nil)
+		return
+	}
+	var updateData SkillTopic
+	if err := c.ShouldBindJSON(&updateData); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+	topic.Name = updateData.Name
+	topic.Subject = updateData.Subject
+	topic.Grade = updateData.Grade
+	DB.Save(&topic)
+	SendJSON(c, 0, "", topic)
+}
+
+func DeleteSkillTopic(c *gin.Context) {
+	id := c.Param("id")
+	DB.Delete(&SkillObjective{}, "topic_id = ?", id)
+	DB.Delete(&SkillTopic{}, "id = ?", id)
+	SendJSON(c, 0, "", gin.H{"message": "Deleted"})
+}
+
+func CreateSkillObjective(c *gin.Context) {
+	var obj SkillObjective
+	if err := c.ShouldBindJSON(&obj); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+	obj.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
+	DB.Create(&obj)
+	SendJSON(c, 0, "", obj)
+}
+
+func UpdateSkillObjective(c *gin.Context) {
+	id := c.Param("id")
+	var obj SkillObjective
+	if err := DB.First(&obj, "id = ?", id).Error; err != nil {
+		SendJSON(c, 1, "Objective not found", nil)
+		return
+	}
+	var updateData SkillObjective
+	if err := c.ShouldBindJSON(&updateData); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+	obj.Name = updateData.Name
+	obj.Target = updateData.Target
+	DB.Save(&obj)
+	SendJSON(c, 0, "", obj)
+}
+
+func DeleteSkillObjective(c *gin.Context) {
+	id := c.Param("id")
+	DB.Delete(&SkillObjective{}, "id = ?", id)
+	SendJSON(c, 0, "", gin.H{"message": "Deleted"})
+}
+
 func GetAbilityMatrix(c *gin.Context) {
 	// Returns a flat list of records for a student to be rendered as a matrix
 	studentId := c.Query("studentId")

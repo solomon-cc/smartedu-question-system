@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lock, Unlock, Shield, X, Check, Layout, BookOpen, ClipboardList, Settings, Database, FileText, BarChart, Eye, Cpu, AlertCircle, ShieldCheck, Users, HelpCircle } from 'lucide-react';
+import { Lock, Unlock, Shield, X, Check, Layout, BookOpen, ClipboardList, Settings, Database, FileText, BarChart, Eye, Cpu, AlertCircle, ShieldCheck, Users, HelpCircle, Target } from 'lucide-react';
 import { api } from '../../services/api';
 import { Role } from '../../types';
 
@@ -23,6 +23,7 @@ const ALL_MODULES = [
   { id: 'questions', label: '题目管理', icon: BookOpen },
   { id: 'papers', label: '试卷管理', icon: ClipboardList },
   { id: 'assignments', label: '作业管理', icon: FileText },
+  { id: 'ability_tracking', label: '能力追踪', icon: Target },
   { id: 'reinforcements', label: '强化物管理', icon: Settings },
   { id: 'resources', label: '素材管理', icon: ClipboardList },
   { id: 'users', label: '用户管理', icon: Database },

@@ -102,9 +102,13 @@ func InitDB() error {
 	// Seed default permissions
 	var permCount int64
 	DB.Model(&RolePermission{}).Count(&permCount)
+	
+	allModules := []string{"dashboard", "students", "questions", "papers", "assignments", "ability_tracking", "reinforcements", "resources", "users", "homework_audit", "audit_logs", "stats", "help_docs", "permissions", "system_config"}
+	
+	teacherModules := map[string]bool{"dashboard":true, "students":true, "questions":true, "papers":true, "assignments":true, "ability_tracking":true, "reinforcements":true, "resources":true, "stats":true, "help_docs":true}
+	studentModules := map[string]bool{"dashboard":true, "assignments":true, "stats":true, "help_docs":true}
+
 	if permCount == 0 {
-		allModules := []string{"dashboard", "students", "questions", "papers", "assignments", "ability_tracking", "reinforcements", "resources", "users", "homework_audit", "audit_logs", "stats", "help_docs", "permissions", "system_config"}
-		
 		var defaultPerms []RolePermission
 		
 		// Admin: Full access
@@ -113,7 +117,6 @@ func InitDB() error {
 		}
 		
 		// Teacher
-		teacherModules := map[string]bool{"dashboard":true, "students":true, "questions":true, "papers":true, "assignments":true, "ability_tracking":true, "reinforcements":true, "resources":true, "stats":true, "help_docs":true}
 		for _, m := range allModules {
 			if teacherModules[m] {
 				api := true
@@ -123,7 +126,6 @@ func InitDB() error {
 		}
 		
 		// Student
-		studentModules := map[string]bool{"dashboard":true, "assignments":true, "stats":true, "help_docs":true}
 		for _, m := range allModules {
 			if studentModules[m] {
 				api := false
@@ -133,6 +135,15 @@ func InitDB() error {
 		}
 		
 		DB.Create(&defaultPerms)
+	} else {
+		// Ensure ability_tracking exists for admin and teacher if it was missing from previous versions
+		for _, r := range []Role{RoleAdmin, RoleTeacher} {
+			var exists int64
+			DB.Model(&RolePermission{}).Where("role = ? AND module_id = ?", r, "ability_tracking").Count(&exists)
+			if exists == 0 {
+				DB.Create(&RolePermission{Role: r, ModuleID: "ability_tracking", UIAccess: true, APIAccess: true})
+			}
+		}
 	}
 
 	// Seed default config

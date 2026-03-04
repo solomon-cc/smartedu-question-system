@@ -413,6 +413,52 @@ export const api = {
       const res = await fetch(`${API_URL}/skills`, { headers: getHeaders() });
       const data = await handleResponse(res);
       return data || [];
+    },
+    createTopic: async (data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/skills`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    updateTopic: async (id: string, data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/skills/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    deleteTopic: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_URL}/skills/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      if (!res.ok) throw new Error('Failed to delete topic');
+    },
+    createObjective: async (data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/objectives`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    updateObjective: async (id: string, data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/objectives/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    deleteObjective: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_URL}/objectives/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      if (!res.ok) throw new Error('Failed to delete objective');
     }
   },
   ability: {

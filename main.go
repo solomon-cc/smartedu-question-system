@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -138,6 +140,12 @@ func main() {
 
 			// Ability Tracking
 			protected.GET("/skills", GetSkillTopics)
+			protected.POST("/skills", CreateSkillTopic)
+			protected.PUT("/skills/:id", UpdateSkillTopic)
+			protected.DELETE("/skills/:id", DeleteSkillTopic)
+			protected.POST("/objectives", CreateSkillObjective)
+			protected.PUT("/objectives/:id", UpdateSkillObjective)
+			protected.DELETE("/objectives/:id", DeleteSkillObjective)
 			protected.GET("/ability/matrix", GetAbilityMatrix)
 		}
 	}
@@ -188,21 +196,4 @@ func processSchedules() {
 			fmt.Printf("[Scheduler] Auto-assigned homework: %s for %s\n", newHw.Name, today)
 		}
 	}
-}
-
-func calculateNextRun(from time.Time, interval string) string {
-	var next time.Time
-	switch interval {
-	case "daily":
-		next = from.AddDate(0, 0, 1)
-	case "3days":
-		next = from.AddDate(0, 0, 3)
-	case "weekly":
-		next = from.AddDate(0, 0, 7)
-	case "monthly":
-		next = from.AddDate(0, 1, 0)
-	default:
-		return ""
-	}
-	return next.Format("2006-01-02")
 }

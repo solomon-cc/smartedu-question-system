@@ -121,6 +121,8 @@ func PermissionMiddleware() gin.HandlerFunc {
 			module = "assignments"
 		} else if strings.HasPrefix(path, "/api/wrong-book") {
 			module = "dashboard"
+		} else if strings.HasPrefix(path, "/api/skills") || strings.HasPrefix(path, "/api/ability/matrix") {
+			module = "ability_tracking"
 		}
 
 		if module != "" {

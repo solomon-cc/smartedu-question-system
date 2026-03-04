@@ -115,22 +115,22 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     const wb = XLSX.utils.book_new();
     
     const mcData = [
-      { "科目": "数学", "年级": 3, "题干": "1+1=?", "题干图片URL": "", "答案": "B", "选项A": "1", "选项A图片URL": "", "选项B": "2", "选项B图片URL": "", "选项C": "3", "选项C图片URL": "", "选项D": "4", "选项D图片URL": "" }
+      { "科目": "数学", "年级": 3, "题干": "1+1=?", "题干图片URL": "", "答案": "B", "能力点ID": "从能力追踪管理中获取ID", "选项A": "1", "选项A图片URL": "", "选项B": "2", "选项B图片URL": "", "选项C": "3", "选项C图片URL": "", "选项D": "4", "选项D图片URL": "" }
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mcData), "单选题");
 
     const msData = [
-      { "科目": "数学", "年级": 3, "题干": "哪些是质数？", "题干图片URL": "", "答案": "A,B", "选项A": "2", "选项A图片URL": "", "选项B": "3", "选项B图片URL": "", "选项C": "4", "选项C图片URL": "", "选项D": "6", "选项D图片URL": "" }
+      { "科目": "数学", "年级": 3, "题干": "哪些是质数？", "题干图片URL": "", "答案": "A,B", "能力点ID": "", "选项A": "2", "选项A图片URL": "", "选项B": "3", "选项B图片URL": "", "选项C": "4", "选项C图片URL": "", "选项D": "6", "选项D图片URL": "" }
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(msData), "多选题");
 
     const fbData = [
-      { "科目": "数学", "年级": 3, "题干": "三角形内角和是___度", "题干图片URL": "", "答案": "180" }
+      { "科目": "数学", "年级": 3, "题干": "三角形内角和是___度", "题干图片URL": "", "答案": "180", "能力点ID": "" }
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fbData), "填空题");
 
     const tfData = [
-      { "科目": "数学", "年级": 3, "题干": "1是质数", "题干图片URL": "", "答案": "错误" }
+      { "科目": "数学", "年级": 3, "题干": "1是质数", "题干图片URL": "", "答案": "错误", "能力点ID": "" }
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(tfData), "判断题");
 
@@ -174,6 +174,7 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                 stemImage: row['题干图片URL'] || "",
                 answer: String(row['答案']),
                 options: options.length > 0 ? options : undefined,
+                objectiveId: row['能力点ID'] || "",
                 isValid: isValid
               });
             });
@@ -234,7 +235,8 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       stemText: formStem,
       stemImage: formStemImage,
       options: formOptions.filter(o => o.text.trim() !== '' || o.image),
-      answer: Array.isArray(formAnswer) ? formAnswer.join(',') : formAnswer
+      answer: Array.isArray(formAnswer) ? formAnswer.join(',') : formAnswer,
+      objectiveId: formObjectiveId
     };
     setPreviewQuestion(currentData);
   };
@@ -250,6 +252,8 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     { text: '', image: '', value: 'D' }
   ]);
   const [formAnswer, setFormAnswer] = useState<string | string[]>('');
+  const [formObjectiveId, setFormObjectiveId] = useState('');
+  const [skills, setSkills] = useState<any[]>([]);
 
   const stemInputRef = useRef<HTMLInputElement>(null);
 
@@ -266,8 +270,18 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     }
   };
 
+  const fetchSkills = async () => {
+    try {
+      const res = await api.skills.list();
+      setSkills(res || []);
+    } catch (error) {
+      console.error("Failed to fetch skills", error);
+    }
+  };
+
   useEffect(() => {
     fetchQuestions();
+    fetchSkills();
   }, [page]);
 
   const handleOpenModal = (q: Question | null = null) => {
@@ -292,6 +306,7 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       } else {
           setFormAnswer(q.answer);
       }
+      setFormObjectiveId(q.objectiveId || '');
     } else {
       setEditingQuestion(null);
       setFormSubject('数学');
@@ -301,6 +316,7 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       setFormStemImage('');
       setFormOptions([{ text: '', image: '', value: 'A' }, { text: '', image: '', value: 'B' }, { text: '', image: '', value: 'C' }, { text: '', image: '', value: 'D' }]);
       setFormAnswer('');
+      setFormObjectiveId('');
     }
     setIsModalOpen(true);
   };
@@ -346,7 +362,8 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       stemText: formStem,
       stemImage: formStemImage,
       options: ['单选题', '多选题', QuestionType.MULTIPLE_CHOICE, QuestionType.MULTIPLE_SELECT].includes(formType) ? validOptions : undefined,
-      answer: Array.isArray(formAnswer) ? formAnswer.join(',') : formAnswer
+      answer: Array.isArray(formAnswer) ? formAnswer.join(',') : formAnswer,
+      objectiveId: formObjectiveId || undefined
     };
 
     try {
@@ -546,18 +563,40 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                    </div>
                  </div>
 
-                 <div>
-                   <label className="block text-xs font-black text-gray-400 uppercase mb-2 tracking-widest">{language === 'zh' ? '题型选择' : 'Question Type'}</label>
-                   <select 
-                      value={formType}
-                      onChange={(e) => { setFormType(e.target.value); setFormAnswer(e.target.value === '多选题' ? [] : ''); }}
-                      className="w-full p-4 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-2xl border dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 font-bold"
-                   >
-                     <option value="单选题">单选题</option>
-                     <option value="多选题">多选题</option>
-                     <option value="填空题">填空题</option>
-                     <option value="判断题">判断题</option>
-                   </select>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div>
+                     <label className="block text-xs font-black text-gray-400 uppercase mb-2 tracking-widest">{language === 'zh' ? '题型选择' : 'Question Type'}</label>
+                     <select 
+                        value={formType}
+                        onChange={(e) => { setFormType(e.target.value); setFormAnswer(e.target.value === '多选题' ? [] : ''); }}
+                        className="w-full p-4 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-2xl border dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 font-bold"
+                     >
+                       <option value="单选题">单选题</option>
+                       <option value="多选题">多选题</option>
+                       <option value="填空题">填空题</option>
+                       <option value="判断题">判断题</option>
+                     </select>
+                   </div>
+                   <div>
+                     <label className="block text-xs font-black text-gray-400 uppercase mb-2 tracking-widest">{language === 'zh' ? '关联能力点' : 'Ability Objective'}</label>
+                     <select 
+                        value={formObjectiveId}
+                        onChange={(e) => setFormObjectiveId(e.target.value)}
+                        className="w-full p-4 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-2xl border dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 font-bold"
+                     >
+                       <option value="">{language === 'zh' ? '-- 无关联 --' : '-- None --'}</option>
+                       {skills.map(topic => {
+                         if (!topic.objectives || topic.objectives.length === 0) return null;
+                         return (
+                           <optgroup key={topic.id} label={`${topic.subject} - ${topic.name}`}>
+                             {topic.objectives.map((obj: any) => (
+                               <option key={obj.id} value={obj.id}>[{obj.name}] {obj.target}</option>
+                             ))}
+                           </optgroup>
+                         );
+                       })}
+                     </select>
+                   </div>
                  </div>
 
                  <div className="space-y-4">
