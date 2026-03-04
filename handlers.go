@@ -794,12 +794,35 @@ func AssignHomework(c *gin.Context) {
 	
 	h.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
 	h.Status = "pending"
+
+	// Initial scheduling if repeat is set
+	if h.RepeatInterval != "" && h.RepeatInterval != "none" {
+		h.NextRunDate = calculateNextRun(time.Now(), h.RepeatInterval)
+	}
+
 	if err := DB.Create(&h).Error; err != nil {
 		SendJSON(c, 1, "Failed to assign homework", nil)
 		return
 	}
-	AddAuditLog(c, "ASSIGN_HOMEWORK", fmt.Sprintf("Assigned homework: %s", h.Name))
+	AddAuditLog(c, "ASSIGN_HOMEWORK", fmt.Sprintf("Assigned homework: %s (Repeat: %s)", h.Name, h.RepeatInterval))
 	SendJSON(c, 0, "", h)
+}
+
+func calculateNextRun(from time.Time, interval string) string {
+	var next time.Time
+	switch interval {
+	case "daily":
+		next = from.AddDate(0, 0, 1)
+	case "3days":
+		next = from.AddDate(0, 0, 3)
+	case "weekly":
+		next = from.AddDate(0, 0, 7)
+	case "monthly":
+		next = from.AddDate(0, 1, 0)
+	default:
+		return ""
+	}
+	return next.Format("2006-01-02")
 }
 
 func BulkCreateQuestions(c *gin.Context) {
@@ -932,37 +955,56 @@ func CreateHistory(c *gin.Context) {
 		return
 	}
 	
-	// Process Wrong Questions Logic
-	// Questions are stored as []any (serialized JSON)
-	// We need to marshal then unmarshal to access the fields
+	// Process Wrong Questions & Ability Tracking
 	go func(history History) {
 		questionsBytes, _ := json.Marshal(history.Questions)
 		var results []HistoryQuestionResult
 		if err := json.Unmarshal(questionsBytes, &results); err == nil {
+			
+			// Ability tracking map: ObjectiveID -> {Correct, Total}
+			objStats := make(map[string]struct{ Correct, Total int })
+
 			for _, res := range results {
 				isCorrect := res.Status == "correct"
 				
-				// Calculate wrong attempts
+				// 1. Process Error Logic
 				wrongCount := 0
 				if len(res.AttemptLog) > 0 {
-					for _, att := range res.AttemptLog {
-						if !att.IsCorrect {
-							wrongCount++
-						}
-					}
+					for _, att := range res.AttemptLog { if !att.IsCorrect { wrongCount++ } }
 				} else {
-					// Fallback if no detailed log
-					if isCorrect {
-						if res.Attempts > 1 {
-							wrongCount = res.Attempts - 1
-						}
-					} else {
+					if isCorrect { if res.Attempts > 1 { wrongCount = res.Attempts - 1 } } else {
 						wrongCount = res.Attempts
 						if wrongCount == 0 { wrongCount = 1 }
 					}
 				}
-
 				processWrongQuestion(history.StudentID, res.ID, isCorrect, wrongCount)
+
+				// 2. Track Ability (if objective is present)
+				var q Question
+				if err := DB.Select("objective_id").First(&q, "id = ?", res.ID).Error; err == nil && q.ObjectiveID != "" {
+					stats := objStats[q.ObjectiveID]
+					stats.Total++
+					if isCorrect { stats.Correct++ }
+					objStats[q.ObjectiveID] = stats
+				}
+			}
+
+			// Save Ability Records
+			dateStr := time.Now().Format("2006-01-02")
+			for objID, stats := range objStats {
+				acc := (float64(stats.Correct) / float64(stats.Total)) * 100
+				status := "N"
+				if acc >= 80 { status = "Y" } // Threshold 80%
+
+				record := AbilityRecord{
+					ID:          strconv.FormatInt(time.Now().UnixNano(), 36),
+					StudentID:   history.StudentID,
+					ObjectiveID: objID,
+					Date:        dateStr,
+					Status:      status,
+					Accuracy:    acc,
+				}
+				DB.Create(&record)
 			}
 		}
 	}(h)
@@ -1692,4 +1734,25 @@ func UpdateRolePermissions(c *gin.Context) {
 
 	AddAuditLog(c, "UPDATE_PERMISSIONS", fmt.Sprintf("Updated %d permission rules", len(perms)))
 	SendJSON(c, 0, "", perms)
+}
+
+// Ability Tracking Handlers
+
+func GetSkillTopics(c *gin.Context) {
+	var topics []SkillTopic
+	DB.Preload("Objectives").Find(&topics)
+	SendJSON(c, 0, "", topics)
+}
+
+func GetAbilityMatrix(c *gin.Context) {
+	// Returns a flat list of records for a student to be rendered as a matrix
+	studentId := c.Query("studentId")
+	if studentId == "" {
+		SendJSON(c, 1, "Student ID required", nil)
+		return
+	}
+
+	var records []AbilityRecord
+	DB.Where("student_id = ?", studentId).Order("date DESC").Find(&records)
+	SendJSON(c, 0, "", records)
 }

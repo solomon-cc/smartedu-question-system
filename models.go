@@ -28,15 +28,16 @@ type RegisterRequest struct {
 }
 
 type Question struct {
-	ID         string   `json:"id" gorm:"primaryKey;type:varchar(191)"`
-	Subject    string   `json:"subject" gorm:"type:varchar(191)"`
-	Grade      int      `json:"grade"`
-	Type       string   `json:"type" gorm:"type:varchar(191)"`
-	StemText   string   `json:"stemText" gorm:"type:text"`
-	StemImage  string   `json:"stemImage,omitempty" gorm:"type:text"`
-	Answer     string   `json:"answer" gorm:"type:text"`
-	Options    []Option `json:"options,omitempty" gorm:"serializer:json"`
-	Hint       string   `json:"hint,omitempty" gorm:"type:text"`
+	ID          string   `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	Subject     string   `json:"subject" gorm:"type:varchar(191)"`
+	Grade       int      `json:"grade"`
+	Type        string   `json:"type" gorm:"type:varchar(191)"`
+	StemText    string   `json:"stemText" gorm:"type:text"`
+	StemImage   string   `json:"stemImage,omitempty" gorm:"type:text"`
+	Answer      string   `json:"answer" gorm:"type:text"`
+	Options     []Option `json:"options,omitempty" gorm:"serializer:json"`
+	Hint        string   `json:"hint,omitempty" gorm:"type:text"`
+	ObjectiveID string   `json:"objectiveId,omitempty" gorm:"type:varchar(191);index"`
 }
 
 type Option struct {
@@ -100,17 +101,20 @@ type Paper struct {
 }
 
 type Homework struct {
-	ID         string   `json:"id" gorm:"primaryKey;type:varchar(191)"`
-	TeacherID  string   `json:"teacherId" gorm:"type:varchar(191)"`
-	PaperID    string   `json:"paperId" gorm:"type:varchar(191)"`
-	Name       string   `json:"name" gorm:"type:varchar(191)"`
-	ClassID    string   `json:"classId" gorm:"type:varchar(191)"`
-	StartDate  string   `json:"startDate" gorm:"type:varchar(191)"`
-	EndDate    string   `json:"endDate" gorm:"type:varchar(191)"`
-	Status     string   `json:"status" gorm:"type:varchar(191)"`
-	Completed  int      `json:"completed"`
-	Total      int      `json:"total"`
-	StudentIDs []string `json:"studentIds,omitempty" gorm:"serializer:json"`
+	ID             string   `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	TeacherID      string   `json:"teacherId" gorm:"type:varchar(191)"`
+	PaperID        string   `json:"paperId" gorm:"type:varchar(191)"`
+	Name           string   `json:"name" gorm:"type:varchar(191)"`
+	ClassID        string   `json:"classId" gorm:"type:varchar(191)"`
+	StartDate      string   `json:"startDate" gorm:"type:varchar(191)"`
+	EndDate        string   `json:"endDate" gorm:"type:varchar(191)"`
+	Status         string   `json:"status" gorm:"type:varchar(191)"`
+	Completed      int      `json:"completed"`
+	Total          int      `json:"total"`
+	StudentIDs     []string `json:"studentIds,omitempty" gorm:"serializer:json"`
+	RepeatInterval string   `json:"repeatInterval,omitempty" gorm:"type:varchar(50)"` // "none", "daily", "3days", "weekly", "monthly"
+	NextRunDate    string   `json:"nextRunDate,omitempty" gorm:"type:varchar(191)"`
+	ParentID       string   `json:"parentId,omitempty" gorm:"type:varchar(191);index"` // If auto-generated
 }
 
 type History struct {
@@ -208,4 +212,30 @@ type RolePermission struct {
 	ModuleID    string `json:"moduleId" gorm:"primaryKey;type:varchar(191)"`
 	UIAccess    bool   `json:"uiAccess"`
 	APIAccess   bool   `json:"apiAccess"`
+}
+
+// Ability Tracking Models
+
+type SkillTopic struct {
+	ID         string           `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	Name       string           `json:"name" gorm:"type:varchar(191)"`
+	Subject    string           `json:"subject" gorm:"type:varchar(191)"`
+	Grade      int              `json:"grade"`
+	Objectives []SkillObjective `json:"objectives" gorm:"foreignKey:TopicID"`
+}
+
+type SkillObjective struct {
+	ID      string `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	TopicID string `json:"topicId" gorm:"type:varchar(191);index"`
+	Name    string `json:"name" gorm:"type:varchar(191)"`
+	Target  string `json:"target" gorm:"type:text"`
+}
+
+type AbilityRecord struct {
+	ID          string `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	StudentID   string `json:"studentId" gorm:"type:varchar(191);index"`
+	ObjectiveID string `json:"objectiveId" gorm:"type:varchar(191);index"`
+	Date        string `json:"date" gorm:"type:varchar(191);index"`
+	Status      string `json:"status" gorm:"type:varchar(20)"` // "Y" (Pass), "N" (Fail)
+	Accuracy    float64 `json:"accuracy"`
 }

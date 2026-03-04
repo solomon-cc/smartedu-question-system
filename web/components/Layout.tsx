@@ -3,7 +3,7 @@ import React, { useState, useContext } from 'react';
 import { AuthContext } from '../App';
 import { Role } from '../types';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, BookOpen, Clock, BarChart2, PlusCircle, Settings, Users, ClipboardList, Sun, Moon, Languages, ShieldCheck, FileText, AlertTriangle, HelpCircle, User as UserIcon, LogOut, Lock } from 'lucide-react';
+import { Menu, X, Home, BookOpen, Clock, BarChart2, PlusCircle, Target, Settings, Users, ClipboardList, Sun, Moon, Languages, ShieldCheck, FileText, AlertTriangle, HelpCircle, User as UserIcon, LogOut, Lock } from 'lucide-react';
 import { ProfileModal } from './ProfileModal';
 
 interface LayoutProps {
@@ -30,6 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
       'resources': { icon: ClipboardList, label: '素材管理', labelEn: 'Resource Assets', path: '/resources' },
       'papers': { icon: ClipboardList, label: '试卷管理', labelEn: 'Papers', path: '/papers' },
       'assignments': { icon: PlusCircle, label: '作业管理', labelEn: 'Assignments', path: '/assign' },
+      'ability_tracking': { icon: Target, label: '能力追踪', labelEn: 'Ability Tracking', path: '/ability-tracker' },
       'reinforcements': { icon: Settings, label: '强化物管理', labelEn: 'Reinforcements', path: '/reinforcements' },
       'users': { icon: Users, label: '用户管理', labelEn: 'Users', path: '/users' },
       'homework_audit': { icon: ShieldCheck, label: '作业审计', labelEn: 'Homework Audit', path: '/admin/audit' },
@@ -64,11 +65,12 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
         { id: 'resources', ...registry.resources },
         { id: 'papers', ...registry.papers },
         { id: 'assignments', ...registry.assignments },
+        { id: 'ability_tracking', ...registry.ability_tracking },
         { id: 'reinforcements', ...registry.reinforcements },
         { id: 'help_docs', ...registry.help_docs },
         // Include others
         ...Object.keys(registry)
-          .filter(id => !['dashboard', 'students', 'questions', 'resources', 'papers', 'assignments', 'reinforcements', 'help_docs'].includes(id))
+          .filter(id => !['dashboard', 'students', 'questions', 'resources', 'papers', 'assignments', 'ability_tracking', 'reinforcements', 'help_docs'].includes(id))
           .map(id => ({ id, ...registry[id] }))
       ];
     } else {

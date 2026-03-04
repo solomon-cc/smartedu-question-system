@@ -42,8 +42,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Start Background Scheduler
+	go startScheduler()
+
 	// Global Middlewares
-	r.Use(CORSMiddleware())
+ r.Use(CORSMiddleware())
 
 	// API Routes
 	api := r.Group("/api")
@@ -132,8 +135,74 @@ func main() {
 			// Analytics
 			protected.GET("/dashboard/stats", GetDashboardStats)
 			protected.GET("/dashboard/online-users", GetOnlineUsers)
+
+			// Ability Tracking
+			protected.GET("/skills", GetSkillTopics)
+			protected.GET("/ability/matrix", GetAbilityMatrix)
 		}
 	}
 
 	r.Run(":8080")
+}
+
+func startScheduler() {
+	ticker := time.NewTicker(1 * time.Hour)
+	for range ticker.C {
+		processSchedules()
+	}
+}
+
+func processSchedules() {
+	today := time.Now().Format("2006-01-02")
+	var dueHws []Homework
+	DB.Where("next_run_date = ? AND repeat_interval != '' AND repeat_interval != 'none'", today).Find(&dueHws)
+
+	for _, hw := range dueHws {
+		// Clone homework
+		newID := strconv.FormatInt(time.Now().UnixNano(), 36)
+		newHw := Homework{
+			ID:             newID,
+			TeacherID:      hw.TeacherID,
+			PaperID:        hw.PaperID,
+			Name:           fmt.Sprintf("%s (Auto)", hw.Name),
+			ClassID:        hw.ClassID,
+			StartDate:      today,
+			EndDate:        today, // Or calculate based on original duration
+			Status:         "pending",
+			Total:          hw.Total,
+			StudentIDs:     hw.StudentIDs,
+			RepeatInterval: hw.RepeatInterval,
+			ParentID:       hw.ID,
+		}
+
+		// Calculate next run for new one
+		nextRun := calculateNextRun(time.Now(), hw.RepeatInterval)
+		newHw.NextRunDate = nextRun
+
+		if err := DB.Create(&newHw).Error; err == nil {
+			// Clear next_run on OLD one to avoid double processing, 
+			// though usually we keep it and only the LATEST one has a next_run?
+			// Strategy: Only the most recent recurring homework has next_run_date.
+			hw.NextRunDate = ""
+			DB.Save(&hw)
+			fmt.Printf("[Scheduler] Auto-assigned homework: %s for %s\n", newHw.Name, today)
+		}
+	}
+}
+
+func calculateNextRun(from time.Time, interval string) string {
+	var next time.Time
+	switch interval {
+	case "daily":
+		next = from.AddDate(0, 0, 1)
+	case "3days":
+		next = from.AddDate(0, 0, 3)
+	case "weekly":
+		next = from.AddDate(0, 0, 7)
+	case "monthly":
+		next = from.AddDate(0, 1, 0)
+	default:
+		return ""
+	}
+	return next.Format("2006-01-02")
 }

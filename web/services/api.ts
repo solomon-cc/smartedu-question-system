@@ -407,5 +407,19 @@ export const api = {
       }
       if (!res.ok) throw new Error('Failed to delete resource');
     }
+  },
+  skills: {
+    list: async (): Promise<any[]> => {
+      const res = await fetch(`${API_URL}/skills`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
+    }
+  },
+  ability: {
+    matrix: async (studentId: string): Promise<any[]> => {
+      const res = await fetch(`${API_URL}/ability/matrix?studentId=${studentId}`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
+    }
   }
 };

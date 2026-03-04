@@ -35,6 +35,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   // Form State
   const [selectedPaperId, setSelectedPaperId] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [repeatInterval, setRepeatInterval] = useState<'none' | 'daily' | '3days' | 'weekly' | 'monthly'>('none');
   
   // New Filter State
   const [filterWrongBook, setFilterWrongBook] = useState(false);
@@ -199,7 +200,8 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         classId: '3-1', // Mock class
         startDate: new Date().toISOString().split('T')[0],
         endDate: deadline,
-        studentIds: selectedStudents // Backend needs to handle this (currently AssignHomework takes generic 'h')
+        studentIds: selectedStudents, // Backend needs to handle this (currently AssignHomework takes generic 'h')
+        repeatInterval: repeatInterval
       });
       setConfirmationModalProps({
         title: language === 'zh' ? '发布成功' : 'Assignment Success',
@@ -455,6 +457,23 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                 onChange={(e) => setDeadline(e.target.value)}
                 className="w-full p-4 rounded-2xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 outline-none focus:ring-4 focus:ring-primary-500/20 dark:text-white font-bold" 
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-black text-gray-400 uppercase mb-4 tracking-widest">
+                <Clock className="w-4 h-4 inline mr-1" /> {language === 'zh' ? '3. 重复布置' : '3. Repeat Setting'}
+              </label>
+              <select 
+                value={repeatInterval}
+                onChange={(e) => setRepeatInterval(e.target.value as any)}
+                className="w-full p-4 rounded-2xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 outline-none focus:ring-4 focus:ring-primary-500/20 dark:text-white font-bold"
+              >
+                <option value="none">{language === 'zh' ? '不重复' : 'No Repeat'}</option>
+                <option value="daily">{language === 'zh' ? '每天' : 'Daily'}</option>
+                <option value="3days">{language === 'zh' ? '每3天' : 'Every 3 Days'}</option>
+                <option value="weekly">{language === 'zh' ? '每周' : 'Weekly'}</option>
+                <option value="monthly">{language === 'zh' ? '每月' : 'Monthly'}</option>
+              </select>
             </div>
 
             <div className="pt-4">

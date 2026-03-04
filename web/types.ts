@@ -46,6 +46,47 @@ export interface Question {
   options?: QuestionOption[];
   answer: string;
   hint?: string;
+  objectiveId?: string;
+}
+
+export interface Homework {
+  id: string;
+  teacherId: string;
+  paperId: string;
+  name: string;
+  classId: string;
+  startDate: string;
+  endDate: string;
+  status: 'pending' | 'completed';
+  completed: number;
+  total: number;
+  studentIds: string[];
+  repeatInterval?: 'none' | 'daily' | '3days' | 'weekly' | 'monthly';
+  nextRunDate?: string;
+}
+
+export interface SkillTopic {
+  id: string;
+  name: string;
+  subject: string;
+  grade: number;
+  objectives: SkillObjective[];
+}
+
+export interface SkillObjective {
+  id: string;
+  topicId: string;
+  name: string;
+  target: string;
+}
+
+export interface AbilityRecord {
+  id: string;
+  studentId: string;
+  objectiveId: string;
+  date: string;
+  status: 'Y' | 'N';
+  accuracy: number;
 }
 
 export interface Reinforcement {
