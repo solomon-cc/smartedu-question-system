@@ -15,6 +15,14 @@ import (
 	"gorm.io/gorm"
 )
 
+func languageSelect(c *gin.Context, zh, en string) string {
+	lang := c.GetHeader("Accept-Language")
+	if strings.Contains(strings.ToLower(lang), "zh") {
+		return zh
+	}
+	return en
+}
+
 func SendJSON(c *gin.Context, code int, err string, data interface{}) {
 	c.JSON(http.StatusOK, Response{
 		Code:      code,
@@ -100,11 +108,19 @@ func RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	// Check if user exists
+	// Check if user exists (Phone)
 	var count int64
 	DB.Model(&User{}).Where("username = ?", req.PhoneNumber).Count(&count)
 	if count > 0 {
-		SendJSON(c, 1, "User already exists", nil)
+		SendJSON(c, 1, "User with this phone number already exists", nil)
+		return
+	}
+
+	// Check if Nickname exists
+	var nickCount int64
+	DB.Model(&User{}).Where("name = ?", req.Nickname).Count(&nickCount)
+	if nickCount > 0 {
+		SendJSON(c, 1, languageSelect(c, "该昵称已被占用", "Nickname already exists"), nil)
 		return
 	}
 
@@ -118,6 +134,7 @@ func RegisterHandler(c *gin.Context) {
 	newUser := User{
 		ID:       strconv.FormatInt(time.Now().UnixNano(), 36),
 		Username: req.PhoneNumber,
+		Name:     req.Nickname,
 		Password: string(hashed),
 		Role:     RoleStudent,
 		Status:   "active",

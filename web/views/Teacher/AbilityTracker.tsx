@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api.ts';
 import { User, SkillTopic, AbilityRecord } from '../../types';
 import Loading from '../../components/Loading';
-import { Target, Users, CheckCircle, XCircle, Minus, Calendar, Filter, Settings, Plus, X, Edit2, Trash2 } from 'lucide-react';
+import { Target, Users, CheckCircle, XCircle, Minus, Calendar, Filter, Settings, Plus, X, Edit2, Trash2, Printer, FileText } from 'lucide-react';
 
 const AbilityTracker: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [loading, setLoading] = useState(true);
@@ -17,6 +17,12 @@ const AbilityTracker: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [objForm, setObjForm] = useState({ id: '', topicId: '', name: '', target: '' });
   const [isTopicFormOpen, setIsTopicFormOpen] = useState(false);
   const [isObjFormOpen, setIsObjFormOpen] = useState(false);
+
+  // Report Modal States
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const [reportComments, setReportComments] = useState('');
+  const [reportTitle, setReportTitle] = useState('');
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const fetchData = async () => {
     try {
@@ -53,7 +59,11 @@ const AbilityTracker: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       };
       fetchMatrix();
     }
-  }, [selectedStudentId]);
+    const student = students.find(s => s.id === selectedStudentId);
+    if (student) {
+      setReportTitle(language === 'zh' ? `${student.username} 的能力追踪报告` : `Ability Report for ${student.username}`);
+    }
+  }, [selectedStudentId, students, language]);
 
   const getRecordStatus = (objectiveId: string) => {
     const record = abilityMatrix.find(r => r.objectiveId === objectiveId);
@@ -66,7 +76,11 @@ const AbilityTracker: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     return record ? `${record.accuracy.toFixed(0)}%` : '-';
   };
 
-  // Skill Management Functions
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // ... (Skill Management Functions remain unchanged)
   const handleSaveTopic = async () => {
     try {
       if (topicForm.id) {
@@ -131,6 +145,13 @@ const AbilityTracker: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         </div>
 
         <div className="flex items-center gap-4">
+          <button 
+            onClick={() => setIsReportOpen(true)}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
+          >
+            <FileText className="w-4 h-4" />
+            {language === 'zh' ? '生成报告' : 'Report'}
+          </button>
           <button 
             onClick={() => setIsManageOpen(true)}
             className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-4 py-2 rounded-xl font-bold hover:bg-gray-200 transition-all border dark:border-gray-700"
@@ -397,6 +418,147 @@ const AbilityTracker: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
             <div className="flex gap-3 mt-6">
               <button onClick={() => setIsObjFormOpen(false)} className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl font-bold">{language === 'zh' ? '取消' : 'Cancel'}</button>
               <button onClick={handleSaveObjective} className="flex-1 py-3 bg-primary-600 text-white rounded-xl font-bold">{language === 'zh' ? '保存' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Report Preview & Print Modal */}
+      {isReportOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm print:p-0 print:bg-white print:static">
+          <style>
+            {`
+              @media print {
+                body * { visibility: hidden; }
+                .print-area, .print-area * { visibility: visible; }
+                .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+                .no-print { display: none !important; }
+                @page { margin: 1.5cm; }
+              }
+            `}
+          </style>
+          <div className="bg-white dark:bg-gray-800 w-full max-w-4xl rounded-[2.5rem] shadow-2xl p-8 max-h-[90vh] flex flex-col border dark:border-gray-700 print:shadow-none print:border-none print:p-0 print:max-h-none print:w-full print:rounded-none">
+            <div className="flex justify-between items-center mb-6 border-b dark:border-gray-700 pb-4 no-print">
+              <h3 className="text-2xl font-black dark:text-white flex items-center gap-2">
+                <FileText className="w-6 h-6 text-blue-600" />
+                {language === 'zh' ? '报告预览与导出' : 'Report Preview'}
+              </h3>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={handlePrint}
+                  className="flex items-center gap-2 bg-primary-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/20"
+                >
+                  <Printer className="w-4 h-4" />
+                  {language === 'zh' ? '打印 / 导出 PDF' : 'Print / Export'}
+                </button>
+                <button onClick={() => setIsReportOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                  <X className="w-6 h-6 dark:text-gray-400" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-4 space-y-8 scrollbar-thin print:overflow-visible print:pr-0">
+              {/* Editable Fields in Preview (no-print) */}
+              <div className="space-y-4 no-print bg-gray-50 dark:bg-gray-900 p-6 rounded-3xl border dark:border-gray-700">
+                <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">{language === 'zh' ? '报告参数修改' : 'Report Settings'}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">{language === 'zh' ? '报告标题' : 'Title'}</label>
+                    <input 
+                      value={reportTitle}
+                      onChange={e => setReportTitle(e.target.value)}
+                      className="w-full p-3 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">{language === 'zh' ? '教师评语' : 'Comments'}</label>
+                    <textarea 
+                      value={reportComments}
+                      onChange={e => setReportComments(e.target.value)}
+                      placeholder={language === 'zh' ? '在此输入教学建议或评估总结...' : 'Enter feedback...'}
+                      className="w-full p-3 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary-500 dark:text-white h-12"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* The Actual Report Area */}
+              <div className="print-area bg-white p-8 rounded-xl border border-gray-100 shadow-sm space-y-8 text-gray-900">
+                {/* Header */}
+                <div className="flex justify-between items-start border-b-4 border-primary-600 pb-6">
+                  <div>
+                    <h1 className="text-3xl font-black text-primary-600 mb-2">{reportTitle}</h1>
+                    <div className="flex gap-4 text-sm font-bold text-gray-500">
+                      <span>{language === 'zh' ? '学生：' : 'Student: '} {students.find(s => s.id === selectedStudentId)?.username}</span>
+                      <span>{language === 'zh' ? '日期：' : 'Date: '} {new Date().toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-black text-gray-300">SMART EDU</div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Ability Matrix System</div>
+                  </div>
+                </div>
+
+                {/* Matrix Content */}
+                <div className="space-y-6">
+                  {skills.map(topic => (
+                    <div key={topic.id} className="space-y-3">
+                      <h3 className="text-lg font-black bg-gray-100 p-2 rounded-lg">{topic.name}</h3>
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="bg-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            <th className="p-3 text-left border">{language === 'zh' ? '编号' : 'ID'}</th>
+                            <th className="p-3 text-left border">{language === 'zh' ? '能力目标' : 'Objective'}</th>
+                            <th className="p-3 text-center border">{language === 'zh' ? '正确率' : 'Accuracy'}</th>
+                            <th className="p-3 text-center border">{language === 'zh' ? '状态' : 'Status'}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {topic.objectives?.map(obj => {
+                            const status = getRecordStatus(obj.id);
+                            const acc = getAccuracy(obj.id);
+                            return (
+                              <tr key={obj.id} className="text-sm font-bold border">
+                                <td className="p-3 border w-20 text-center">{obj.name}</td>
+                                <td className="p-3 border">{obj.target}</td>
+                                <td className={`p-3 border w-24 text-center ${status === 'pass' ? 'text-green-600' : status === 'fail' ? 'text-red-600' : 'text-gray-300'}`}>
+                                  {acc}
+                                </td>
+                                <td className="p-3 border w-24 text-center">
+                                  {status === 'pass' ? '✅' : status === 'fail' ? '❌' : '➖'}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Comments Section */}
+                {reportComments && (
+                  <div className="p-6 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">{language === 'zh' ? '教师综合评语' : 'Teacher Comments'}</h4>
+                    <p className="text-sm font-medium italic leading-relaxed text-gray-700 whitespace-pre-wrap">
+                      "{reportComments}"
+                    </p>
+                  </div>
+                )}
+
+                {/* Footer */}
+                <div className="pt-12 flex justify-between items-end border-t border-gray-100 mt-12">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">{language === 'zh' ? '评估标准' : 'Evaluation Standard'}</p>
+                    <p className="text-[8px] text-gray-400 leading-tight">
+                      {language === 'zh' ? 'Y: 正确率 ≥ 80%，表示已掌握。 N: 正确率 < 80%，建议继续练习。' : 'Y: Acc >= 80% (Mastered). N: Acc < 80% (Needs practice).'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="w-32 h-px bg-gray-300 mb-2"></div>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{language === 'zh' ? '教师签名' : 'Signature'}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

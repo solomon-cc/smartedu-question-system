@@ -1,19 +1,21 @@
 
 import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../App';
-import { Lock, User as UserIcon, AlertCircle, UserPlus, ArrowRight, CheckCircle2, X } from 'lucide-react';
+import { Lock, User as UserIcon, AlertCircle, UserPlus, ArrowRight, CheckCircle2, X, Languages } from 'lucide-react';
 import { api } from '../services/api.ts';
 
 interface LoginProps {
   language: 'zh' | 'en';
+  setLanguage: (lang: 'zh' | 'en') => void;
 }
 
-const Login: React.FC<LoginProps> = ({ language }) => {
+const Login: React.FC<LoginProps> = ({ language, setLanguage }) => {
   const auth = useContext(AuthContext);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isRegister, setIsRegister] = useState(false);
   const [regPhone, setRegPhone] = useState('');
+  const [regNickname, setRegNickname] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
@@ -35,7 +37,7 @@ const Login: React.FC<LoginProps> = ({ language }) => {
     setSuccess(false);
 
     if (isRegister) {
-      if (!regPhone || !regPassword || !regConfirmPassword) return;
+      if (!regPhone || !regNickname || !regPassword || !regConfirmPassword) return;
       
       if (!agreedToPrivacy) {
         setError(true);
@@ -50,13 +52,14 @@ const Login: React.FC<LoginProps> = ({ language }) => {
       }
 
       try {
-        await api.auth.register(regPhone, regPassword);
+        await api.auth.register(regPhone, regNickname, regPassword);
         setSuccess(true);
         setTimeout(() => {
           setIsRegister(false);
           setSuccess(false);
           setUsername(regPhone);
           setPassword('');
+          setRegNickname('');
           setRegPassword('');
           setRegConfirmPassword('');
         }, 1500);
@@ -78,7 +81,19 @@ const Login: React.FC<LoginProps> = ({ language }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary-50 to-blue-100 dark:from-gray-900 dark:to-primary-950">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary-50 to-blue-100 dark:from-gray-900 dark:to-primary-950 relative">
+      {/* Global Language Switcher */}
+      <div className="fixed top-6 right-6 z-[110]">
+        <button 
+          type="button"
+          onClick={() => setLanguage(language === 'zh' ? 'en' : 'zh')}
+          className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-md text-gray-600 dark:text-gray-300 text-xs font-black uppercase tracking-widest hover:bg-white dark:hover:bg-gray-700 transition-all border dark:border-gray-700 shadow-xl shadow-primary-500/10 active:scale-95 group"
+        >
+          <Languages className="w-4 h-4 text-primary-600 group-hover:rotate-12 transition-transform" />
+          {language === 'zh' ? 'English' : '中文'}
+        </button>
+      </div>
+
       <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 transition-all relative overflow-hidden">
         {/* Decor */}
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary-400 to-primary-600"></div>
@@ -125,6 +140,22 @@ const Login: React.FC<LoginProps> = ({ language }) => {
                     onChange={(e) => setRegPhone(e.target.value)}
                     className="w-full pl-12 pr-4 py-4 rounded-xl border dark:border-gray-700 dark:bg-gray-900 focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none font-bold dark:text-white"
                     placeholder={language === 'zh' ? '输入11位手机号' : 'Enter 11-digit phone number'}
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">
+                  {language === 'zh' ? '昵称' : 'Nickname'}
+                </label>
+                <div className="relative">
+                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={regNickname}
+                    onChange={(e) => setRegNickname(e.target.value)}
+                    className="w-full pl-12 pr-4 py-4 rounded-xl border dark:border-gray-700 dark:bg-gray-900 focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none font-bold dark:text-white"
+                    placeholder={language === 'zh' ? '给您的账户起个昵称' : 'Enter a nickname'}
                     required
                   />
                 </div>

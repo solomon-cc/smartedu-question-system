@@ -45,11 +45,11 @@ export const api = {
       });
       return handleResponse(res);
     },
-    register: async (phoneNumber: string, password: string): Promise<any> => {
+    register: async (phoneNumber: string, nickname: string, password: string): Promise<any> => {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber, password }),
+        body: JSON.stringify({ phoneNumber, nickname, password }),
       });
       return handleResponse(res);
     },

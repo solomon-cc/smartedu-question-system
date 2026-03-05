@@ -125,7 +125,7 @@ const App: React.FC = () => {
       <HashRouter>
         <div className={`min-h-screen ${effectiveDarkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
           <Routes>
-            <Route path="/login" element={!user ? <Login language={language} /> : <Navigate to="/" />} />
+            <Route path="/login" element={!user ? <Login language={language} setLanguage={setLanguage} /> : <Navigate to="/" />} />
             
             <Route element={user ? (
               <Layout 

@@ -24,6 +24,7 @@ type LoginRequest struct {
 
 type RegisterRequest struct {
 	PhoneNumber string `json:"phoneNumber" binding:"required"`
+	Nickname    string `json:"nickname" binding:"required"`
 	Password    string `json:"password" binding:"required"`
 }
 
