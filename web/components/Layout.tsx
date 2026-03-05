@@ -51,7 +51,6 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
         { id: 'assignments', icon: Clock, label: '答题历史', labelEn: 'History', path: '/history' },
         { id: 'dashboard', icon: AlertTriangle, label: '错题本', labelEn: 'Mistakes', path: '/wrong-book' },
         { id: 'stats', ...registry.stats },
-        { id: 'help_docs', ...registry.help_docs },
         // Include others from registry in case they are enabled via backend
         ...Object.keys(registry)
           .filter(id => !['dashboard', 'assignments', 'stats', 'help_docs'].includes(id))
@@ -67,7 +66,6 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
         { id: 'assignments', ...registry.assignments },
         { id: 'ability_tracking', ...registry.ability_tracking },
         { id: 'reinforcements', ...registry.reinforcements },
-        { id: 'help_docs', ...registry.help_docs },
         // Include others
         ...Object.keys(registry)
           .filter(id => !['dashboard', 'students', 'questions', 'resources', 'papers', 'assignments', 'ability_tracking', 'reinforcements', 'help_docs'].includes(id))
@@ -75,7 +73,9 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
       ];
     } else {
       // Admin defaults
-      candidateItems = Object.keys(registry).map(id => ({ id, ...registry[id] }));
+      candidateItems = Object.keys(registry)
+        .filter(id => id !== 'help_docs')
+        .map(id => ({ id, ...registry[id] }));
     }
 
     // 3. Filter by backend permissions
@@ -191,6 +191,17 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Help Documents */}
+            {auth?.permissions?.some(p => p.moduleId === 'help_docs' && p.uiAccess) && (
+              <Link 
+                to="/help"
+                className="p-2 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all duration-200"
+                title={language === 'zh' ? '帮助文档' : 'Help'}
+              >
+                <HelpCircle className="w-5 h-5" />
+              </Link>
+            )}
+
             {/* User Profile Dropdown */}
             <div className="relative">
               <button 
