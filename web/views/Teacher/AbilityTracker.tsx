@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api.ts';
 import { User, SkillTopic, AbilityRecord } from '../../types';
 import Loading from '../../components/Loading';
-import { Target, Users, CheckCircle, XCircle, Minus, Calendar, Filter, Settings, Plus, X, Edit2, Trash2, Printer, FileText } from 'lucide-react';
+import { Target, Users, CheckCircle, XCircle, Minus, Calendar, Filter, Settings, Plus, X, Edit2, Trash2, Printer, FileText, ChevronUp, ChevronDown } from 'lucide-react';
 
 const AbilityTracker: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   const [loading, setLoading] = useState(true);
@@ -92,6 +92,50 @@ const AbilityTracker: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       fetchData();
     } catch (e) {
       alert("Failed to save topic");
+    }
+  };
+
+  const handleMoveTopic = async (topicId: string, direction: 'up' | 'down') => {
+    const currentIndex = skills.findIndex(t => t.id === topicId);
+    if (currentIndex === -1) return;
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= skills.length) return;
+
+    const newSkills = [...skills];
+    const [moved] = newSkills.splice(currentIndex, 1);
+    newSkills.splice(newIndex, 0, moved);
+    
+    setSkills(newSkills); // Local update for instant feel
+    
+    try {
+      await api.request('/skills/order', 'PUT', { ids: newSkills.map(s => s.id) });
+    } catch (err) {
+      console.error(err);
+      fetchData(); // Rollback on error
+    }
+  };
+
+  const handleMoveObjective = async (topicId: string, objId: string, direction: 'up' | 'down') => {
+    const topic = skills.find(t => t.id === topicId);
+    if (!topic || !topic.objectives) return;
+    
+    const currentIndex = topic.objectives.findIndex(o => o.id === objId);
+    if (currentIndex === -1) return;
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= topic.objectives.length) return;
+
+    const newObjectives = [...topic.objectives];
+    const [moved] = newObjectives.splice(currentIndex, 1);
+    newObjectives.splice(newIndex, 0, moved);
+    
+    const newSkills = skills.map(t => t.id === topicId ? { ...t, objectives: newObjectives } : t);
+    setSkills(newSkills);
+    
+    try {
+      await api.request('/objectives/order', 'PUT', { topicId, ids: newObjectives.map(o => o.id) });
+    } catch (err) {
+      console.error(err);
+      fetchData(); // Rollback
     }
   };
 
@@ -309,6 +353,16 @@ const AbilityTracker: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                         <h4 className="text-xl font-black dark:text-white inline">{topic.name}</h4>
                       </div>
                       <div className="flex gap-2">
+                        <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 mr-2">
+                          <button 
+                            onClick={() => handleMoveTopic(topic.id, 'up')}
+                            className="p-1.5 text-gray-400 hover:text-primary-500 hover:bg-white dark:hover:bg-gray-700 rounded-md transition-all"
+                          ><ChevronUp className="w-4 h-4" /></button>
+                          <button 
+                            onClick={() => handleMoveTopic(topic.id, 'down')}
+                            className="p-1.5 text-gray-400 hover:text-primary-500 hover:bg-white dark:hover:bg-gray-700 rounded-md transition-all"
+                          ><ChevronDown className="w-4 h-4" /></button>
+                        </div>
                         <button 
                           onClick={() => {
                             setTopicForm({ id: topic.id, name: topic.name, subject: topic.subject, grade: topic.grade });
@@ -337,6 +391,16 @@ const AbilityTracker: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                             </div>
                           </div>
                           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex bg-gray-50 dark:bg-gray-900 rounded-lg border dark:border-gray-700 p-0.5">
+                              <button 
+                                onClick={() => handleMoveObjective(topic.id, obj.id, 'up')}
+                                className="p-1 text-gray-400 hover:text-primary-500 hover:bg-white dark:hover:bg-gray-800 rounded-md transition-all"
+                              ><ChevronUp className="w-3.5 h-3.5" /></button>
+                              <button 
+                                onClick={() => handleMoveObjective(topic.id, obj.id, 'down')}
+                                className="p-1 text-gray-400 hover:text-primary-500 hover:bg-white dark:hover:bg-gray-800 rounded-md transition-all"
+                              ><ChevronDown className="w-3.5 h-3.5" /></button>
+                            </div>
                             <button 
                               onClick={() => {
                                 setObjForm({ id: obj.id, topicId: topic.id, name: obj.name, target: obj.target });

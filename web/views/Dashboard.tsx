@@ -146,59 +146,80 @@ const TeacherDashboard: React.FC<DashboardProps> = ({ language }) => {
 
   return (
     <div className="p-4 space-y-8 animate-in slide-in-from-right-4 duration-500">
-      <h1 className="text-2xl font-bold dark:text-white">{language === 'zh' ? '教师控制台' : 'Teacher Console'}</h1>
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm">
-          <h3 className="text-gray-500 text-sm mb-1">{language === 'zh' ? '今日布置作业' : 'Today Assigned'}</h3>
-          <p className="text-3xl font-bold dark:text-white">{stats.todayAssigned || 0}</p>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-black dark:text-white uppercase tracking-tight">{language === 'zh' ? '教师工作台' : 'Teacher Command Center'}</h1>
+        <div className="text-xs font-black uppercase tracking-widest text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 rounded-full border dark:border-gray-700 shadow-sm">
+          {new Date().toLocaleDateString()}
         </div>
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm">
-          <h3 className="text-gray-500 text-sm mb-1">{language === 'zh' ? '作业完成率' : 'Completion Rate'}</h3>
-          <p className="text-3xl font-bold dark:text-white">{Math.round(stats.completionRate || 0)}%</p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <div 
+          onClick={() => navigate('/students')}
+          className="p-8 bg-white dark:bg-gray-800 rounded-[2.5rem] border dark:border-gray-700 shadow-sm cursor-pointer hover:border-primary-400 transition-all group"
+        >
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{language === 'zh' ? '管理学生总数' : 'Total Students'}</h3>
+              <p className="text-4xl font-black dark:text-white group-hover:text-primary-600 transition-colors">{stats.studentSummaries?.length || 0}</p>
+            </div>
+            <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-2xl text-primary-600 group-hover:scale-110 transition-transform">
+              <Users className="w-8 h-8" />
+            </div>
+          </div>
         </div>
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm">
-          <h3 className="text-gray-500 text-sm mb-1">{language === 'zh' ? '学生正确率' : 'Accuracy Rate'}</h3>
-          <p className="text-3xl font-bold dark:text-white text-green-500">{(stats.accuracyRate * 100).toFixed(1)}%</p>
+
+        <div 
+          onClick={() => navigate('/ability-tracking')}
+          className="p-8 bg-white dark:bg-gray-800 rounded-[2.5rem] border dark:border-gray-700 shadow-sm cursor-pointer hover:border-amber-400 transition-all group"
+        >
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{language === 'zh' ? '重点能力追踪' : 'Capability Focus'}</h3>
+              <p className="text-xl font-black dark:text-white group-hover:text-amber-600 transition-colors mt-2">{language === 'zh' ? '查看学生能力矩阵' : 'View Ability Matrix'}</p>
+            </div>
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl text-amber-600 group-hover:scale-110 transition-transform">
+              <Target className="w-8 h-8" />
+            </div>
+          </div>
         </div>
       </div>
       
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border dark:border-gray-700 shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold dark:text-white">{language === 'zh' ? '快捷功能' : 'Quick Actions'}</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-[2rem] p-8 border dark:border-gray-700 shadow-sm flex flex-col justify-center">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-black dark:text-white uppercase tracking-widest">{language === 'zh' ? '快捷功能' : 'Quick Actions'}</h2>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-             <button onClick={() => navigate('/questions')} className="p-4 bg-primary-50 dark:bg-primary-900/20 text-primary-600 rounded-xl font-medium hover:bg-primary-100 transition-colors">
-               题目库管理
+          <div className="grid grid-cols-2 gap-4">
+             <button onClick={() => navigate('/questions')} className="p-6 bg-primary-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/20 active:scale-95">
+               题目库
              </button>
-             <button onClick={() => navigate('/assign')} className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl font-medium hover:bg-blue-100 transition-colors">
-               作业管理
+             <button onClick={() => navigate('/assign')} className="p-6 bg-white dark:bg-gray-900 text-primary-600 border-2 border-primary-100 dark:border-primary-900 rounded-2xl font-black uppercase tracking-widest hover:bg-primary-50 transition-all active:scale-95">
+               作业布置
              </button>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border dark:border-gray-700 shadow-sm">
-          <h2 className="text-lg font-bold mb-4 dark:text-white">{language === 'zh' ? '最近作业情况' : 'Recent HW Status'}</h2>
-          <div className="space-y-4">
-            {stats.recentHomeworks?.map((item: any, i: number) => (
-              <div 
-                key={i} 
-                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                onClick={() => navigate(`/assign?id=${item.id}`)}
-              >
-                 <div className="flex items-center gap-3">
-                   <div className="w-10 h-10 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center font-bold">A</div>
-                   <div>
-                      <p className="font-bold dark:text-white">{item.name}</p>
-                      <p className="text-xs text-gray-500">{item.date}</p>
-                   </div>
-                 </div>
-                 <div className="flex items-center gap-3">
-                    <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">{language === 'zh' ? '已完成' : 'Done'} {item.completed}/{item.total}</span>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                 </div>
-              </div>
-            ))}
+        <div className="bg-white dark:bg-gray-800 rounded-[2rem] p-8 border dark:border-gray-700 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-black dark:text-white uppercase tracking-widest">{language === 'zh' ? '总体学情' : 'Overall Status'}</h2>
+            <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-600">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="space-y-6">
+             <div>
+                <div className="flex justify-between mb-2">
+                   <span className="text-xs font-black text-gray-400 uppercase">{language === 'zh' ? '全班作业完成率' : 'Total HW Completion'}</span>
+                   <span className="text-xs font-black text-primary-600">{Math.round(stats.completionRate || 0)}%</span>
+                </div>
+                <div className="h-3 bg-gray-100 dark:bg-gray-900 rounded-full overflow-hidden">
+                   <div className="h-full bg-primary-500 rounded-full" style={{ width: `${stats.completionRate || 0}%` }}></div>
+                </div>
+             </div>
+             <p className="text-xs text-gray-400 font-medium leading-relaxed italic">
+               {language === 'zh' ? '* 这里展示了你所负责的所有班级的平均作业完成情况。' : '* Displays average completion rate across all your classes.'}
+             </p>
           </div>
         </div>
       </div>
@@ -366,7 +387,7 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
         </div>
 
         <div 
-          onClick={() => navigate('/stats')}
+          onClick={() => navigate('/questions')}
           className="p-8 bg-white dark:bg-gray-800 rounded-[2.5rem] border dark:border-gray-700 shadow-sm cursor-pointer hover:border-purple-400 transition-all group"
         >
           <div className="flex justify-between items-start">

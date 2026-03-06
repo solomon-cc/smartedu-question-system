@@ -36,6 +36,14 @@ const handleResponse = async (res: Response) => {
 };
 
 export const api = {
+  request: async (path: string, method: string = 'GET', body?: any) => {
+    const res = await fetch(`${API_URL}${path}`, {
+      method,
+      headers: getHeaders(),
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return handleResponse(res);
+  },
   auth: {
     login: async (username: string, password: string): Promise<{ user: User; token: string }> => {
       const res = await fetch(`${API_URL}/auth/login`, {

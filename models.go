@@ -39,6 +39,8 @@ type Question struct {
 	Options     []Option `json:"options,omitempty" gorm:"serializer:json"`
 	Hint        string   `json:"hint,omitempty" gorm:"type:text"`
 	ObjectiveID string   `json:"objectiveId,omitempty" gorm:"type:varchar(191);index"`
+	Attempts    int      `json:"attempts"`
+	CorrectRate float64  `json:"correctRate"`
 }
 
 type Option struct {
@@ -222,14 +224,16 @@ type SkillTopic struct {
 	Name       string           `json:"name" gorm:"type:varchar(191)"`
 	Subject    string           `json:"subject" gorm:"type:varchar(191)"`
 	Grade      int              `json:"grade"`
+	SortOrder  int              `json:"sortOrder"`
 	Objectives []SkillObjective `json:"objectives" gorm:"foreignKey:TopicID"`
 }
 
 type SkillObjective struct {
-	ID      string `json:"id" gorm:"primaryKey;type:varchar(191)"`
-	TopicID string `json:"topicId" gorm:"type:varchar(191);index"`
-	Name    string `json:"name" gorm:"type:varchar(191)"`
-	Target  string `json:"target" gorm:"type:text"`
+	ID        string `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	TopicID   string `json:"topicId" gorm:"type:varchar(191);index"`
+	Name      string `json:"name" gorm:"type:varchar(191)"`
+	Target    string `json:"target" gorm:"type:text"`
+	SortOrder int    `json:"sortOrder"`
 }
 
 type AbilityRecord struct {

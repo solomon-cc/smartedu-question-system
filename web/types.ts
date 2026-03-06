@@ -47,6 +47,8 @@ export interface Question {
   answer: string;
   hint?: string;
   objectiveId?: string;
+  attempts?: number;
+  correctRate?: number;
 }
 
 export interface Homework {

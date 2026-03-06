@@ -587,6 +587,31 @@ func GetQuestions(c *gin.Context) {
 	})
 }
 
+// Helper to auto-register resources
+func registerResourceIfNew(c *gin.Context, url string, name string) {
+	if url == "" || strings.HasPrefix(url, "data:") { return }
+	
+	userId, _ := c.Get("userId")
+	uid := fmt.Sprintf("%v", userId)
+
+	// Check if already exists to avoid duplicates
+	var count int64
+	DB.Model(&Resource{}).Where("url = ?", url).Count(&count)
+	if count > 0 { return }
+
+	res := Resource{
+		ID:         strconv.FormatInt(time.Now().UnixNano(), 36),
+		Name:       name,
+		URL:        url,
+		Type:       "image",
+		Tags:       []string{"auto-uploaded", "question-asset"},
+		Visibility: "public",
+		CreatorID:  uid,
+		CreatedAt:  time.Now().Format("2006-01-02 15:04:05"),
+	}
+	DB.Create(&res)
+}
+
 func CreateQuestion(c *gin.Context) {
 	var q Question
 	if err := c.ShouldBindJSON(&q); err != nil {
@@ -599,6 +624,7 @@ func CreateQuestion(c *gin.Context) {
 		url, err := UploadBase64ToOSS(q.StemImage)
 		if err == nil {
 			q.StemImage = url
+			registerResourceIfNew(c, url, fmt.Sprintf("Question Stem: %s", q.StemText))
 		}
 	}
 
@@ -608,6 +634,7 @@ func CreateQuestion(c *gin.Context) {
 			url, err := UploadBase64ToOSS(opt.Image)
 			if err == nil {
 				q.Options[i].Image = url
+				registerResourceIfNew(c, url, fmt.Sprintf("Option %s: %s", opt.Value, q.StemText))
 			}
 		}
 	}
@@ -634,6 +661,7 @@ func UpdateQuestion(c *gin.Context) {
 		url, err := UploadBase64ToOSS(q.StemImage)
 		if err == nil {
 			q.StemImage = url
+			registerResourceIfNew(c, url, fmt.Sprintf("Question Stem: %s", q.StemText))
 		}
 	}
 
@@ -643,6 +671,7 @@ func UpdateQuestion(c *gin.Context) {
 			url, err := UploadBase64ToOSS(opt.Image)
 			if err == nil {
 				q.Options[i].Image = url
+				registerResourceIfNew(c, url, fmt.Sprintf("Option %s: %s", opt.Value, q.StemText))
 			}
 		}
 	}
@@ -998,11 +1027,29 @@ func CreateHistory(c *gin.Context) {
 
 				// 2. Track Ability (if objective is present)
 				var q Question
-				if err := DB.Select("objective_id").First(&q, "id = ?", res.ID).Error; err == nil && q.ObjectiveID != "" {
-					stats := objStats[q.ObjectiveID]
-					stats.Total++
-					if isCorrect { stats.Correct++ }
-					objStats[q.ObjectiveID] = stats
+				if err := DB.Select("objective_id").First(&q, "id = ?", res.ID).Error; err == nil {
+					// Update global Question stats
+					var fullQ Question
+					if err := DB.First(&fullQ, "id = ?", res.ID).Error; err == nil {
+						fullQ.Attempts++
+						correctCount := 0
+						if isCorrect { correctCount = 1 }
+						// Recalculate CorrectRate
+						// Previous total correct = CorrectRate * (Attempts-1) / 100
+						prevTotalCorrect := (fullQ.CorrectRate * float64(fullQ.Attempts-1)) / 100
+						fullQ.CorrectRate = (prevTotalCorrect + float64(correctCount)) / float64(fullQ.Attempts) * 100
+						DB.Model(&Question{}).Where("id = ?", fullQ.ID).Updates(map[string]interface{}{
+							"attempts":     fullQ.Attempts,
+							"correct_rate": fullQ.CorrectRate,
+						})
+					}
+
+					if q.ObjectiveID != "" {
+						stats := objStats[q.ObjectiveID]
+						stats.Total++
+						if isCorrect { stats.Correct++ }
+						objStats[q.ObjectiveID] = stats
+					}
 				}
 			}
 
@@ -1757,7 +1804,9 @@ func UpdateRolePermissions(c *gin.Context) {
 
 func GetSkillTopics(c *gin.Context) {
 	var topics []SkillTopic
-	DB.Preload("Objectives").Find(&topics)
+	DB.Preload("Objectives", func(db *gorm.DB) *gorm.DB {
+		return db.Order("skill_objectives.sort_order ASC")
+	}).Order("sort_order ASC").Find(&topics)
 	SendJSON(c, 0, "", topics)
 }
 
@@ -1768,6 +1817,11 @@ func CreateSkillTopic(c *gin.Context) {
 		return
 	}
 	topic.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
+	
+	var maxOrder int
+	DB.Model(&SkillTopic{}).Select("COALESCE(MAX(sort_order), 0)").Scan(&maxOrder)
+	topic.SortOrder = maxOrder + 1
+
 	DB.Create(&topic)
 	SendJSON(c, 0, "", topic)
 }
@@ -1805,6 +1859,11 @@ func CreateSkillObjective(c *gin.Context) {
 		return
 	}
 	obj.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
+	
+	var maxOrder int
+	DB.Model(&SkillObjective{}).Where("topic_id = ?", obj.TopicID).Select("COALESCE(MAX(sort_order), 0)").Scan(&maxOrder)
+	obj.SortOrder = maxOrder + 1
+
 	DB.Create(&obj)
 	SendJSON(c, 0, "", obj)
 }
@@ -1831,6 +1890,37 @@ func DeleteSkillObjective(c *gin.Context) {
 	id := c.Param("id")
 	DB.Delete(&SkillObjective{}, "id = ?", id)
 	SendJSON(c, 0, "", gin.H{"message": "Deleted"})
+}
+
+func UpdateSkillOrder(c *gin.Context) {
+	var body struct {
+		IDs []string `json:"ids"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+
+	for i, id := range body.IDs {
+		DB.Model(&SkillTopic{}).Where("id = ?", id).Update("sort_order", i+1)
+	}
+	SendJSON(c, 0, "", nil)
+}
+
+func UpdateObjectiveOrder(c *gin.Context) {
+	var body struct {
+		TopicID string   `json:"topicId"`
+		IDs     []string `json:"ids"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+
+	for i, id := range body.IDs {
+		DB.Model(&SkillObjective{}).Where("id = ? AND topic_id = ?", id, body.TopicID).Update("sort_order", i+1)
+	}
+	SendJSON(c, 0, "", nil)
 }
 
 func GetAbilityMatrix(c *gin.Context) {

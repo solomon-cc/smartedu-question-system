@@ -56,38 +56,6 @@ func InitDB() error {
 		return err
 	}
 
-	// Seed Skill Data
-	var skillCount int64
-	DB.Model(&SkillTopic{}).Count(&skillCount)
-	if skillCount == 0 {
-		topics := []SkillTopic{
-			{
-				ID: "t1", Name: "1-2 比较", Subject: "MATH", Grade: 1,
-				Objectives: []SkillObjective{
-					{ID: "o1", Name: "1", Target: "可以比较图形多少，可以使用 xx比xx多/少"},
-					{ID: "o2", Name: "2", Target: "可以比较数字大小，可以使用 xx比xx大/小"},
-					{ID: "o3", Name: "3", Target: "可以使用大于/小于"},
-				},
-			},
-			{
-				ID: "t2", Name: "1-3 排序和数列", Subject: "MATH", Grade: 1,
-				Objectives: []SkillObjective{
-					{ID: "o4", Name: "1", Target: "可以说出比xx大1/小1的数是xx"},
-					{ID: "o5", Name: "2", Target: "可以填写完整的数列"},
-				},
-			},
-			{
-				ID: "t3", Name: "2 数的组成", Subject: "MATH", Grade: 1,
-				Objectives: []SkillObjective{
-					{ID: "o6", Name: "1", Target: "可以拆分积木，说出1-5的分解"},
-					{ID: "o7", Name: "2", Target: "可以拆分积木，说出6-10的分解"},
-					{ID: "o8", Name: "3", Target: "知道xx和xx可以组成xx (2-5)"},
-				},
-			},
-		}
-		DB.Create(&topics)
-	}
-
 	// Seed initial users
 	var count int64
 	DB.Model(&User{}).Count(&count)

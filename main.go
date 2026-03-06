@@ -143,9 +143,13 @@ func main() {
 			protected.POST("/skills", CreateSkillTopic)
 			protected.PUT("/skills/:id", UpdateSkillTopic)
 			protected.DELETE("/skills/:id", DeleteSkillTopic)
+			protected.PUT("/skills/order", UpdateSkillOrder)
+
 			protected.POST("/objectives", CreateSkillObjective)
 			protected.PUT("/objectives/:id", UpdateSkillObjective)
 			protected.DELETE("/objectives/:id", DeleteSkillObjective)
+			protected.PUT("/objectives/order", UpdateObjectiveOrder)
+
 			protected.GET("/ability/matrix", GetAbilityMatrix)
 		}
 	}
