@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Question, QuestionType, Subject, AttemptState } from '../../types';
 import { api } from '../../services/api.ts';
 import { REVERSE_TYPE_MAP, SUBJECTS } from '../../utils.ts';
-import { X, ChevronRight, CheckCircle2, HelpCircle, Trophy, PlayCircle, RefreshCcw, Hand, Timer, Brain, Zap, Activity } from 'lucide-react';
+import { X, ChevronRight, CheckCircle2, HelpCircle, Trophy, PlayCircle, RefreshCcw, Hand, Timer, Brain, Zap, Activity, AlertTriangle } from 'lucide-react';
 
 interface PracticeSessionProps {
   language: 'zh' | 'en';
@@ -201,6 +201,7 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
   const [totalAnswered, setTotalAnswered] = useState(0);
   const [totalInitial, setTotalInitial] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [sessionDetails, setSessionDetails] = useState<any[]>([]); // Keep for compatibility if needed, but we'll build final result from logs
   const [reinforcements, setReinforcements] = useState<any[]>([]);
   const [activeReinforcement, setActiveReinforcement] = useState<any>(null);
@@ -221,10 +222,13 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
     const fetchQuestions = async () => {
       setLoading(true);
       try {
-        const [reinData] = await Promise.all([
-           api.reinforcements.list()
-        ]);
-        setReinforcements(reinData);
+        // Fetch reinforcements separately so it doesn't block questions
+        try {
+          const reinData = await api.reinforcements.list();
+          setReinforcements(reinData);
+        } catch (reErr) {
+          console.warn("Failed to fetch reinforcements, continuing without them", reErr);
+        }
 
         let data: Question[] = [];
         if (homeworkId) {
@@ -242,6 +246,10 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
           data = res.list || [];
         }
         
+        if (data.length === 0) {
+          console.warn("No questions found for the selected criteria.");
+        }
+
         // Populate question map
         data.forEach(q => {
           questionMap.current[q.id] = q;
@@ -252,8 +260,10 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
 
         setQueue(data);
         setTotalInitial(data.length);
-      } catch (e) {
-        console.error(e);
+      } catch (e: any) {
+        console.error("Critical error in fetchQuestions:", e);
+        // Set error state instead of using alert()
+        setError(e.message || (language === 'zh' ? '获取题目失败，请检查网络或权限。' : 'Failed to fetch questions. Please check your network or permissions.'));
       } finally {
         setLoading(false);
       }
@@ -449,14 +459,62 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
-        <div className="text-xl font-bold dark:text-white">Loading...</div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+        <div className="text-xl font-black dark:text-white animate-pulse">
+          {language === 'zh' ? '正在准备练习内容...' : 'Preparing your session...'}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-white dark:bg-gray-900 p-12 rounded-[3rem] shadow-2xl border dark:border-gray-800 max-w-md w-full animate-in zoom-in-95 duration-500">
+           <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-3xl flex items-center justify-center mx-auto mb-8">
+              <AlertTriangle className="w-10 h-10 text-red-600 dark:text-red-400" />
+           </div>
+           <h2 className="text-2xl font-black dark:text-white mb-4">
+             {language === 'zh' ? '糟糕，出错了' : 'Oops, Something Failed'}
+           </h2>
+           <p className="text-gray-500 dark:text-gray-400 font-bold mb-10 leading-relaxed">
+             {error}
+           </p>
+           <button 
+            onClick={() => navigate('/')}
+            className="w-full py-4 bg-primary-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary-500/30 hover:bg-primary-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+           >
+             <ChevronRight className="w-5 h-5 rotate-180" />
+             {language === 'zh' ? '返回首页' : 'RETURN HOME'}
+           </button>
+        </div>
       </div>
     );
   }
 
   if (queue.length === 0 && !showReinforcement) {
-      return null;
+      return (
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center p-6 text-center">
+          <div className="bg-white dark:bg-gray-900 p-12 rounded-[3rem] shadow-2xl border dark:border-gray-800 max-w-md w-full animate-in zoom-in-95 duration-500">
+             <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                <HelpCircle className="w-10 h-10 text-amber-600 dark:text-amber-400" />
+             </div>
+             <h2 className="text-2xl font-black dark:text-white mb-4">
+               {language === 'zh' ? '暂无题目' : 'No Questions Found'}
+             </h2>
+             <p className="text-gray-500 dark:text-gray-400 font-bold mb-10 leading-relaxed">
+               {language === 'zh' ? '没找到符合条件的题目，去看看别的吧。' : 'We couldn\'t find any questions matching your selection.'}
+             </p>
+             <button 
+              onClick={() => navigate('/')}
+              className="w-full py-4 bg-primary-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary-500/30 hover:bg-primary-700 transition-all active:scale-95"
+             >
+               {language === 'zh' ? '返回首页' : 'RETURN HOME'}
+             </button>
+          </div>
+        </div>
+      );
   }
 
   const effectiveDark = getEffectiveDarkMode();

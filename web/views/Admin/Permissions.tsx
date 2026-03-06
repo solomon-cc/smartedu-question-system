@@ -90,14 +90,8 @@ const Permissions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     const newPerms = editingRole.permissions.map(p => {
       if (p.id === moduleId) {
         const newVal = !p[type];
-        // Rules: API access usually implies UI visibility
-        if (type === 'api' && newVal) {
-          return { ...p, api: true, ui: true };
-        }
-        // Rules: Removing UI visibility usually removes API access
-        if (type === 'ui' && !newVal) {
-          return { ...p, ui: false, api: false };
-        }
+        // Decouple UI and API access to allow more granular control
+        // Users can now set API access without UI visibility, or vice versa
         return { ...p, [type]: newVal };
       }
       return p;
