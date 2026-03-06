@@ -176,102 +176,70 @@ const AbilityTracker: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   if (loading) return <Loading />;
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500 relative">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+    <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-500 relative pb-20">
+      {/* Header & Student Selector */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-gray-800 p-6 rounded-[2rem] border dark:border-gray-700 shadow-sm">
         <div>
-          <h2 className="text-3xl font-black dark:text-white flex items-center gap-3">
-            <Target className="w-8 h-8 text-primary-600" />
-            {language === 'zh' ? '学生能力追踪' : 'Ability Tracking'}
+          <h2 className="text-2xl font-black dark:text-white flex items-center gap-2">
+            <Target className="w-6 h-6 text-primary-600" />
+            {language === 'zh' ? '能力追踪矩阵' : 'Ability Matrix'}
           </h2>
-          <p className="text-gray-500 mt-2 font-bold">
-            {language === 'zh' ? '基于作业和练习表现的能力点矩阵' : 'Mastery matrix based on performance'}
+          <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">
+            {language === 'zh' ? '实时掌握学生知识点达成情况' : 'Real-time mastery tracking'}
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setIsReportOpen(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
-          >
-            <FileText className="w-4 h-4" />
-            {language === 'zh' ? '生成报告' : 'Report'}
-          </button>
-          <button 
-            onClick={() => setIsManageOpen(true)}
-            className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-4 py-2 rounded-xl font-bold hover:bg-gray-200 transition-all border dark:border-gray-700"
-          >
-            <Settings className="w-4 h-4" />
-            {language === 'zh' ? '管理能力体系' : 'Manage Skills'}
-          </button>
-          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded-[1.5rem] border dark:border-gray-700 shadow-sm">
-            <Users className="w-5 h-5 text-gray-400 ml-2" />
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-3 w-full md:w-auto">
+          <span className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]">{language === 'zh' ? '切换学生查看：' : 'Switch Student:'}</span>
+          <div className="flex-1 md:flex-none flex items-center gap-3 bg-primary-50 dark:bg-primary-900/20 px-6 py-3.5 rounded-2xl border-2 border-primary-100 dark:border-primary-800 shadow-sm group focus-within:border-primary-500 transition-all min-w-[220px]">
+            <Users className="w-5 h-5 text-primary-600" />
             <select 
               value={selectedStudentId}
               onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="bg-transparent border-none outline-none font-black dark:text-white pr-4"
+              className="bg-transparent border-none outline-none font-black text-lg dark:text-white flex-1 cursor-pointer appearance-none"
             >
               {students.map(s => (
-                <option key={s.id} value={s.id}>{s.username}</option>
+                <option key={s.id} value={s.id} className="dark:bg-gray-800">{s.username}</option>
               ))}
             </select>
+            <ChevronDown className="w-4 h-4 text-primary-600 group-focus-within:rotate-180 transition-transform" />
           </div>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-12 gap-8">
-        {/* Ability Legend */}
-        <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-[2.5rem] border dark:border-gray-700 shadow-sm">
-            <h3 className="font-black dark:text-white mb-6 flex items-center gap-2">
-              <Filter className="w-4 h-4" />
-              {language === 'zh' ? '图例' : 'Legend'}
-            </h3>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="font-bold dark:text-white text-sm">{language === 'zh' ? '已掌握 (Y)' : 'Mastered'}</p>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{language === 'zh' ? '正确率 ≥ 80%' : 'Acc >= 80%'}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                  <XCircle className="w-6 h-6 text-red-600" />
-                </div>
-                <div>
-                  <p className="font-bold dark:text-white text-sm">{language === 'zh' ? '未达标 (N)' : 'Need Practice'}</p>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{language === 'zh' ? '正确率 < 80%' : 'Acc < 80%'}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-gray-700/50 flex items-center justify-center">
-                  <Minus className="w-6 h-6 text-gray-400" />
-                </div>
-                <div>
-                  <p className="font-bold dark:text-white text-sm">{language === 'zh' ? '暂无数据' : 'No Data'}</p>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{language === 'zh' ? '尚未练习' : 'Not Attempted'}</p>
-                </div>
-              </div>
+      {/* Primary Actions Bar */}
+      <div className="grid grid-cols-2 gap-4">
+          <button 
+            onClick={() => setIsReportOpen(true)}
+            className="flex items-center justify-center gap-3 bg-primary-600 text-white p-5 rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-500/20 active:scale-95 group"
+          >
+            <div className="p-2 bg-white/20 rounded-lg group-hover:rotate-12 transition-transform">
+               <FileText className="w-5 h-5" />
             </div>
-          </div>
+            {language === 'zh' ? '生成分析报告' : 'Create Report'}
+          </button>
+          
+          <button 
+            onClick={() => setIsManageOpen(true)}
+            className="flex items-center justify-center gap-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 p-5 rounded-[1.5rem] font-black uppercase tracking-widest hover:border-primary-500 border-2 border-transparent transition-all shadow-sm active:scale-95 group"
+          >
+            <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg group-hover:spin-slow transition-transform">
+               <Settings className="w-5 h-5" />
+            </div>
+            {language === 'zh' ? '管理能力体系' : 'Manage System'}
+          </button>
+      </div>
 
-          <div className="bg-primary-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-primary-600/20">
-             <Calendar className="w-10 h-10 mb-4 opacity-50" />
-             <h4 className="text-xl font-black mb-2">{language === 'zh' ? '周期复习' : 'Spaced Repetition'}</h4>
-             <p className="text-primary-100 text-sm font-bold leading-relaxed">
-               {language === 'zh' ? '系统已自动分析学生薄弱环节，并在布置作业时提供自动重复功能。' : 'System analyzes weaknesses and offers automated repetition in assignments.'}
-             </p>
-          </div>
-        </div>
-
-        {/* Matrix Main View */}
-        <div className="lg:col-span-9 space-y-6">
+      {/* Main Content: Matrix Data First */}
+      <div className="space-y-6">
           {skills.map(topic => (
-            <div key={topic.id} className="bg-white dark:bg-gray-800 rounded-[2.5rem] border dark:border-gray-700 shadow-sm overflow-hidden">
-              <div className="bg-gray-50 dark:bg-gray-900/50 px-8 py-5 border-b dark:border-gray-700">
-                <h3 className="font-black text-lg dark:text-white">{topic.name}</h3>
+            <div key={topic.id} className="bg-white dark:bg-gray-800 rounded-[2.5rem] border dark:border-gray-700 shadow-sm overflow-hidden animate-in slide-in-from-bottom-4">
+              <div className="bg-gray-50 dark:bg-gray-900/50 px-8 py-5 border-b dark:border-gray-700 flex justify-between items-center">
+                <h3 className="font-black text-lg dark:text-white flex items-center gap-2">
+                   <div className="w-2 h-6 bg-primary-500 rounded-full"></div>
+                   {topic.name}
+                </h3>
+                <span className="text-[10px] font-black bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full uppercase tracking-widest">{topic.subject}</span>
               </div>
               <div className="divide-y dark:divide-gray-700">
                 {topic.objectives?.map(obj => {
@@ -282,25 +250,25 @@ const AbilityTracker: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                     <div key={obj.id} className="px-8 py-6 flex items-center justify-between group hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
                       <div className="flex-1 pr-8">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="px-2 py-0.5 bg-primary-100 dark:bg-primary-900/30 text-primary-600 text-[10px] font-black rounded-lg uppercase">Objective {obj.name}</span>
+                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Objective {obj.name}</span>
                         </div>
-                        <p className="font-bold dark:text-gray-200">{obj.target}</p>
+                        <p className="font-bold dark:text-gray-200 leading-relaxed">{obj.target}</p>
                       </div>
                       
-                      <div className="flex items-center gap-8">
+                      <div className="flex items-center gap-6">
                         <div className="text-right">
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{language === 'zh' ? '掌握度' : 'Accuracy'}</p>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{language === 'zh' ? '达成率' : 'Accuracy'}</p>
                           <p className={`text-xl font-black ${status === 'pass' ? 'text-green-500' : status === 'fail' ? 'text-red-500' : 'text-gray-300'}`}>{acc}</p>
                         </div>
                         
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                          status === 'pass' ? 'bg-green-100 dark:bg-green-900/20' : 
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+                          status === 'pass' ? 'bg-green-100 dark:bg-green-900/20 scale-110 shadow-lg shadow-green-500/10' : 
                           status === 'fail' ? 'bg-red-100 dark:bg-red-900/20' : 
                           'bg-gray-50 dark:bg-gray-700/50'
                         }`}>
-                          {status === 'pass' ? <CheckCircle className="w-8 h-8 text-green-600" /> : 
-                           status === 'fail' ? <XCircle className="w-8 h-8 text-red-600" /> : 
-                           <Minus className="w-8 h-8 text-gray-300" />}
+                          {status === 'pass' ? <CheckCircle className="w-6 h-6 text-green-600" /> : 
+                           status === 'fail' ? <XCircle className="w-6 h-6 text-red-600" /> : 
+                           <Minus className="w-6 h-6 text-gray-300" />}
                         </div>
                       </div>
                     </div>
@@ -311,12 +279,52 @@ const AbilityTracker: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
           ))}
 
           {skills.length === 0 && (
-            <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-[2.5rem] border dark:border-gray-700">
+            <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-[2.5rem] border dark:border-gray-700 shadow-sm">
               <Target className="w-16 h-16 text-gray-200 mx-auto mb-4" />
               <p className="text-gray-400 font-bold">{language === 'zh' ? '暂未配置能力点' : 'No ability objectives configured'}</p>
             </div>
           )}
-        </div>
+      </div>
+
+      {/* Bottom Info: Legend & Repetition */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 pt-10 border-t dark:border-gray-800">
+          {/* Ability Legend */}
+          <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border dark:border-gray-700 shadow-sm">
+            <h3 className="text-xs font-black text-gray-400 dark:text-gray-500 mb-6 flex items-center gap-2 uppercase tracking-[0.2em]">
+              {language === 'zh' ? '评估图例' : 'Matrix Legend'}
+            </h3>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-black dark:text-white text-sm uppercase tracking-tight">{language === 'zh' ? '已掌握' : 'Mastered'}</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase">{language === 'zh' ? '正确率 ≥ 80%' : 'Acc >= 80%'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                  <XCircle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="font-black dark:text-white text-sm uppercase tracking-tight">{language === 'zh' ? '未达标' : 'Need Work'}</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase">{language === 'zh' ? '正确率 < 80%' : 'Acc < 80%'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 bg-gradient-to-br from-primary-600 to-indigo-700 p-8 rounded-[2.5rem] text-white shadow-xl shadow-primary-500/20 relative overflow-hidden group">
+             <div className="relative z-10">
+                <Calendar className="w-10 h-10 mb-4 opacity-50 group-hover:rotate-12 transition-transform" />
+                <h4 className="text-xl font-black mb-2 uppercase tracking-tight">{language === 'zh' ? '智能周期复习' : 'AI Spaced Repetition'}</h4>
+                <p className="text-primary-100 text-sm font-bold leading-relaxed max-w-xl">
+                  {language === 'zh' ? '系统已自动分析学生薄弱环节，并在布置作业时提供自动重复功能，帮助学生巩固已发现的知识漏洞。' : 'System analyzes weaknesses and offers automated repetition in assignments to bridge knowledge gaps.'}
+                </p>
+             </div>
+             <div className="absolute right-[-20px] bottom-[-20px] text-white/5 text-9xl font-black rotate-12 select-none">RE-DO</div>
+          </div>
       </div>
 
       {/* Skill Management Modal */}

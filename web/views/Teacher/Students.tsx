@@ -124,9 +124,9 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   );
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-120px)] gap-6 animate-in fade-in duration-500 relative">
+    <div className="flex flex-col lg:flex-row min-h-[calc(100vh-120px)] gap-6 animate-in fade-in duration-500 relative">
       {/* Left List */}
-      <div className="w-full lg:w-80 bg-white dark:bg-gray-800 rounded-[2rem] border dark:border-gray-700 flex flex-col overflow-hidden shadow-sm">
+      <div className="w-full lg:w-80 bg-white dark:bg-gray-800 rounded-[2rem] border dark:border-gray-700 flex flex-col overflow-hidden shadow-sm lg:h-[calc(100vh-120px)]">
         <div className="p-6 border-b dark:border-gray-700">
           <h2 className="text-xl font-bold mb-4 dark:text-white flex items-center gap-2">
             <Users className="w-5 h-5 text-primary-600" />
@@ -186,7 +186,7 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       </div>
 
       {/* Right Detail */}
-      <div className="flex-1 bg-white dark:bg-gray-800 rounded-[2rem] border dark:border-gray-700 overflow-hidden shadow-sm flex flex-col">
+      <div className="flex-1 bg-white dark:bg-gray-800 rounded-[2rem] border dark:border-gray-700 overflow-hidden shadow-sm flex flex-col lg:h-[calc(100vh-120px)]">
         {loadingDetail ? (
           <div className="flex-1 flex items-center justify-center"><Loading /></div>
         ) : !detail ? (
@@ -197,27 +197,27 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
              <p>{language === 'zh' ? '请从左侧选择一名学生查看详情' : 'Select a student to view details'}</p>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-8">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8">
             {/* Header Info */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 pb-10 border-b dark:border-gray-700">
-               <div className="flex items-center gap-6">
-                  <div className="w-24 h-24 bg-primary-600 rounded-3xl flex items-center justify-center text-4xl font-black text-white shadow-xl shadow-primary-500/20">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6 md:mb-10 pb-6 md:pb-10 border-b dark:border-gray-700">
+               <div className="flex items-center gap-4 md:gap-6">
+                  <div className="w-16 h-16 md:w-24 md:h-24 bg-primary-600 rounded-2xl md:rounded-3xl flex items-center justify-center text-2xl md:text-4xl font-black text-white shadow-xl shadow-primary-500/20">
                     {detail.student.username.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h1 className="text-3xl font-black dark:text-white mb-2">{detail.student.username}</h1>
-                    <div className="flex flex-wrap gap-3">
-                       <span className="px-3 py-1 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 text-[10px] font-black uppercase tracking-widest rounded-lg">
+                    <h1 className="text-xl md:text-3xl font-black dark:text-white mb-1 md:mb-2">{detail.student.username}</h1>
+                    <div className="flex flex-wrap gap-2">
+                       <span className="px-2 py-0.5 md:px-3 md:py-1 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-lg">
                           {detail.student.role}
                        </span>
-                       <span className="px-3 py-1 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-[10px] font-black uppercase tracking-widest rounded-lg">
+                       <span className="px-2 py-0.5 md:px-3 md:py-1 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-lg">
                           Active
                        </span>
                     </div>
                   </div>
                </div>
                
-               <div className="grid grid-cols-3 gap-4">
+               <div className="grid grid-cols-3 gap-2 md:gap-4">
                   <div 
                     onClick={() => {
                         if (detail.student?.id) {
@@ -225,21 +225,21 @@ const Students: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                            fetchHistoryList(detail.student.id);
                         }
                     }}
-                    className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border dark:border-gray-700 text-center cursor-pointer hover:shadow-md transition-shadow"
+                    className="p-3 md:p-4 bg-gray-50 dark:bg-gray-900 rounded-xl md:rounded-2xl border dark:border-gray-700 text-center cursor-pointer hover:shadow-md transition-shadow"
                   >
-                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">{language === 'zh' ? '学习记录' : 'History'}</p>
-                    <p className="text-xl font-bold dark:text-white">{(detail.history || []).length}</p>
+                    <p className="text-[8px] md:text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">{language === 'zh' ? '学习记录' : 'History'}</p>
+                    <p className="text-lg md:text-xl font-bold dark:text-white">{(detail.history || []).length}</p>
                   </div>
-                  <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border dark:border-gray-700 text-center">
-                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">{language === 'zh' ? '专属强化' : 'Personalized'}</p>
-                    <p className="text-xl font-bold dark:text-white">{(detail.reinforcements || []).length}</p>
+                  <div className="p-3 md:p-4 bg-gray-50 dark:bg-gray-900 rounded-xl md:rounded-2xl border dark:border-gray-700 text-center">
+                    <p className="text-[8px] md:text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">{language === 'zh' ? '专属强化' : 'Personalized'}</p>
+                    <p className="text-lg md:text-xl font-bold dark:text-white">{(detail.reinforcements || []).length}</p>
                   </div>
                   <div 
                     onClick={() => setViewingWrongBook(true)}
-                    className="p-4 bg-red-50 dark:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-800/30 text-center cursor-pointer hover:shadow-md transition-shadow"
+                    className="p-3 md:p-4 bg-red-50 dark:bg-red-900/10 rounded-xl md:rounded-2xl border border-red-100 dark:border-red-800/30 text-center cursor-pointer hover:shadow-md transition-shadow"
                   >
-                    <p className="text-[10px] text-red-500 font-black uppercase tracking-widest mb-1">{language === 'zh' ? '错题本' : 'Mistakes'}</p>
-                    <p className="text-xl font-bold text-red-600">{wrongBook.length}</p>
+                    <p className="text-[8px] md:text-[10px] text-red-500 font-black uppercase tracking-widest mb-1">{language === 'zh' ? '错题本' : 'Mistakes'}</p>
+                    <p className="text-lg md:text-xl font-bold text-red-600">{wrongBook.length}</p>
                   </div>
                </div>
             </div>

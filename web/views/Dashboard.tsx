@@ -5,7 +5,7 @@ import { Role, Subject } from '../types';
 import { api } from '../services/api.ts';
 import { SUBJECTS } from '../utils.ts';
 import { useNavigate } from 'react-router-dom';
-import { PlayCircle, FileText, ChevronRight, BarChart2, Users, TrendingUp, Activity, Award, CheckCircle, X } from 'lucide-react';
+import { PlayCircle, FileText, ChevronRight, BarChart2, Users, TrendingUp, Activity, Award, CheckCircle, X, Target } from 'lucide-react';
 import Loading from '../components/Loading';
 
 interface DashboardProps {
@@ -185,42 +185,17 @@ const TeacherDashboard: React.FC<DashboardProps> = ({ language }) => {
         </div>
       </div>
       
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-[2rem] p-8 border dark:border-gray-700 shadow-sm flex flex-col justify-center">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-black dark:text-white uppercase tracking-widest">{language === 'zh' ? '快捷功能' : 'Quick Actions'}</h2>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-             <button onClick={() => navigate('/questions')} className="p-6 bg-primary-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/20 active:scale-95">
-               题目库
-             </button>
-             <button onClick={() => navigate('/assign')} className="p-6 bg-white dark:bg-gray-900 text-primary-600 border-2 border-primary-100 dark:border-primary-900 rounded-2xl font-black uppercase tracking-widest hover:bg-primary-50 transition-all active:scale-95">
-               作业布置
-             </button>
-          </div>
+      <div className="bg-white dark:bg-gray-800 rounded-[2rem] p-8 border dark:border-gray-700 shadow-sm flex flex-col justify-center">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-black dark:text-white uppercase tracking-widest">{language === 'zh' ? '快捷功能' : 'Quick Actions'}</h2>
         </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-[2rem] p-8 border dark:border-gray-700 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-black dark:text-white uppercase tracking-widest">{language === 'zh' ? '总体学情' : 'Overall Status'}</h2>
-            <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-600">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="space-y-6">
-             <div>
-                <div className="flex justify-between mb-2">
-                   <span className="text-xs font-black text-gray-400 uppercase">{language === 'zh' ? '全班作业完成率' : 'Total HW Completion'}</span>
-                   <span className="text-xs font-black text-primary-600">{Math.round(stats.completionRate || 0)}%</span>
-                </div>
-                <div className="h-3 bg-gray-100 dark:bg-gray-900 rounded-full overflow-hidden">
-                   <div className="h-full bg-primary-500 rounded-full" style={{ width: `${stats.completionRate || 0}%` }}></div>
-                </div>
-             </div>
-             <p className="text-xs text-gray-400 font-medium leading-relaxed italic">
-               {language === 'zh' ? '* 这里展示了你所负责的所有班级的平均作业完成情况。' : '* Displays average completion rate across all your classes.'}
-             </p>
-          </div>
+        <div className="grid grid-cols-2 gap-4">
+           <button onClick={() => navigate('/questions')} className="p-6 bg-primary-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/20 active:scale-95">
+             题目库
+           </button>
+           <button onClick={() => navigate('/assign')} className="p-6 bg-white dark:bg-gray-900 text-primary-600 border-2 border-primary-100 dark:border-primary-900 rounded-2xl font-black uppercase tracking-widest hover:bg-primary-50 transition-all active:scale-95">
+             作业布置
+           </button>
         </div>
       </div>
 

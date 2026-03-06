@@ -30,7 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
       'resources': { icon: ClipboardList, label: '素材管理', labelEn: 'Resource Assets', path: '/resources' },
       'papers': { icon: ClipboardList, label: '试卷管理', labelEn: 'Papers', path: '/papers' },
       'assignments': { icon: PlusCircle, label: '作业管理', labelEn: 'Assignments', path: '/assign' },
-      'ability_tracking': { icon: Target, label: '能力追踪', labelEn: 'Ability Tracking', path: '/ability-tracker' },
+      'ability_tracking': { icon: Target, label: '能力追踪', labelEn: 'Ability Tracking', path: '/ability-tracking' },
       'reinforcements': { icon: Settings, label: '强化物管理', labelEn: 'Reinforcements', path: '/reinforcements' },
       'users': { icon: Users, label: '用户管理', labelEn: 'Users', path: '/users' },
       'homework_audit': { icon: ShieldCheck, label: '作业审计', labelEn: 'Homework Audit', path: '/admin/audit' },

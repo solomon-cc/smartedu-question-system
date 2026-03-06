@@ -143,7 +143,7 @@ const App: React.FC = () => {
                   <Route path="/questions" element={<Questions language={language} />} />
                   <Route path="/papers" element={<Papers language={language} />} />
                   <Route path="/assign" element={<Assign language={language} />} />
-                  <Route path="/ability-tracker" element={<AbilityTracker language={language} />} />
+                  <Route path="/ability-tracking" element={<AbilityTracker language={language} />} />
                   <Route path="/students" element={<Students language={language} />} />
                   <Route path="/reinforcements" element={<Reinforcements language={language} themeMode={themeMode} />} />
                   <Route path="/resources" element={<Resources language={language} />} />
