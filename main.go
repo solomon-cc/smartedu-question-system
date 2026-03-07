@@ -69,6 +69,7 @@ func main() {
 
 			// Questions
 			protected.GET("/questions", GetQuestions)
+			protected.GET("/questions/stats/grades", GetQuestionGradeStats)
 			protected.POST("/questions", CreateQuestion)
 			protected.POST("/questions/bulk", BulkCreateQuestions)
 			protected.PUT("/questions/:id", UpdateQuestion)

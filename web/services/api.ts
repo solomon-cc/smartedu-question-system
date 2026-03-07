@@ -79,6 +79,10 @@ export const api = {
       const res = await fetch(`${API_URL}/questions?${urlParams.toString()}`, { headers: getHeaders() });
       return handleResponse(res);
     },
+    gradeStats: async (subject: string): Promise<{ grade: number; count: number }[]> => {
+      const res = await fetch(`${API_URL}/questions/stats/grades?subject=${subject}`, { headers: getHeaders() });
+      return handleResponse(res);
+    },
     create: async (data: Partial<Question>): Promise<Question> => {
       const res = await fetch(`${API_URL}/questions`, {
         method: 'POST',

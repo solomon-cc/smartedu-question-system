@@ -5,7 +5,7 @@ import { Role, Subject } from '../types';
 import { api } from '../services/api.ts';
 import { SUBJECTS } from '../utils.ts';
 import { useNavigate } from 'react-router-dom';
-import { PlayCircle, FileText, ChevronRight, BarChart2, Users, TrendingUp, Activity, Award, CheckCircle, X, Target } from 'lucide-react';
+import { PlayCircle, FileText, ChevronRight, BarChart2, Users, TrendingUp, Activity, Target, X } from 'lucide-react';
 import Loading from '../components/Loading';
 
 interface DashboardProps {
@@ -17,7 +17,9 @@ const StudentDashboard: React.FC<DashboardProps> = ({ language }) => {
   const [hwCount, setHwCount] = useState<number>(0);
   const [historyCount, setHistoryCount] = useState<number>(0);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [gradeStats, setGradeStats] = useState<{ grade: number; count: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingGrades, setLoadingGrades] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -28,6 +30,16 @@ const StudentDashboard: React.FC<DashboardProps> = ({ language }) => {
     .catch(console.error)
     .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (selectedSubject) {
+      setLoadingGrades(true);
+      api.questions.gradeStats(selectedSubject)
+        .then(setGradeStats)
+        .catch(console.error)
+        .finally(() => setLoadingGrades(false));
+    }
+  }, [selectedSubject]);
 
   if (loading) return <Loading />;
 
@@ -74,27 +86,70 @@ const StudentDashboard: React.FC<DashboardProps> = ({ language }) => {
 
       {/* Grade Selection Modal */}
       {selectedSubject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-           <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] shadow-2xl max-w-sm w-full animate-in zoom-in-95 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300 p-4">
+           <div className="bg-white dark:bg-gray-800 p-8 rounded-[3rem] shadow-2xl max-w-md w-full animate-in zoom-in-95 relative border dark:border-gray-700">
               <button 
                 onClick={() => setSelectedSubject(null)}
-                className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                className="absolute top-6 right-6 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
               >
-                <ChevronRight className="w-6 h-6 rotate-90" /> {/* Close icon substitute or simple X */}
+                <X className="w-6 h-6 dark:text-gray-400" />
               </button>
-              <h3 className="text-xl font-black text-center mb-6 dark:text-white">
-                {language === 'zh' ? '选择年级' : 'Select Grade'}
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                 {[1, 2, 3, 4, 5, 6].map(g => (
-                   <button
-                     key={g}
-                     onClick={() => navigate(`/practice?subject=${selectedSubject}&grade=${g}`)}
-                     className="py-4 rounded-2xl bg-gray-50 dark:bg-gray-700 hover:bg-primary-500 hover:text-white dark:text-white font-black text-lg transition-all"
-                   >
-                     {g} {language === 'zh' ? '年级' : 'Grade'}
-                   </button>
-                 ))}
+              
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-4">
+                  {SUBJECTS.find(s => s.id === selectedSubject)?.icon}
+                </div>
+                <h3 className="text-2xl font-black dark:text-white">
+                  {language === 'zh' ? '选择练习年级' : 'Select Grade'}
+                </h3>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">
+                  {language === 'zh' ? SUBJECTS.find(s => s.id === selectedSubject)?.name : SUBJECTS.find(s => s.id === selectedSubject)?.enName}
+                </p>
+              </div>
+
+              {loadingGrades ? (
+                <div className="py-12 flex justify-center"><div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div></div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                   {[1, 2, 3, 4, 5, 6].map(g => {
+                     const stat = gradeStats.find(s => s.grade === g);
+                     const count = stat ? stat.count : 0;
+                     const isDisabled = count === 0;
+                     
+                     return (
+                       <button
+                         key={g}
+                         disabled={isDisabled}
+                         onClick={() => navigate(`/practice?subject=${selectedSubject}&grade=${g}`)}
+                         className={`
+                           group relative py-6 rounded-[2rem] font-black text-xl transition-all flex flex-col items-center gap-1
+                           ${isDisabled 
+                             ? 'bg-gray-50 dark:bg-gray-900 text-gray-300 dark:text-gray-700 cursor-not-allowed opacity-60' 
+                             : 'bg-gray-50 dark:bg-gray-900 hover:bg-primary-600 hover:text-white dark:text-white border-2 border-transparent hover:border-primary-400 shadow-sm hover:shadow-primary-500/20 active:scale-95'
+                           }
+                         `}
+                       >
+                         <span className="text-2xl">{g}</span>
+                         <span className="text-[10px] uppercase tracking-tighter opacity-60">
+                           {language === 'zh' ? `${g}年级` : `Grade ${g}`}
+                         </span>
+                         {!isDisabled && (
+                           <span className="absolute top-3 right-4 text-[8px] font-black bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full group-hover:bg-white group-hover:text-primary-600">
+                             {count}
+                           </span>
+                         )}
+                       </button>
+                     );
+                   })}
+                </div>
+              )}
+              
+              <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed dark:border-gray-700 text-center">
+                <p className="text-[10px] text-gray-400 font-bold leading-relaxed">
+                  {language === 'zh' 
+                    ? '提示：灰色年级表示目前暂无题目，请尝试其他年级或科目。' 
+                    : 'Tip: Grayed out grades have no questions available yet.'}
+                </p>
               </div>
            </div>
         </div>
@@ -199,7 +254,6 @@ const TeacherDashboard: React.FC<DashboardProps> = ({ language }) => {
         </div>
       </div>
 
-      {/* Student Overview Section */}
       <section className="bg-white dark:bg-gray-800 rounded-[2rem] p-8 border dark:border-gray-700 shadow-sm">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-xl font-bold dark:text-white flex items-center gap-2">
@@ -303,7 +357,6 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
 
   useEffect(() => {
     fetchStats();
-    // Real-time auto update every 5 seconds
     const interval = setInterval(fetchStats, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -378,7 +431,6 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
-        {/* Chart 1: Question Accuracy Curve */}
         <div className="bg-white dark:bg-gray-800 p-8 rounded-[3rem] border dark:border-gray-700 shadow-sm">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
@@ -398,17 +450,14 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
                   <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0" />
                 </linearGradient>
               </defs>
-              {/* Grid Lines */}
               <line x1="0" y1="50" x2="700" y2="50" stroke="currentColor" className="text-gray-100 dark:text-gray-700" strokeWidth="1" strokeDasharray="4" />
               <line x1="0" y1="100" x2="700" y2="100" stroke="currentColor" className="text-gray-100 dark:text-gray-700" strokeWidth="1" strokeDasharray="4" />
               <line x1="0" y1="150" x2="700" y2="150" stroke="currentColor" className="text-gray-100 dark:text-gray-700" strokeWidth="1" strokeDasharray="4" />
               
-              {/* Area */}
               <path 
                 d={`M 0 200 ${accuracyData.map((d, i) => `L ${(i * 700) / 6} ${200 - (d * 1.5)}`).join(' ')} L 700 200 Z`}
                 fill="url(#gradient-acc)"
               />
-              {/* Line */}
               <path 
                 d={`M 0 ${200 - (accuracyData[0] * 1.5)} ${accuracyData.map((d, i) => `L ${(i * 700) / 6} ${200 - (d * 1.5)}`).join(' ')}`}
                 fill="none" 
@@ -418,7 +467,6 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
                 strokeLinejoin="round"
                 className="drop-shadow-lg"
               />
-              {/* Dots */}
               {accuracyData.map((d, i) => (
                 <circle 
                   key={i} 
@@ -428,7 +476,6 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
                   fill="white" 
                   stroke="#0ea5e9" 
                   strokeWidth="3"
-                  className="hover:r-8 transition-all cursor-pointer"
                 />
               ))}
             </svg>
@@ -438,7 +485,6 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
           </div>
         </div>
 
-        {/* Chart 2: Homework Completion Trend (Table + Bar + Curve) */}
         <div className="bg-white dark:bg-gray-800 p-8 rounded-[3rem] border dark:border-gray-700 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -450,15 +496,12 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
           </div>
 
           <div className="flex-1 flex flex-col gap-6">
-            {/* Combo Chart */}
             <div className="h-48 w-full relative group">
                <svg className="w-full h-full" viewBox="0 0 700 200" preserveAspectRatio="none">
-                  {/* Grid */}
                   <line x1="0" y1="50" x2="700" y2="50" stroke="currentColor" className="text-gray-100 dark:text-gray-700" strokeWidth="1" strokeDasharray="4" />
                   <line x1="0" y1="100" x2="700" y2="100" stroke="currentColor" className="text-gray-100 dark:text-gray-700" strokeWidth="1" strokeDasharray="4" />
                   <line x1="0" y1="150" x2="700" y2="150" stroke="currentColor" className="text-gray-100 dark:text-gray-700" strokeWidth="1" strokeDasharray="4" />
 
-                  {/* Bars */}
                   {hwCompletionData.map((d, i) => {
                      const barHeight = (d / 100) * 180;
                      return (
@@ -474,7 +517,6 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
                      );
                   })}
 
-                  {/* Curve Line */}
                   <path 
                     d={`M ${(0 * 700 / 7) + 50} ${200 - ((hwCompletionData[0] / 100) * 180)} ${hwCompletionData.map((d, i) => `L ${(i * 700 / 7) + 50} ${200 - ((d / 100) * 180)}`).join(' ')}`}
                     fill="none" 
@@ -482,10 +524,8 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
                     strokeWidth="3" 
                     strokeLinecap="round" 
                     strokeLinejoin="round"
-                    className="drop-shadow-md"
                   />
 
-                  {/* Dots */}
                   {hwCompletionData.map((d, i) => (
                     <circle 
                       key={`dot-${i}`}
@@ -500,7 +540,6 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
                </svg>
             </div>
 
-            {/* Data Table */}
             <div className="mt-auto">
                <div className="flex justify-between items-center mb-2 px-2">
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{language === 'zh' ? '日期' : 'Date'}</span>
@@ -524,7 +563,6 @@ const AdminDashboard: React.FC<DashboardProps> = ({ language }) => {
         </div>
       </div>
 
-      {/* Online Users Modal */}
       {isOnlineModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[3rem] shadow-2xl p-10 border dark:border-gray-700 animate-in zoom-in-95 duration-300 flex flex-col max-h-[80vh]">

@@ -587,6 +587,41 @@ func GetQuestions(c *gin.Context) {
 	})
 }
 
+func GetQuestionGradeStats(c *gin.Context) {
+	subject := c.Query("subject")
+	if subject == "" {
+		SendJSON(c, 1, "Subject required", nil)
+		return
+	}
+
+	// Map English subject enums to Chinese stored values
+	subjectMap := map[string]string{
+		"MATH":     "数学",
+		"LANGUAGE": "语言词汇",
+		"READING":  "阅读",
+		"LITERACY": "识字",
+	}
+	
+	mappedSubject := subject
+	if mapped, ok := subjectMap[subject]; ok {
+		mappedSubject = mapped
+	}
+
+	type GradeStat struct {
+		Grade int `json:"grade"`
+		Count int `json:"count"`
+	}
+
+	stats := make([]GradeStat, 0)
+	for g := 1; g <= 6; g++ {
+		var count int64
+		DB.Model(&Question{}).Where("(subject = ? OR subject = ?) AND grade = ?", subject, mappedSubject, g).Count(&count)
+		stats = append(stats, GradeStat{Grade: g, Count: int(count)})
+	}
+
+	SendJSON(c, 0, "", stats)
+}
+
 // Helper to auto-register resources
 func registerResourceIfNew(c *gin.Context, url string, name string) {
 	if url == "" || strings.HasPrefix(url, "data:") { return }
