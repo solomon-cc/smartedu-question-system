@@ -154,51 +154,80 @@ const Login: React.FC<LoginProps> = ({ language, setLanguage }) => {
       </div>
 
       {/* Form Section - 右侧表单区 */}
-      <div className="flex-1 flex flex-col relative bg-gray-50 dark:bg-gray-950 overflow-y-auto lg:overflow-hidden">
+      <div className="flex-1 flex flex-col relative bg-gray-50 dark:bg-gray-950 overflow-hidden transition-colors duration-500">
+        {/* 背景几何元素 - 线条动画版 (Visible on all devices, adjusted for mobile) */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 text-gray-300 dark:text-gray-800/50">
+          <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary-100/40 dark:bg-primary-900/30 rounded-full blur-3xl transition-colors" />
+          
+          {/* 动态线条几何图形 - 左上角 (Responsive size) */}
+          <svg className="absolute top-5 left-5 md:top-10 md:left-10 w-32 h-32 md:w-64 md:h-64 text-primary-300/50 dark:text-primary-400/20" viewBox="0 0 100 100">
+            <path d="M10,10 L90,10 L50,80 Z" fill="none" stroke="currentColor" strokeWidth="0.8" className="animate-[dash_10s_linear_infinite]" strokeDasharray="200" />
+            <circle cx="10" cy="10" r="1.5" fill="currentColor" />
+            <circle cx="90" cy="10" r="1.5" fill="currentColor" />
+            <circle cx="50" cy="80" r="1.5" fill="currentColor" />
+          </svg>
+
+          {/* 动态线条几何图形 - 右下角 (Responsive size) */}
+          <svg className="absolute bottom-10 right-5 md:right-10 w-40 h-40 md:w-80 md:h-80 text-blue-300/40 dark:text-blue-500/15" viewBox="0 0 100 100">
+            <rect x="20" y="20" width="60" height="60" fill="none" stroke="currentColor" strokeWidth="0.8" className="animate-[dash_15s_linear_infinite_reverse]" strokeDasharray="240" />
+            <line x1="20" y1="20" x2="80" y2="80" stroke="currentColor" strokeWidth="0.5" opacity="0.5" />
+            <line x1="80" y1="20" x2="20" y2="80" stroke="currentColor" strokeWidth="0.5" opacity="0.5" />
+            <circle cx="50" cy="50" r="1" fill="currentColor" />
+          </svg>
+
+          <style>{`
+            @keyframes dash {
+              from { stroke-dashoffset: 2000; }
+              to { stroke-dashoffset: 0; }
+            }
+          `}</style>
+          
+          <div className="absolute inset-0 opacity-[0.05] dark:opacity-[0.12] transition-opacity" 
+            style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+        </div>
+
         {/* Top Actions */}
-        <div className="px-6 py-4 lg:p-8 flex justify-between items-center lg:justify-end shrink-0">
+        <div className="relative z-20 px-6 py-4 lg:p-8 flex justify-between items-center lg:justify-end shrink-0">
           <div className="flex items-center gap-3 lg:hidden">
-            <LighthouseIcon className="w-9 h-9 text-primary-600" />
+            <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/20">
+              <LighthouseIcon className="w-6 h-6 text-white" />
+            </div>
             <span className="text-xl font-black text-gray-900 dark:text-white tracking-tighter">一粒麦子</span>
           </div>
           
           <button 
             type="button"
             onClick={() => setLanguage(language === 'zh' ? 'en' : 'zh')}
-            className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 text-sm font-bold hover:shadow-md transition-all border border-gray-100 dark:border-gray-800 group active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-md text-gray-700 dark:text-gray-300 text-sm font-bold hover:shadow-md transition-all border border-gray-100 dark:border-gray-800 group active:scale-95"
           >
             <Languages className="w-4 h-4 text-primary-600 group-hover:rotate-12 transition-transform" />
             {language === 'zh' ? 'English' : '中文'}
           </button>
         </div>
 
-        <div className="flex-1 flex flex-col justify-center p-6 sm:p-20">
-          <div className="w-full max-w-md mx-auto space-y-6 sm:space-y-12">
-            <div className="text-center lg:text-left space-y-2">
+        <div className="relative z-10 flex-1 flex flex-col justify-center px-6 py-2 sm:p-20 overflow-hidden">
+          {/* Form Card - 精简间距以确保一屏显示 */}
+          <div className="w-full max-w-md mx-auto flex flex-col h-full max-h-[85vh] justify-between lg:justify-center lg:space-y-12 transition-all">
+            <div className="text-center lg:text-left space-y-2 mb-4 lg:mb-0">
               <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">
                 {isRegister 
-                  ? (language === 'zh' ? '加入一粒麦子' : 'Join Us')
+                  ? (language === 'zh' ? '开启新篇章' : 'New Chapter')
                   : (language === 'zh' ? '欢迎回来' : 'Welcome Back')}
               </h1>
-              {isRegister && (
-                <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">
-                  {language === 'zh' ? '开启您的个性化智慧学习之旅' : 'Start your smart learning journey'}
-                </p>
-              )}
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-8">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-8 flex-1 lg:flex-none">
               {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/50 p-4 rounded-2xl flex items-center gap-3 text-red-600 dark:text-red-400 animate-in fade-in slide-in-from-top-4">
-                  <AlertCircle className="w-5 h-5 shrink-0" />
-                  <p className="font-bold text-xs sm:text-sm leading-snug">{errMsg}</p>
+                <div className="bg-red-50/80 dark:bg-red-900/20 backdrop-blur-md border border-red-100 dark:border-red-900/50 p-3 rounded-2xl flex items-center gap-3 text-red-600 dark:text-red-400 animate-in fade-in zoom-in duration-300">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <p className="font-bold text-[11px] sm:text-sm leading-snug">{errMsg}</p>
                 </div>
               )}
 
               {success && (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/50 p-4 rounded-2xl flex items-center gap-3 text-green-600 dark:text-green-400 animate-in fade-in slide-in-from-top-4">
-                  <CheckCircle2 className="w-5 h-5 shrink-0" />
-                  <p className="font-bold text-xs sm:text-sm leading-snug">
+                <div className="bg-green-50/80 dark:bg-green-900/20 backdrop-blur-md border border-green-100 dark:border-green-900/50 p-3 rounded-2xl flex items-center gap-3 text-green-600 dark:text-green-400 animate-in fade-in zoom-in duration-300">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <p className="font-bold text-[11px] sm:text-sm leading-snug">
                     {language === 'zh' ? '注册成功！正在跳转登录...' : 'Success! Redirecting...'}
                   </p>
                 </div>
@@ -206,108 +235,108 @@ const Login: React.FC<LoginProps> = ({ language, setLanguage }) => {
 
               <div className="space-y-3 sm:space-y-5">
                 {isRegister ? (
-                  <>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-400 dark:text-gray-500 ml-1 uppercase tracking-widest">{language === 'zh' ? '手机号' : 'Phone'}</label>
+                  <div className="grid grid-cols-1 gap-3 overflow-y-auto max-h-[40vh] px-1 py-1">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 ml-4 uppercase tracking-[0.2em]">{language === 'zh' ? '手机号' : 'Phone'}</label>
                       <div className="relative group">
-                        <UserIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
+                        <UserIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
                         <input
                           type="text"
                           value={regPhone}
                           onChange={(e) => setRegPhone(e.target.value)}
-                          className="w-full pl-14 pr-6 py-4 sm:py-5 rounded-3xl border-2 border-transparent bg-white dark:bg-gray-900 shadow-sm focus:ring-4 focus:ring-primary-500/5 focus:border-primary-500 transition-all outline-none font-bold dark:text-white text-base sm:text-lg"
+                          className="w-full pl-16 pr-6 py-3.5 sm:py-5 rounded-[20px] border-2 border-transparent bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm focus:bg-white dark:focus:bg-gray-800 focus:ring-8 focus:ring-primary-500/5 focus:border-primary-500 transition-all outline-none font-bold dark:text-white text-base"
                           placeholder="1xx xxxx xxxx"
                           required
                         />
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-400 dark:text-gray-500 ml-1 uppercase tracking-widest">{language === 'zh' ? '昵称' : 'Nickname'}</label>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 ml-4 uppercase tracking-[0.2em]">{language === 'zh' ? '昵称' : 'Nickname'}</label>
                       <div className="relative group">
-                        <UserIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
+                        <UserIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
                         <input
                           type="text"
                           value={regNickname}
                           onChange={(e) => setRegNickname(e.target.value)}
-                          className="w-full pl-14 pr-6 py-4 sm:py-5 rounded-3xl border-2 border-transparent bg-white dark:bg-gray-900 shadow-sm focus:ring-4 focus:ring-primary-500/5 focus:border-primary-500 transition-all outline-none font-bold dark:text-white text-base sm:text-lg"
+                          className="w-full pl-16 pr-6 py-3.5 sm:py-5 rounded-[20px] border-2 border-transparent bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm focus:bg-white dark:focus:bg-gray-800 focus:ring-8 focus:ring-primary-500/5 focus:border-primary-500 transition-all outline-none font-bold dark:text-white text-base"
                           placeholder={language === 'zh' ? '起个好听的名字' : 'Your nickname'}
                           required
                         />
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-400 dark:text-gray-500 ml-1 uppercase tracking-widest">{language === 'zh' ? '设置密码' : 'Password'}</label>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 ml-4 uppercase tracking-[0.2em]">{language === 'zh' ? '设置密码' : 'Password'}</label>
                       <div className="relative group">
-                        <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
+                        <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
                         <input
                           type="password"
                           value={regPassword}
                           onChange={(e) => setRegPassword(e.target.value)}
-                          className="w-full pl-14 pr-6 py-4 sm:py-5 rounded-3xl border-2 border-transparent bg-white dark:bg-gray-900 shadow-sm focus:ring-4 focus:ring-primary-500/5 focus:border-primary-500 transition-all outline-none font-bold dark:text-white text-base sm:text-lg"
+                          className="w-full pl-16 pr-6 py-3.5 sm:py-5 rounded-[20px] border-2 border-transparent bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm focus:bg-white dark:focus:bg-gray-800 focus:ring-8 focus:ring-primary-500/5 focus:border-primary-500 transition-all outline-none font-bold dark:text-white text-base"
                           placeholder="••••••••"
                           required
                         />
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-400 dark:text-gray-500 ml-1 uppercase tracking-widest">{language === 'zh' ? '确认密码' : 'Confirm'}</label>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 ml-4 uppercase tracking-[0.2em]">{language === 'zh' ? '确认密码' : 'Confirm'}</label>
                       <div className="relative group">
-                        <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
+                        <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
                         <input
                           type="password"
                           value={regConfirmPassword}
                           onChange={(e) => setRegConfirmPassword(e.target.value)}
-                          className="w-full pl-14 pr-6 py-4 sm:py-5 rounded-3xl border-2 border-transparent bg-white dark:bg-gray-900 shadow-sm focus:ring-4 focus:ring-primary-500/5 focus:border-primary-500 transition-all outline-none font-bold dark:text-white text-base sm:text-lg"
+                          className="w-full pl-16 pr-6 py-3.5 sm:py-5 rounded-[20px] border-2 border-transparent bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm focus:bg-white dark:focus:bg-gray-800 focus:ring-8 focus:ring-primary-500/5 focus:border-primary-500 transition-all outline-none font-bold dark:text-white text-base"
                           placeholder="••••••••"
                           required
                         />
                       </div>
                     </div>
                     
-                    <div className="flex items-start gap-3 px-1 py-1">
+                    <div className="flex items-start gap-3 px-2 py-1">
                       <input
                         type="checkbox"
                         id="privacy"
                         checked={agreedToPrivacy}
                         onChange={(e) => setAgreedToPrivacy(e.target.checked)}
-                        className="mt-1 w-5 h-5 text-primary-600 rounded-lg border-gray-200 focus:ring-primary-500 cursor-pointer"
+                        className="mt-1 w-4 h-4 text-primary-600 rounded-lg border-gray-200 focus:ring-primary-500 cursor-pointer transition-colors"
                       />
-                      <label htmlFor="privacy" className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium cursor-pointer leading-tight">
+                      <label htmlFor="privacy" className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium cursor-pointer leading-tight">
                         {language === 'zh' ? '我已认真阅读并同意' : 'I have read and agree to the '}
-                        <button type="button" onClick={() => setShowPrivacyModal(true)} className="text-primary-600 hover:underline font-bold">
+                        <button type="button" onClick={() => setShowPrivacyModal(true)} className="text-primary-600 dark:text-primary-400 hover:underline font-bold">
                           {language === 'zh' ? '隐私政策与用户协议' : 'Privacy Policy'}
                         </button>
                       </label>
                     </div>
-                  </>
+                  </div>
                 ) : (
                   <>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-400 dark:text-gray-500 ml-1 uppercase tracking-widest">{language === 'zh' ? '用户名' : 'Username'}</label>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 ml-4 uppercase tracking-[0.2em]">{language === 'zh' ? '用户名 / 手机号' : 'Username / Phone'}</label>
                       <div className="relative group">
-                        <UserIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
+                        <UserIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
                         <input
                           type="text"
                           value={username}
                           onChange={(e) => setUsername(e.target.value)}
-                          className="w-full pl-14 pr-6 py-4 sm:py-5 rounded-3xl border-2 border-transparent bg-white dark:bg-gray-900 shadow-sm focus:ring-4 focus:ring-primary-500/5 focus:border-primary-500 transition-all outline-none font-bold dark:text-white text-base sm:text-lg"
+                          className="w-full pl-16 pr-6 py-4 sm:py-5 rounded-[24px] border-2 border-transparent bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm focus:bg-white dark:focus:bg-gray-800 focus:ring-8 focus:ring-primary-500/5 focus:border-primary-500 transition-all outline-none font-bold dark:text-white text-base sm:text-lg"
                           placeholder={language === 'zh' ? '输入用户名或手机号' : 'Username or Phone'}
                           required
                         />
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-center px-1">
-                        <label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{language === 'zh' ? '密码' : 'Password'}</label>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center px-4">
+                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">{language === 'zh' ? '密码' : 'Password'}</label>
                       </div>
                       <div className="relative group">
-                        <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
+                        <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
                         <input
                           type="password"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="w-full pl-14 pr-6 py-4 sm:py-5 rounded-3xl border-2 border-transparent bg-white dark:bg-gray-900 shadow-sm focus:ring-4 focus:ring-primary-500/5 focus:border-primary-500 transition-all outline-none font-bold dark:text-white text-base sm:text-lg"
+                          className="w-full pl-16 pr-6 py-4 sm:py-5 rounded-[24px] border-2 border-transparent bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm focus:bg-white dark:focus:bg-gray-800 focus:ring-8 focus:ring-primary-500/5 focus:border-primary-500 transition-all outline-none font-bold dark:text-white text-base sm:text-lg"
                           placeholder="••••••••"
                           required
                         />
@@ -319,8 +348,9 @@ const Login: React.FC<LoginProps> = ({ language, setLanguage }) => {
 
               <button
                 type="submit"
-                className="w-full py-4 sm:py-5 bg-primary-600 hover:bg-primary-700 text-white rounded-3xl font-black text-lg sm:text-xl shadow-xl shadow-primary-600/30 transition-all active:scale-[0.98] flex items-center justify-center gap-3 group relative overflow-hidden"
+                className="w-full py-4 sm:py-5 bg-primary-600 hover:bg-primary-700 text-white rounded-[20px] font-black text-lg shadow-lg shadow-primary-600/30 transition-all active:scale-[0.98] flex items-center justify-center gap-3 group relative overflow-hidden"
               >
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                 <span className="relative z-10">
                   {isRegister ? (language === 'zh' ? '立即创建账号' : 'Create Account') : (language === 'zh' ? '立即登录' : 'Sign In')}
                 </span>
@@ -329,19 +359,19 @@ const Login: React.FC<LoginProps> = ({ language, setLanguage }) => {
             </form>
 
             {regEnabled && (
-              <div className="text-center pt-2 sm:pt-4">
+              <div className="text-center pt-4 mb-2 lg:mb-0">
                 <button
                   onClick={() => {
                     setIsRegister(!isRegister);
                     setError(false);
                     setSuccess(false);
                   }}
-                  className="w-full py-3.5 sm:py-4 rounded-2xl border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 font-bold hover:bg-white dark:hover:bg-gray-900 hover:shadow-sm transition-all active:scale-95 text-sm sm:text-base"
+                  className="w-full py-3 rounded-xl bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-95 text-xs"
                 >
                   {isRegister 
                     ? (language === 'zh' ? '已经有账号了？' : 'Already have an account?') 
                     : (language === 'zh' ? '还没有加入我们？' : 'Not a member yet?')}
-                  <span className="text-primary-600 ml-2">{isRegister ? (language === 'zh' ? '去登录' : 'Sign In') : (language === 'zh' ? '立即创建账号' : 'Join Now')}</span>
+                  <span className="text-primary-600 dark:text-primary-400 ml-2">{isRegister ? (language === 'zh' ? '去登录' : 'Sign In') : (language === 'zh' ? '立即创建账号' : 'Join Now')}</span>
                 </button>
               </div>
             )}
