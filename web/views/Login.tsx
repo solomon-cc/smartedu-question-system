@@ -1,7 +1,7 @@
 
 import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../App';
-import { Lock, User as UserIcon, AlertCircle, UserPlus, ArrowRight, CheckCircle2, X, Languages, GraduationCap, BookCheck } from 'lucide-react';
+import { Lock, User as UserIcon, AlertCircle, ArrowRight, CheckCircle2, X, Languages, GraduationCap, BookCheck, Star, Moon, Sun } from 'lucide-react';
 import { api } from '../services/api.ts';
 
 // 自定义手绘灯塔图标 - 确保永远可用且符合品牌感
@@ -26,6 +26,7 @@ const LighthouseIcon = ({ className }: { className?: string }) => (
     <path d="M20 18l-2-1" />
   </svg>
 );
+// ... rest of imports and components remain the same
 
 interface LoginProps {
   language: 'zh' | 'en';
@@ -47,6 +48,8 @@ const Login: React.FC<LoginProps> = ({ language, setLanguage }) => {
   const [errMsg, setErrMsg] = useState('');
   const [success, setSuccess] = useState(false);
   const [regEnabled, setRegEnabled] = useState(false);
+  const currentHour = new Date().getHours();
+  const isDay = currentHour >= 6 && currentHour < 18;
 
   useEffect(() => {
     api.config.getPublic().then(res => {
@@ -155,32 +158,9 @@ const Login: React.FC<LoginProps> = ({ language, setLanguage }) => {
 
       {/* Form Section - 右侧表单区 */}
       <div className="flex-1 flex flex-col relative bg-gray-50 dark:bg-gray-950 overflow-hidden transition-colors duration-500">
-        {/* 背景几何元素 - 线条动画版 (Visible on all devices, adjusted for mobile) */}
+        {/* 背景装饰 (Visible on all devices, adjusted for mobile) */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 text-gray-300 dark:text-gray-800/50">
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary-100/40 dark:bg-primary-900/30 rounded-full blur-3xl transition-colors" />
-          
-          {/* 动态线条几何图形 - 左上角 (Responsive size) */}
-          <svg className="absolute top-5 left-5 md:top-10 md:left-10 w-32 h-32 md:w-64 md:h-64 text-primary-300/50 dark:text-primary-400/20" viewBox="0 0 100 100">
-            <path d="M10,10 L90,10 L50,80 Z" fill="none" stroke="currentColor" strokeWidth="0.8" className="animate-[dash_10s_linear_infinite]" strokeDasharray="200" />
-            <circle cx="10" cy="10" r="1.5" fill="currentColor" />
-            <circle cx="90" cy="10" r="1.5" fill="currentColor" />
-            <circle cx="50" cy="80" r="1.5" fill="currentColor" />
-          </svg>
-
-          {/* 动态线条几何图形 - 右下角 (Responsive size) */}
-          <svg className="absolute bottom-10 right-5 md:right-10 w-40 h-40 md:w-80 md:h-80 text-blue-300/40 dark:text-blue-500/15" viewBox="0 0 100 100">
-            <rect x="20" y="20" width="60" height="60" fill="none" stroke="currentColor" strokeWidth="0.8" className="animate-[dash_15s_linear_infinite_reverse]" strokeDasharray="240" />
-            <line x1="20" y1="20" x2="80" y2="80" stroke="currentColor" strokeWidth="0.5" opacity="0.5" />
-            <line x1="80" y1="20" x2="20" y2="80" stroke="currentColor" strokeWidth="0.5" opacity="0.5" />
-            <circle cx="50" cy="50" r="1" fill="currentColor" />
-          </svg>
-
-          <style>{`
-            @keyframes dash {
-              from { stroke-dashoffset: 2000; }
-              to { stroke-dashoffset: 0; }
-            }
-          `}</style>
           
           <div className="absolute inset-0 opacity-[0.05] dark:opacity-[0.12] transition-opacity" 
             style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
@@ -208,6 +188,26 @@ const Login: React.FC<LoginProps> = ({ language, setLanguage }) => {
         <div className="relative z-10 flex-1 flex flex-col justify-center px-6 py-2 sm:p-20 overflow-hidden">
           {/* Form Card - 精简间距以确保一屏显示 */}
           <div className="w-full max-w-md mx-auto flex flex-col h-full max-h-[85vh] justify-between lg:justify-center lg:space-y-12 transition-all">
+            {/* 顶部装饰：白昼太阳 / 夜晚星月 */}
+            <div className="relative h-20 lg:h-24 flex items-center justify-center lg:justify-start overflow-visible -mb-4 lg:-mb-6">
+              <div className="relative w-48 h-full">
+                {isDay ? (
+                  <>
+                    <Sun className="absolute -top-4 left-6 w-16 h-16 text-orange-400 animate-[spin_20s_linear_infinite] drop-shadow-[0_0_15px_rgba(251,146,60,0.4)]" />
+                    <div className="absolute top-0 left-4 w-20 h-20 bg-orange-400/20 rounded-full blur-2xl animate-pulse" />
+                  </>
+                ) : (
+                  <>
+                    <Star className="absolute -top-4 left-4 w-5 h-5 text-yellow-400 animate-pulse fill-yellow-400/20" />
+                    <Moon className="absolute top-2 left-12 w-12 h-12 text-primary-200 dark:text-primary-800 -rotate-12 opacity-80" />
+                    <Star className="absolute top-8 left-28 w-7 h-7 text-yellow-300 animate-bounce fill-yellow-300/20" style={{ animationDuration: '4s' }} />
+                    <Star className="absolute -top-2 right-4 w-4 h-4 text-yellow-500 animate-pulse delay-700 fill-yellow-500/20" />
+                    <Star className="absolute top-10 left-6 w-3 h-3 text-yellow-200 animate-pulse delay-300" />
+                  </>
+                )}
+              </div>
+            </div>
+
             <div className="text-center lg:text-left space-y-2 mb-4 lg:mb-0">
               <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">
                 {isRegister 
