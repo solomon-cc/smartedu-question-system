@@ -41,6 +41,15 @@ export const SUBJECTS = [
   { id: 'LITERACY', name: '识字', enName: 'Literacy', color: 'bg-orange-500', icon: '🏮' }
 ];
 
+export const GRADES = [
+  { id: 1, name: '一年级', enName: 'Grade 1' },
+  { id: 2, name: '二年级', enName: 'Grade 2' },
+  { id: 3, name: '三年级', enName: 'Grade 3' },
+  { id: 4, name: '四年级', enName: 'Grade 4' },
+  { id: 5, name: '五年级', enName: 'Grade 5' },
+  { id: 6, name: '六年级', enName: 'Grade 6' }
+];
+
 export const isTokenExpired = (token: string): boolean => {
   if (!token) return true;
   try {

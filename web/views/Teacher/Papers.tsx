@@ -419,7 +419,7 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                   {previewQuestion.subject} · {previewQuestion.type}
                 </span>
               </div>
-              {previewQuestion.stemImage && <img src={previewQuestion.stemImage} className="w-full h-40 object-cover rounded-2xl mb-4 border dark:border-gray-700" alt="stem" />}
+              {previewQuestion.stemImage && <img src={previewQuestion.stemImage} className="w-full h-40 object-contain rounded-2xl mb-4 border dark:border-gray-700" alt="stem" />}
               <h3 className="text-xl font-black dark:text-white mb-8 leading-relaxed">
                 {previewQuestion.stemText}
               </h3>
@@ -433,7 +433,7 @@ const Papers: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                        <div key={i} className={`p-4 rounded-xl border-2 font-bold text-sm ${isCorrect ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'border-gray-100 dark:border-gray-700 dark:text-gray-300'}`}>
                           <div className="flex items-center gap-3">
                             <span className="text-gray-400">{String.fromCharCode(65 + i)}.</span>
-                            {optImage && <img src={optImage} className="w-10 h-10 object-cover rounded" />}
+                            {optImage && <img src={optImage} className="w-10 h-10 object-contain rounded" />}
                             <span>{optText}</span>
                           </div>
                        </div>

@@ -107,6 +107,7 @@ type Homework struct {
 	ID             string   `json:"id" gorm:"primaryKey;type:varchar(191)"`
 	TeacherID      string   `json:"teacherId" gorm:"type:varchar(191)"`
 	PaperID        string   `json:"paperId" gorm:"type:varchar(191)"`
+	QuestionIDs    []string `json:"questionIds,omitempty" gorm:"serializer:json"`
 	Name           string   `json:"name" gorm:"type:varchar(191)"`
 	ClassID        string   `json:"classId" gorm:"type:varchar(191)"`
 	StartDate      string   `json:"startDate" gorm:"type:varchar(191)"`

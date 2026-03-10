@@ -141,6 +141,7 @@ func main() {
 
 			// Ability Tracking
 			protected.GET("/skills", GetSkillTopics)
+			protected.GET("/skills/questions", GetSkillQuestions)
 			protected.POST("/skills", CreateSkillTopic)
 			protected.PUT("/skills/:id", UpdateSkillTopic)
 			protected.DELETE("/skills/:id", DeleteSkillTopic)

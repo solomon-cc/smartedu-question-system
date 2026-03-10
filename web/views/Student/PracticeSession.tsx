@@ -216,6 +216,9 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
 
   useEffect(() => {
     const homeworkId = searchParams.get('homeworkId');
+    const questionId = searchParams.get('questionId');
+    const questionIds = searchParams.get('questionIds');
+    const objectiveId = searchParams.get('objectiveId');
     const subject = searchParams.get('subject') || undefined;
     const grade = searchParams.get('grade') ? parseInt(searchParams.get('grade')!) : undefined;
 
@@ -235,12 +238,43 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
           const hwList = await api.homework.list();
           const hw = hwList.find((h: any) => h.id === homeworkId);
           if (hw) {
-            const papers = await api.papers.list();
-            const paper = papers.find((p: any) => p.id === hw.paperId);
-            if (paper && paper.questions) {
-              data = paper.questions;
+            if (hw.paperId) {
+              const papers = await api.papers.list();
+              const paper = papers.find((p: any) => p.id === hw.paperId);
+              if (paper && paper.questions) {
+                data = paper.questions;
+              }
+            } else if (hw.questionIds && hw.questionIds.length > 0) {
+              // Direct question assignment
+              const res = await api.questions.list({ pageSize: 1000 });
+              data = res.list.filter((q: any) => hw.questionIds.includes(q.id));
             }
           }
+        } else if (questionId) {
+          const res = await api.questions.list({ pageSize: 1000 });
+          const q = res.list.find((item: any) => String(item.id) === String(questionId));
+          if (q) data = [q];
+        } else if (questionIds) {
+          const ids = questionIds.split(',');
+          // Fetch specific questions directly or through a bulk list
+          const res = await api.questions.list({ pageSize: 1000 });
+          data = res.list.filter((q: any) => ids.includes(String(q.id)));
+          
+          // Fallback: If some questions weren't in the first 1000, 
+          // we could potentially fetch them individually if the API supported it.
+          // For now, let's at least log if we're missing something.
+          if (data.length < ids.length) {
+            console.warn(`Only found ${data.length} out of ${ids.length} questions.`);
+            
+            // If we found NOTHING, let's try one more time without pageSize limit (let backend decide)
+            if (data.length === 0) {
+               const res2 = await api.questions.list({ pageSize: 2000 });
+               data = res2.list.filter((q: any) => ids.includes(String(q.id)));
+            }
+          }
+        } else if (objectiveId) {
+          const res = await api.questions.list({ pageSize: 1000 });
+          data = res.list.filter((q: any) => String(q.objectiveId) === String(objectiveId));
         } else {
           const res = await api.questions.list({ subject, grade, pageSize: 100 });
           data = res.list || [];
@@ -273,6 +307,11 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
   }, [searchParams]);
 
   const handleCompleteHomework = async () => {
+    const isTrial = searchParams.get('trial') === 'true';
+    if (isTrial) {
+      navigate(-1);
+      return;
+    }
     const homeworkId = searchParams.get('homeworkId');
     const subjectParam = searchParams.get('subject');
     const targetSubject = SUBJECTS.find(s => s.id === subjectParam || s.name === subjectParam);
@@ -321,7 +360,12 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
     } catch (e) {
       console.error("Failed to save session results", e);
     }
-    navigate('/');
+    
+    if (searchParams.get('questionId') || searchParams.get('objectiveId')) {
+      navigate(`/?subject=${searchParams.get('subject')}&grade=${searchParams.get('grade')}`);
+    } else {
+      navigate('/');
+    }
   };
 
   const currentQuestion = queue[currentIdx];
@@ -552,8 +596,8 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
                   {currentQuestion.stemText}
                 </h2>
                 {currentQuestion.stemImage && (
-                  <div className="rounded-[2rem] overflow-hidden border-4 border-gray-50 dark:border-gray-800 shadow-inner">
-                    <img src={currentQuestion.stemImage} alt="Question Stem" className="w-full object-cover max-h-72" />
+                  <div className="rounded-[2rem] overflow-hidden border-4 border-gray-50 dark:border-gray-800 shadow-inner bg-white">
+                    <img src={currentQuestion.stemImage} alt="Question Stem" className="w-full object-contain max-h-72 bg-white" />
                   </div>
                 )}
               </div>
@@ -620,7 +664,7 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
                           >
                             {optImage ? (
                               <>
-                                <img src={optImage} alt={`Option ${i}`} className="w-full h-32 object-cover rounded-xl mb-2" />
+                                <img src={optImage} alt={`Option ${i}`} className="w-full h-32 object-contain rounded-xl mb-2 bg-white" />
                                 {optText && <span className="font-bold">{optText}</span>}
                               </>
                             ) : (
@@ -683,7 +727,7 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
                         >
                           {optImage ? (
                             <>
-                              <img src={optImage} alt={`Option ${i}`} className="w-full h-32 object-cover rounded-xl mb-2" />
+                              <img src={optImage} alt={`Option ${i}`} className="w-full h-32 object-contain rounded-xl mb-2 bg-white" />
                               {optText && <span className="font-bold">{optText}</span>}
                             </>
                           ) : (
@@ -828,8 +872,8 @@ const PracticeSession: React.FC<PracticeSessionProps> = ({ language, themeMode }
                         activeReinforcement?.image === 'trophy' ? '🏆' : 
                         activeReinforcement?.image === 'rocket' ? '🚀' : 
                         activeReinforcement?.image === 'party' ? '🎉' : 
-                        activeReinforcement?.image?.startsWith('http') ? <img src={activeReinforcement.image} className="w-48 h-48 object-contain" /> :
-                        activeReinforcement?.image?.startsWith('data:') ? <img src={activeReinforcement.image} className="w-48 h-48 object-contain" /> : '🦖'}
+                        activeReinforcement?.image?.startsWith('http') ? <img src={activeReinforcement.image} className="w-48 h-48 object-cover" /> :
+                        activeReinforcement?.image?.startsWith('data:') ? <img src={activeReinforcement.image} className="w-48 h-48 object-cover" /> : '🦖'}
                      </div>
                   </div>
 

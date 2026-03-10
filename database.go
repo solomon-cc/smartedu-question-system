@@ -71,10 +71,10 @@ func InitDB() error {
 	var permCount int64
 	DB.Model(&RolePermission{}).Count(&permCount)
 	
-	allModules := []string{"dashboard", "students", "questions", "papers", "assignments", "ability_tracking", "reinforcements", "resources", "users", "homework_audit", "audit_logs", "stats", "help_docs", "permissions", "system_config"}
+	allModules := []string{"dashboard", "skill_practice", "students", "questions", "papers", "assignments", "ability_tracking", "reinforcements", "resources", "users", "homework_audit", "audit_logs", "stats", "help_docs", "permissions", "system_config"}
 	
-	teacherModules := map[string]bool{"dashboard":true, "students":true, "questions":true, "papers":true, "assignments":true, "ability_tracking":true, "reinforcements":true, "resources":true, "stats":true, "help_docs":true}
-	studentModules := map[string]bool{"dashboard":true, "assignments":true, "stats":true, "help_docs":true}
+	teacherModules := map[string]bool{"dashboard":true, "skill_practice":true, "students":true, "questions":true, "papers":true, "assignments":true, "ability_tracking":true, "reinforcements":true, "resources":true, "stats":true, "help_docs":true}
+	studentModules := map[string]bool{"dashboard":true, "skill_practice":true, "assignments":true, "stats":true, "help_docs":true}
 
 	if permCount == 0 {
 		var defaultPerms []RolePermission
@@ -110,6 +110,18 @@ func InitDB() error {
 			DB.Model(&RolePermission{}).Where("role = ? AND module_id = ?", r, "ability_tracking").Count(&exists)
 			if exists == 0 {
 				DB.Create(&RolePermission{Role: r, ModuleID: "ability_tracking", UIAccess: true, APIAccess: true})
+			}
+		}
+
+		// Ensure skill_practice exists for all roles
+		for _, r := range []Role{RoleAdmin, RoleTeacher, RoleStudent} {
+			var exists int64
+			DB.Model(&RolePermission{}).Where("role = ? AND module_id = ?", r, "skill_practice").Count(&exists)
+			if exists == 0 {
+				DB.Create(&RolePermission{Role: r, ModuleID: "skill_practice", UIAccess: true, APIAccess: true})
+			} else {
+				// Force update to ensure APIAccess is true if it was accidentally set to false
+				DB.Model(&RolePermission{}).Where("role = ? AND module_id = ?", r, "skill_practice").Updates(map[string]interface{}{"ui_access": true, "api_access": true})
 			}
 		}
 	}

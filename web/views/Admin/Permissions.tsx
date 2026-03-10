@@ -19,6 +19,7 @@ interface PermissionRole {
 
 const ALL_MODULES = [
   { id: 'dashboard', label: '控制台', icon: Layout },
+  { id: 'skill_practice', label: '技能练习', icon: Target },
   { id: 'students', label: '学生管理', icon: Users },
   { id: 'questions', label: '题目管理', icon: BookOpen },
   { id: 'papers', label: '试卷管理', icon: ClipboardList },

@@ -471,6 +471,14 @@ export const api = {
         headers: getHeaders(),
       });
       if (!res.ok) throw new Error('Failed to delete objective');
+    },
+    questions: async (params: { subject?: string; grade?: number } = {}): Promise<any[]> => {
+      const urlParams = new URLSearchParams();
+      if (params.subject) urlParams.append('subject', params.subject);
+      if (params.grade) urlParams.append('grade', params.grade.toString());
+      const res = await fetch(`${API_URL}/skills/questions?${urlParams.toString()}`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
     }
   },
   ability: {

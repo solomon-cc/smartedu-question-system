@@ -1958,6 +1958,63 @@ func UpdateObjectiveOrder(c *gin.Context) {
 	SendJSON(c, 0, "", nil)
 }
 
+func GetSkillQuestions(c *gin.Context) {
+	subject := c.Query("subject")
+	gradeStr := c.Query("grade")
+	grade, _ := strconv.Atoi(gradeStr)
+
+	var topics []SkillTopic
+	query := DB.Preload("Objectives", func(db *gorm.DB) *gorm.DB {
+		return db.Order("skill_objectives.sort_order ASC")
+	})
+
+	if subject != "" {
+		query = query.Where("subject = ?", subject)
+	}
+	if grade > 0 {
+		query = query.Where("grade = ?", grade)
+	}
+
+	query.Order("sort_order ASC").Find(&topics)
+
+	// Fetch all questions for these topics/objectives to group them
+	type ObjectiveDetail struct {
+		ID        string     `json:"id"`
+		Name      string     `json:"name"`
+		Target    string     `json:"target"`
+		SortOrder int        `json:"sortOrder"`
+		Questions []Question `json:"questions"`
+	}
+
+	type TopicDetail struct {
+		ID         string            `json:"id"`
+		Name       string            `json:"name"`
+		Objectives []ObjectiveDetail `json:"objectives"`
+	}
+
+	var result []TopicDetail
+	for _, t := range topics {
+		var td TopicDetail
+		td.ID = t.ID
+		td.Name = t.Name
+		for _, o := range t.Objectives {
+			var od ObjectiveDetail
+			od.ID = o.ID
+			od.Name = o.Name
+			od.Target = o.Target
+			od.SortOrder = o.SortOrder
+
+			var qs []Question
+			DB.Where("objective_id = ?", o.ID).Order("id ASC").Find(&qs)
+			od.Questions = qs
+			td.Objectives = append(td.Objectives, od)
+		}
+		result = append(result, td)
+	}
+
+	SendJSON(c, 0, "", result)
+}
+
 func GetAbilityMatrix(c *gin.Context) {
 	// Returns a flat list of records for a student to be rendered as a matrix
 	studentId := c.Query("studentId")

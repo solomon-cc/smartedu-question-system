@@ -23,6 +23,7 @@ import AuditLogs from './views/Admin/AuditLogs';
 import HomeworkAudit from './views/Admin/HomeworkAudit';
 import SystemConfig from './views/Admin/SystemConfig';
 import Help from './views/Help';
+import SkillSelection from './views/Student/SkillSelection';
 import Layout from './components/Layout';
 
 interface AuthContextType {
@@ -37,6 +38,7 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [initializing, setInitializing] = useState(true);
   const [permissions, setPermissions] = useState<any[]>([]);
   const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'auto'>('light');
   const [language, setLanguage] = useState<'zh' | 'en'>('zh');
@@ -63,16 +65,24 @@ const App: React.FC = () => {
          if (isTokenExpired(parsed.token)) {
            localStorage.removeItem('user');
            setUser(null);
+           setInitializing(false);
          } else {
            setUser(parsed);
            // Fetch permissions on restore
            api.me.getPermissions().then(perms => {
              setPermissions(perms);
-           }).catch(err => console.error("Restore permissions error", err));
+             setInitializing(false);
+           }).catch(err => {
+             console.error("Restore permissions error", err);
+             setInitializing(false);
+           });
          }
       } catch (e) {
          localStorage.removeItem('user');
+         setInitializing(false);
       }
+    } else {
+      setInitializing(false);
     }
   }, []);
 
@@ -120,6 +130,14 @@ const App: React.FC = () => {
 
   const effectiveDarkMode = getEffectiveDarkMode(themeMode);
 
+  if (initializing) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${effectiveDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
+        <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={{ user, permissions, login, logout, updateUser }}>
       <HashRouter>
@@ -127,6 +145,9 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/login" element={!user ? <Login language={language} setLanguage={setLanguage} /> : <Navigate to="/" />} />
             
+            {/* High priority standalone routes */}
+            <Route path="/practice" element={user ? <PracticeSession language={language} themeMode={themeMode} /> : <Navigate to="/login" />} />
+
             <Route element={user ? (
               <Layout 
                 language={language} 
@@ -135,7 +156,8 @@ const App: React.FC = () => {
                 setThemeMode={setThemeMode}
               >
                 <Routes>
-                  <Route path="/" element={<Dashboard language={language} />} />
+                  <Route path="/" element={user?.role === 'STUDENT' ? <SkillSelection language={language} /> : <Dashboard language={language} />} />
+                  <Route path="/skills" element={<SkillSelection language={language} />} />
                   <Route path="/homework" element={<Homework language={language} />} />
                   <Route path="/history" element={<History language={language} />} />
                   <Route path="/wrong-book" element={<WrongBook language={language} />} />
@@ -158,8 +180,6 @@ const App: React.FC = () => {
             ) : <Navigate to="/login" />}>
               <Route path="*" />
             </Route>
-
-            <Route path="/practice" element={user?.role === 'STUDENT' ? <PracticeSession language={language} themeMode={themeMode} /> : <Navigate to="/" />} />
           </Routes>
         </div>
       </HashRouter>

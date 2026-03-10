@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Filter, Edit2, Trash2, X, Image as ImageIcon, CheckCircle, Circle, CheckSquare, Square, Upload, Eye, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { api } from '../../services/api.ts';
 import { Question, QuestionType } from '../../types.ts';
 import { GRADE_MAP, REVERSE_GRADE_MAP, TYPE_MAP, REVERSE_TYPE_MAP, SUBJECTS } from '../../utils.ts';
@@ -16,9 +17,11 @@ interface OptionRowProps {
   setFormOptions: React.Dispatch<React.SetStateAction<{ text: string; image?: string; value: string }[]>>;
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>, type: 'stem' | number) => void;
   formOptions: { text: string; image?: string; value: string }[];
+  onCrop: (url: string, target: number) => void;
 }
 
 import ConfirmationModal from '../../components/ConfirmationModal';
+import ImageCropper from '../../components/ImageCropper';
 
 const ResourcePickerModal: React.FC<{
   isOpen: boolean;
@@ -103,7 +106,7 @@ const ResourcePickerModal: React.FC<{
 };
 
 const OptionRow: React.FC<OptionRowProps & { openPicker: (idx: number) => void }> = ({ 
-  i, opt, formAnswer, formType, language, handleToggleAnswer, setFormOptions, handleFileUpload, formOptions, openPicker
+  i, opt, formAnswer, formType, language, handleToggleAnswer, setFormOptions, handleFileUpload, formOptions, openPicker, onCrop
 }) => {
   const isCorrect = Array.isArray(formAnswer) ? formAnswer.includes(opt.value) : formAnswer === opt.value;
   const optionFileRef = useRef<HTMLInputElement>(null);
@@ -158,16 +161,25 @@ const OptionRow: React.FC<OptionRowProps & { openPicker: (idx: number) => void }
          {opt.image && (
            <div className="relative group">
              <img src={opt.image} className="w-10 h-10 object-cover rounded shadow-sm border dark:border-gray-700" />
-             <button 
-               onClick={() => {
-                 const next = [...formOptions];
-                 next[i].image = '';
-                 setFormOptions(next);
-               }}
-               className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"
-             >
-               <X className="w-2 h-2" />
-             </button>
+             <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={() => onCrop(opt.image!, i)}
+                  className="bg-blue-500 text-white rounded-full p-1 shadow-lg hover:bg-blue-600 transition-colors"
+                  title={language === 'zh' ? '裁切' : 'Crop'}
+                >
+                  <Filter className="w-3 h-3" />
+                </button>
+                <button 
+                  onClick={() => {
+                    const next = [...formOptions];
+                    next[i].image = '';
+                    setFormOptions(next);
+                  }}
+                  className="bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+             </div>
            </div>
          )}
        </div>
@@ -272,62 +284,94 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     XLSX.writeFile(wb, "question_template_v3.xlsx");
   };
 
-  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          const data = new Uint8Array(ev.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const allFormatted: any[] = [];
+    if (!file) return;
 
-          workbook.SheetNames.forEach(sheetName => {
-            const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
-            let type = QuestionType.MULTIPLE_CHOICE;
-            if (sheetName === '多选题') type = QuestionType.MULTIPLE_SELECT;
-            if (sheetName === '填空题') type = QuestionType.CALCULATION;
-            if (sheetName === '判断题') type = QuestionType.TRUE_FALSE;
+    const workbook = new ExcelJS.Workbook();
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      await workbook.xlsx.load(arrayBuffer);
+      const allFormatted: any[] = [];
 
-            rows.forEach(row => {
-              const options = [];
-              if (type === QuestionType.MULTIPLE_CHOICE || type === QuestionType.MULTIPLE_SELECT) {
-                if (row['选项A'] !== undefined) options.push({ text: String(row['选项A']), image: row['选项A图片URL'] || "", value: "A" });
-                if (row['选项B'] !== undefined) options.push({ text: String(row['选项B']), image: row['选项B图片URL'] || "", value: "B" });
-                if (row['选项C'] !== undefined) options.push({ text: String(row['选项C']), image: row['选项C图片URL'] || "", value: "C" });
-                if (row['选项D'] !== undefined) options.push({ text: String(row['选项D']), image: row['选项D图片URL'] || "", value: "D" });
-              }
-
-              // Simple Validation
-              const isValid = !!(row['科目'] && row['题干'] && row['答案']);
-
-              allFormatted.push({
-                subject: row['科目'],
-                grade: parseInt(row['年级']),
-                type: type,
-                stemText: row['题干'],
-                stemImage: row['题干图片URL'] || "",
-                answer: String(row['答案']),
-                options: options.length > 0 ? options : undefined,
-                objectiveId: row['能力点ID'] || "",
-                isValid: isValid
-              });
-            });
-          });
-          
-          setImportData(allFormatted);
-        } catch (err) {
-          setConfirmationModalProps({
-            title: language === 'zh' ? '文件错误' : 'File Error',
-            message: language === 'zh' ? '无效的 Excel 文件，请检查格式。' : 'Invalid Excel file. Please check the format.',
-            type: 'error',
-            language: language,
-            onConfirm: () => setIsConfirmationModalOpen(false),
-          });
-          setIsConfirmationModalOpen(true);
-        }
+      // Map headers to column indices (standardizing based on our template)
+      const COL_MAP: Record<string, number> = {
+        '科目': 1, '年级': 2, '题干': 3, '题干图片URL': 4, '答案': 5, '能力点ID': 6,
+        '选项A': 7, '选项A图片URL': 8, '选项B': 9, '选项B图片URL': 10,
+        '选项C': 11, '选项C图片URL': 12, '选项D': 13, '选项D图片URL': 14
       };
-      reader.readAsArrayBuffer(file);
+
+      workbook.eachSheet((worksheet) => {
+        let type = QuestionType.MULTIPLE_CHOICE;
+        if (worksheet.name === '多选题') type = QuestionType.MULTIPLE_SELECT;
+        if (worksheet.name === '填空题') type = QuestionType.CALCULATION;
+        if (worksheet.name === '判断题') type = QuestionType.TRUE_FALSE;
+
+        // Extract images from this worksheet
+        const images: any[] = [];
+        worksheet.getImages().forEach((img) => {
+          const imageObj = workbook.model.media.find((m, i) => i === (img as any).imageId);
+          if (imageObj) {
+            images.push({
+              row: img.range.tl.row + 1, // ExcelJS is 0-indexed for TL
+              col: img.range.tl.col + 1,
+              base64: `data:image/${imageObj.extension};base64,${imageObj.buffer.toString('base64')}`
+            });
+          }
+        });
+
+        worksheet.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) return; // Skip header
+
+          const getVal = (colName: string) => row.getCell(COL_MAP[colName]).value?.toString() || "";
+          const getImg = (colName: string) => {
+             // 1. Check if there's a URL in the cell
+             const url = getVal(colName);
+             if (url && url.startsWith('http')) return url;
+             // 2. Check if there's an embedded image over this cell
+             const colIdx = COL_MAP[colName];
+             const found = images.find(img => img.row === rowNumber && img.col === colIdx);
+             return found ? found.base64 : "";
+          };
+
+          const options = [];
+          if (type === QuestionType.MULTIPLE_CHOICE || type === QuestionType.MULTIPLE_SELECT) {
+            if (getVal('选项A')) options.push({ text: getVal('选项A'), image: getImg('选项A图片URL'), value: "A" });
+            if (getVal('选项B')) options.push({ text: getVal('选项B'), image: getImg('选项B图片URL'), value: "B" });
+            if (getVal('选项C')) options.push({ text: getVal('选项C'), image: getImg('选项C图片URL'), value: "C" });
+            if (getVal('选项D')) options.push({ text: getVal('选项D'), image: getImg('选项D图片URL'), value: "D" });
+          }
+
+          const subject = getVal('科目');
+          const stemText = getVal('题干');
+          const answer = getVal('答案');
+          const isValid = !!(subject && stemText && answer);
+
+          allFormatted.push({
+            subject,
+            grade: parseInt(getVal('年级')),
+            type: type,
+            stemText,
+            stemImage: getImg('题干图片URL'),
+            answer,
+            options: options.length > 0 ? options : undefined,
+            objectiveId: getVal('能力点ID'),
+            isValid
+          });
+        });
+      });
+
+      setImportData(allFormatted);
+    } catch (err) {
+      console.error(err);
+      setConfirmationModalProps({
+        title: language === 'zh' ? '文件错误' : 'File Error',
+        message: language === 'zh' ? '解析 Excel 文件失败，请确保格式正确并包含必要数据。' : 'Failed to parse Excel. Ensure format is correct.',
+        type: 'error',
+        language: language,
+        onConfirm: () => setIsConfirmationModalOpen(false),
+      });
+      setIsConfirmationModalOpen(true);
     }
   };
 
@@ -377,22 +421,54 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   };
 
   const handleResourceSelect = (url: string) => {
-    if (pickerTarget === 'stem') {
-      setFormStemImage(url);
-    } else {
-      const next = [...formOptions];
-      next[pickerTarget as number].image = url;
-      setFormOptions(next);
-    }
+    setCropTarget(pickerTarget);
+    setCroppingImage(url);
   };
 
   const openResourcePicker = (target: 'stem' | number) => {
     setPickerTarget(target);
     setIsResourcePickerOpen(true);
   };
-  const [formSubject, setFormSubject] = useState('数学');
-  const [formGrade, setFormGrade] = useState('三年级');
-  const [formType, setFormType] = useState('单选题');
+
+  // Image Cropping States
+  const [croppingImage, setCroppingImage] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<'stem' | number | string>('stem');
+  const [importCropIndex, setImportCropIndex] = useState<number | null>(null);
+
+  const onCropComplete = (croppedImage: string) => {
+    if (importCropIndex !== null) {
+      const nextData = [...importData];
+      const target = cropTarget.toString();
+      if (target === 'stem') {
+        nextData[importCropIndex].stemImage = croppedImage;
+      } else if (target.startsWith('opt_')) {
+        const optIdx = parseInt(target.replace('opt_', ''));
+        if (nextData[importCropIndex].options && nextData[importCropIndex].options[optIdx]) {
+          nextData[importCropIndex].options[optIdx].image = croppedImage;
+        }
+      }
+      setImportData(nextData);
+      setImportCropIndex(null);
+    } else {
+      if (cropTarget === 'stem') {
+        setFormStemImage(croppedImage);
+      } else {
+        const next = [...formOptions];
+        next[cropTarget as number].image = croppedImage;
+        setFormOptions(next);
+      }
+    }
+    setCroppingImage(null);
+  };
+
+  // Load sticky settings from localStorage
+  const getInitialField = (key: string, defaultValue: string) => {
+    return localStorage.getItem(`sticky_${key}`) || defaultValue;
+  };
+
+  const [formSubject, setFormSubject] = useState(() => getInitialField('subject', '数学'));
+  const [formGrade, setFormGrade] = useState(() => getInitialField('grade', '三年级'));
+  const [formType, setFormType] = useState(() => getInitialField('type', '单选题'));
   const [formStem, setFormStem] = useState('');
   const [formStemImage, setFormStemImage] = useState('');
   const [formOptions, setFormOptions] = useState<{ text: string; image?: string; value: string }[]>([
@@ -402,8 +478,25 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     { text: '', image: '', value: 'D' }
   ]);
   const [formAnswer, setFormAnswer] = useState<string | string[]>('');
-  const [formObjectiveId, setFormObjectiveId] = useState('');
+  const [formObjectiveId, setFormObjectiveId] = useState(() => getInitialField('objectiveId', ''));
   const [skills, setSkills] = useState<any[]>([]);
+
+  // Update sticky settings
+  useEffect(() => {
+    localStorage.setItem('sticky_subject', formSubject);
+  }, [formSubject]);
+
+  useEffect(() => {
+    localStorage.setItem('sticky_grade', formGrade);
+  }, [formGrade]);
+
+  useEffect(() => {
+    localStorage.setItem('sticky_type', formType);
+  }, [formType]);
+
+  useEffect(() => {
+    localStorage.setItem('sticky_objectiveId', formObjectiveId);
+  }, [formObjectiveId]);
 
   const stemInputRef = useRef<HTMLInputElement>(null);
 
@@ -461,14 +554,16 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       setFormObjectiveId(q.objectiveId || '');
     } else {
       setEditingQuestion(null);
-      setFormSubject('数学');
-      setFormGrade('三年级');
-      setFormType('单选题');
+      // Keep sticky settings from state (which are initialized from localStorage)
       setFormStem('');
       setFormStemImage('');
       setFormOptions([{ text: '', image: '', value: 'A' }, { text: '', image: '', value: 'B' }, { text: '', image: '', value: 'C' }, { text: '', image: '', value: 'D' }]);
-      setFormAnswer('');
-      setFormObjectiveId('');
+      if (formType === '多选题' || formType === QuestionType.MULTIPLE_SELECT) {
+        setFormAnswer([]);
+      } else {
+        setFormAnswer('');
+      }
+      // setFormObjectiveId('') <- Removed this reset to keep sticky value
     }
     setIsModalOpen(true);
   };
@@ -492,13 +587,8 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
-        if (type === 'stem') {
-          setFormStemImage(result);
-        } else {
-          const next = [...formOptions];
-          next[type as number].image = result;
-          setFormOptions(next);
-        }
+        setCropTarget(type);
+        setCroppingImage(result);
       };
       reader.readAsDataURL(file);
     }
@@ -844,12 +934,21 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                         {formStemImage && (
                           <div className="relative group">
                             <img src={formStemImage} className="w-16 h-16 object-cover rounded-xl border dark:border-gray-700" />
-                            <button 
-                              onClick={() => setFormStemImage('')}
-                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
+                            <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                               <button 
+                                 onClick={() => { setCropTarget('stem'); setCroppingImage(formStemImage); }}
+                                 className="bg-blue-500 text-white rounded-full p-1 shadow-lg hover:bg-blue-600 transition-colors"
+                                 title={language === 'zh' ? '裁切' : 'Crop'}
+                               >
+                                 <Filter className="w-3 h-3" />
+                               </button>
+                               <button 
+                                 onClick={() => setFormStemImage('')}
+                                 className="bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600 transition-colors"
+                               >
+                                 <X className="w-3 h-3" />
+                               </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -872,6 +971,7 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                          handleFileUpload={handleFileUpload}
                          formOptions={formOptions}
                          openPicker={openResourcePicker}
+                         onCrop={(url, target) => { setCropTarget(target); setCroppingImage(url); }}
                        />
                      ))}
                    </div>
@@ -973,8 +1073,8 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                           {previewQuestion.stemText}
                        </h2>
                        {previewQuestion.stemImage && (
-                          <div className="rounded-[2.5rem] overflow-hidden border-8 border-gray-50 dark:border-gray-800 shadow-inner group">
-                             <img src={previewQuestion.stemImage} alt="Stem" className="w-full object-cover transition-transform group-hover:scale-105 duration-700" />
+                          <div className="rounded-[2.5rem] overflow-hidden border-8 border-gray-50 dark:border-gray-800 shadow-inner group bg-white">
+                             <img src={previewQuestion.stemImage} alt="Stem" className="w-full h-auto max-h-[400px] object-contain transition-transform group-hover:scale-105 duration-700 bg-white" />
                           </div>
                        )}
                     </div>
@@ -1047,8 +1147,8 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                                       className={`group p-6 rounded-[2rem] border-4 transition-all cursor-pointer flex flex-col items-center text-center gap-4 ${style} ${!trialSubmitted && isTrialMode ? 'hover:translate-y-[-4px] hover:shadow-xl active:scale-95' : ''}`}
                                    >
                                       {o.image && (
-                                         <div className="w-full aspect-video rounded-2xl overflow-hidden border dark:border-gray-700 shadow-sm mb-2">
-                                            <img src={o.image} className="w-full h-full object-cover" alt={val} />
+                                         <div className="w-full aspect-video rounded-2xl overflow-hidden border dark:border-gray-700 shadow-sm mb-2 bg-white">
+                                            <img src={o.image} className="w-full h-full object-contain bg-white" alt={val} />
                                          </div>
                                       )}
                                       <div className="flex items-center gap-4">
@@ -1170,26 +1270,51 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                       <p className="font-bold dark:text-white">{language === 'zh' ? `预览解析结果 (共 ${importData.length} 题)` : `Preview Results (${importData.length})`}</p>
                       <div className="max-h-80 overflow-y-auto space-y-2 border dark:border-gray-700 p-4 rounded-2xl bg-gray-50 dark:bg-gray-900 scrollbar-thin">
                          {importData.map((q, i) => (
-                           <div key={i} className="p-3 bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 flex items-center justify-between group">
-                              <div className="flex items-center gap-3 min-w-0">
-                                 <div className={`w-2 h-2 rounded-full shrink-0 ${q.isValid ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                                 <div className="truncate">
-                                    <span className="text-[10px] font-black text-primary-600 uppercase mr-2">[{q.subject}]</span>
-                                    <span className="text-sm dark:text-gray-300">{q.stemText}</span>
+                           <div key={i} className="p-4 bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 space-y-3 group">
+                              <div className="flex items-center justify-between min-w-0">
+                                 <div className="flex items-center gap-3 truncate">
+                                    <div className={`w-2 h-2 rounded-full shrink-0 ${q.isValid ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                    <div className="truncate">
+                                       <span className="text-[10px] font-black text-primary-600 uppercase mr-2">[{q.subject}]</span>
+                                       <span className="text-sm font-bold dark:text-gray-300">{q.stemText}</span>
+                                    </div>
                                  </div>
+                                 <button 
+                                   onClick={() => setPreviewQuestion({ id: 'temp', ...q })}
+                                   className="p-2 text-gray-400 hover:text-primary-600 transition-all"
+                                 >
+                                    <Eye className="w-4 h-4" />
+                                 </button>
                               </div>
-                              <button 
-                                onClick={() => {
-                                    // Map back to temporary question object for existing preview modal
-                                    setPreviewQuestion({
-                                        id: 'temp',
-                                        ...q
-                                    });
-                                }}
-                                className="p-2 text-gray-400 hover:text-primary-600 opacity-0 group-hover:opacity-100 transition-all"
-                              >
-                                 <Eye className="w-4 h-4" />
-                              </button>
+
+                              <div className="flex flex-wrap gap-3 pl-5">
+                                 {/* Stem Image Preview & Crop */}
+                                 {q.stemImage && (
+                                   <div className="relative group/img">
+                                      <img src={q.stemImage} className="w-12 h-12 object-cover rounded-lg border dark:border-gray-700" alt="stem" />
+                                      <button 
+                                        onClick={() => { setImportCropIndex(i); setCropTarget('stem'); setCroppingImage(q.stemImage); }}
+                                        className="absolute inset-0 bg-black/40 text-white flex items-center justify-center rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity"
+                                      >
+                                        <Filter className="w-3 h-3" />
+                                      </button>
+                                   </div>
+                                 )}
+
+                                 {/* Options Images Preview & Crop */}
+                                 {q.options?.map((opt: any, optIdx: number) => opt.image && (
+                                   <div key={optIdx} className="relative group/img">
+                                      <img src={opt.image} className="w-12 h-12 object-cover rounded-lg border dark:border-gray-700" alt={opt.value} />
+                                      <div className="absolute top-0 left-0 bg-primary-600 text-[8px] text-white px-1 rounded-br-lg font-bold">{opt.value}</div>
+                                      <button 
+                                        onClick={() => { setImportCropIndex(i); setCropTarget(`opt_${optIdx}`); setCroppingImage(opt.image); }}
+                                        className="absolute inset-0 bg-black/40 text-white flex items-center justify-center rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity"
+                                      >
+                                        <Filter className="w-3 h-3" />
+                                      </button>
+                                   </div>
+                                 ))}
+                              </div>
                            </div>
                          ))}
                       </div>
@@ -1229,6 +1354,16 @@ const Questions: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         onSelect={handleResourceSelect}
         language={language}
       />
+
+      {croppingImage && (
+        <ImageCropper 
+          image={croppingImage}
+          onCropComplete={onCropComplete}
+          onCancel={() => setCroppingImage(null)}
+          aspect={16 / 9}
+          language={language}
+        />
+      )}
 
       {isQuickAddAbilityOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">

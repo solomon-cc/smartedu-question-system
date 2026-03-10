@@ -86,7 +86,7 @@ const WrongBook: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                </div>
                
                {item.question?.stemImage && (
-                 <img src={item.question.stemImage} className="w-full h-32 object-cover rounded-xl mb-4 border dark:border-gray-700" alt="stem" />
+                 <img src={item.question.stemImage} className="w-full h-32 object-contain rounded-xl mb-4 border dark:border-gray-700 bg-white" alt="stem" />
                )}
 
                <div className="flex justify-between items-center text-xs text-gray-400 mt-4 pt-4 border-t dark:border-gray-700">

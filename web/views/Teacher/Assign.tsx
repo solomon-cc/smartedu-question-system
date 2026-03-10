@@ -1,20 +1,32 @@
-
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Send, User, Book, Search, CheckCircle2, LayoutGrid, FileCheck, ChevronRight, UserCircle, Clock, ArrowLeft, X } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Send, User, Book, Search, CheckCircle2, LayoutGrid, FileCheck, ChevronRight, UserCircle, Clock, ArrowLeft, X, PlayCircle, Brain, Layers, Eye } from 'lucide-react';
 import { api } from '../../services/api.ts';
-import { Role } from '../../types';
+import { Role, QuestionType } from '../../types';
 import Loading from '../../components/Loading';
 import ConfirmationModal from '../../components/ConfirmationModal';
+import { SUBJECTS, GRADES } from '../../utils.ts';
 
 const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'assign' | 'status'>('assign');
+  const [selectionMode, setSelectionMode] = useState<'paper' | 'skill'>('skill');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [selectedHw, setSelectedHw] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [hwDetailsLoading, setHwDetailsLoading] = useState(false);
   
+  // Preview State
+  const [previewQuestion, setPreviewQuestion] = useState<any>(null);
+
+  // Skill Mode State
+  const [skillSubject, setSkillSubject] = useState('MATH');
+  const [skillGrade, setSkillGrade] = useState(1);
+  const [skills, setSkills] = useState<any[]>([]);
+  const [skillsLoading, setSkillsLoading] = useState(false);
+
   // Modal State for Alerts
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [confirmationModalProps, setConfirmationModalProps] = useState({
@@ -34,6 +46,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   
   // Form State
   const [selectedPaperId, setSelectedPaperId] = useState('');
+  const [homeworkName, setHomeworkName] = useState('');
   const [deadline, setDeadline] = useState('');
   const [repeatInterval, setRepeatInterval] = useState<'none' | 'daily' | '3days' | 'weekly' | 'monthly'>('none');
   
@@ -45,40 +58,48 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (selectionMode === 'skill') {
+      fetchSkills();
+    }
+  }, [selectionMode, skillSubject, skillGrade]);
+
+  const fetchSkills = async () => {
+    setSkillsLoading(true);
+    try {
+      const data = await api.skills.questions({ subject: skillSubject, grade: skillGrade });
+      setSkills(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSkillsLoading(false);
+    }
+  };
+
   // Fetch student specific question stats when students are selected
   useEffect(() => {
     if (selectedStudents.length > 0) {
-      // Mock fetching stats for now as backend API for specific question stats per student group might be heavy
-      // In real scenario, we would call an API like `api.stats.questions({ studentIds: selectedStudents })`
-      // For this demo/integration, we will use what we have or simulate:
-      // We can use `api.wrongBook.list(studentId)` for each student to identify "isWrong".
-      
       const loadStats = async () => {
         const stats: Record<string, { attempts: number, accuracy: number, isWrong: boolean }> = {};
-        
-        // Fetch wrong book for ALL selected students to mark "isWrong" if ANY selected student has it wrong
-        // This is a simplification. Ideally "isWrong" depends on if ALL or ANY have it.
-        // Let's assume "isWrong" if ANY selected student has it in their wrong book.
-        
         const wrongPromises = selectedStudents.map(id => api.wrongBook.list(id));
         const wrongLists = await Promise.all(wrongPromises);
         
         const wrongQIDs = new Set<string>();
         wrongLists.flat().forEach((w: any) => wrongQIDs.add(w.questionId));
         
-        // Populate stats (mocking accuracy/attempts for visual demo as we don't have a direct API for Q-stats yet)
-        // In a full implementation, backend should provide this.
-        // We will mark "isWrong" based on the fetch.
-        
-        // We can iterate over papers -> questions to set state
-        papers.forEach(p => {
-          p.questions?.forEach((q: any) => {
-             stats[q.id] = {
-               attempts: Math.floor(Math.random() * 5), // Mock
-               accuracy: Math.random() * 100, // Mock
-               isWrong: wrongQIDs.has(q.id)
-             };
-          });
+        const allQuestions: any[] = [];
+        if (selectionMode === 'skill') {
+          skills.forEach(t => t.objectives?.forEach((o: any) => o.questions?.forEach((q: any) => allQuestions.push(q))));
+        } else {
+          papers.forEach(p => p.questions?.forEach((q: any) => allQuestions.push(q)));
+        }
+
+        allQuestions.forEach(q => {
+           stats[q.id] = {
+             attempts: q.attempts || 0,
+             accuracy: q.correctRate || 0,
+             isWrong: wrongQIDs.has(q.id)
+           };
         });
         setQuestionStats(stats);
       };
@@ -87,7 +108,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     } else {
       setQuestionStats({});
     }
-  }, [selectedStudents, papers]);
+  }, [selectedStudents, papers, skills, selectionMode]);
 
   const fetchData = async () => {
     try {
@@ -96,7 +117,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
         api.students.list(),
         api.papers.list(),
         api.homework.list(),
-        api.history.list(1, 1000) // Initial fetch
+        api.history.list(1, 1000)
       ]);
 
       setHistoryRecords(historyData.list || []);
@@ -104,7 +125,6 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       setStudents(studentsData.map((u: any) => ({
         id: u.id,
         name: u.username,
-        grade: '', 
         completion: '0%'
       })));
 
@@ -145,83 +165,81 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     }
   };
 
+  const getStemText = (q: any) => {
+    if (q.stemText) return q.stemText;
+    if (typeof q.stem === 'string') {
+      try {
+        const parsed = JSON.parse(q.stem);
+        if (parsed && parsed.text) return parsed.text;
+        return q.stem;
+      } catch (e) {
+        return q.stem;
+      }
+    }
+    if (q.stem && q.stem.text) return q.stem.text;
+    return language === 'zh' ? '题目内容' : 'Question content';
+  };
+
   const handleAssign = async () => {
-    if (!selectedPaperId || !deadline || selectedStudents.length === 0) return;
+    if ((selectionMode === 'paper' && !selectedPaperId) || (selectionMode === 'skill' && selectedQuestions.length === 0) || !deadline || selectedStudents.length === 0) return;
     
-    const paper = papers.find(p => p.id === selectedPaperId);
-    
-    // Filter questions if enabled
-    let questionsToAssign = paper?.questions || [];
-    if (filterWrongBook && selectedStudents.length > 0) {
-       questionsToAssign = questionsToAssign.filter((q: any) => questionStats[q.id]?.isWrong);
+    let finalQuestionIds: string[] = [];
+    let name = homeworkName || (language === 'zh' ? '自主作业' : 'Homework');
+
+    if (selectionMode === 'paper') {
+      const paper = papers.find(p => p.id === selectedPaperId);
+      finalQuestionIds = paper?.questions?.map((q: any) => q.id) || [];
+      name = paper?.name || name;
+    } else {
+      finalQuestionIds = selectedQuestions;
     }
 
-    if (questionsToAssign.length === 0) {
+    if (filterWrongBook && selectedStudents.length > 0) {
+       finalQuestionIds = finalQuestionIds.filter((qid: string) => questionStats[qid]?.isWrong);
+    }
+
+    if (finalQuestionIds.length === 0) {
        setConfirmationModalProps({
         title: language === 'zh' ? '无法发布' : 'Cannot Assign',
         message: language === 'zh' ? '所选筛选条件下没有题目可发布。' : 'No questions match the filter criteria.',
         type: 'warning',
-        language: language,
         onConfirm: () => setIsConfirmationModalOpen(false),
+        confirmText: 'OK', cancelText: ''
       });
       setIsConfirmationModalOpen(true);
       return;
     }
 
     try {
-      // We need to create a temporary paper or just assign these specific questions?
-      // The current backend `AssignHomework` takes `paperId`. 
-      // If we filter questions, we technically need a NEW paper ID or the backend needs to support a list of QIDs.
-      // Current `AssignHomework` implementation in `handlers.go`:
-      // h.PaperID ...
-      // It doesn't seem to support overriding questions list easily without creating a new paper.
-      // However, `Homework` struct has `PaperID`.
-      // If we want to assign a SUBSET, we should probably create a dynamic paper or `PaperID` needs to be optional?
-      // Looking at `AssignHomework` handler: it just saves the Homework struct.
-      // It DOES NOT validate/copy questions from Paper to Homework.
-      // But the Frontend `PracticeSession` fetches questions from `PaperID`.
-      // So if we assign `PaperID`, the student gets ALL questions in that paper.
-      
-      // SOLUTION: Create a new temporary paper for this assignment if filtered.
-      let finalPaperId = selectedPaperId;
-      if (filterWrongBook) {
-         const newPaperName = `${paper?.name} (错题筛选)`;
-         const newPaper = await api.papers.create({
-           name: newPaperName,
-           questionIds: questionsToAssign.map((q: any) => q.id),
-           total: questionsToAssign.length
-         });
-         finalPaperId = newPaper.id;
-      }
-
       await api.homework.assign({
-        paperId: finalPaperId,
-        name: paper ? paper.name : 'Homework',
-        classId: '3-1', // Mock class
+        name: name,
+        classId: '3-1', 
         startDate: new Date().toISOString().split('T')[0],
         endDate: deadline,
-        studentIds: selectedStudents, // Backend needs to handle this (currently AssignHomework takes generic 'h')
+        studentIds: selectedStudents,
+        questionIds: finalQuestionIds,
         repeatInterval: repeatInterval
       });
       setConfirmationModalProps({
         title: language === 'zh' ? '发布成功' : 'Assignment Success',
-        message: language === 'zh' ? '家庭作业已成功发布给所选学生。' : 'Homework has been successfully assigned to selected students.',
+        message: language === 'zh' ? '家庭作业已成功发布。' : 'Homework has been successfully assigned.',
         type: 'success',
-        language: language,
         onConfirm: () => setIsConfirmationModalOpen(false),
+        confirmText: 'OK', cancelText: ''
       });
       setIsConfirmationModalOpen(true);
       setSelectedStudents([]);
+      setSelectedQuestions([]);
       setDeadline('');
-      fetchData(); // Refresh list
+      fetchData();
     } catch (e) {
       console.error(e);
       setConfirmationModalProps({
         title: language === 'zh' ? '发布失败' : 'Assignment Failed',
-        message: language === 'zh' ? '发布家庭作业失败，请检查数据或重试。' : 'Failed to assign homework. Please check your data or try again.',
+        message: language === 'zh' ? '发布家庭作业失败。' : 'Failed to assign homework.',
         type: 'error',
-        language: language,
         onConfirm: () => setIsConfirmationModalOpen(false),
+        confirmText: 'OK', cancelText: ''
       });
       setIsConfirmationModalOpen(true);
     }
@@ -231,6 +249,24 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
     setSelectedStudents(prev => 
       prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
     );
+  };
+
+  const toggleQuestion = (id: string) => {
+    setSelectedQuestions(prev => 
+      prev.includes(id) ? prev.filter(q => q !== id) : [...prev, id]
+    );
+  };
+
+  const startTrial = () => {
+    let qIds = "";
+    if (selectionMode === 'skill') {
+      qIds = selectedQuestions.join(',');
+    } else {
+      const paper = papers.find(p => p.id === selectedPaperId);
+      qIds = paper?.questions?.map((q: any) => q.id).join(',') || "";
+    }
+    if (!qIds) return;
+    window.open(`/#/practice?questionIds=${qIds}&trial=true`, '_blank');
   };
 
   if (viewingRecord) {
@@ -341,7 +377,6 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                         <UserCircle className="w-10 h-10 text-gray-300" />
                         <div>
                            <p className="font-bold dark:text-white">{s.name}</p>
-                           <p className="text-[10px] text-gray-400">{s.grade}</p>
                         </div>
                      </div>
                      <div className="flex items-center gap-6">
@@ -370,7 +405,7 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto animate-in fade-in duration-500">
+    <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-500">
       <div className="flex flex-col items-center gap-6 mb-8">
         <h2 className="text-3xl font-black dark:text-white">{language === 'zh' ? '作业管理' : 'HW Management'}</h2>
         <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl w-full max-w-md">
@@ -392,126 +427,223 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
       </div>
       
       {loading ? <Loading /> : activeTab === 'assign' ? (
-        <div className="grid lg:grid-cols-2 gap-8">
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border dark:border-gray-700 space-y-8 shadow-sm h-fit">
-            <div>
-              <label className="block text-xs font-black text-gray-400 uppercase mb-4 tracking-widest">
-                <Book className="w-4 h-4 inline mr-1" /> {language === 'zh' ? '1. 选择试卷' : '1. Select Paper'}
-              </label>
-              <select 
-                value={selectedPaperId}
-                onChange={(e) => setSelectedPaperId(e.target.value)}
-                className="w-full p-4 rounded-2xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 outline-none focus:ring-4 focus:ring-primary-500/20 dark:text-white font-bold"
-              >
-                {papers.length === 0 && <option value="">{language === 'zh' ? '暂无试卷' : 'No Papers'}</option>}
-                {papers.map(p => <option key={p.id} value={p.id}>{p.name} ({p.total}题)</option>)}
-              </select>
+        <div className="grid lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8 space-y-6">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border dark:border-gray-700 shadow-sm">
+               <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-xl font-black dark:text-white flex items-center gap-2">
+                    <Brain className="w-6 h-6 text-primary-600" />
+                    {language === 'zh' ? '第一步：选择题目' : 'Step 1: Select Questions'}
+                  </h3>
+                  <div className="flex p-1 bg-gray-100 dark:bg-gray-900 rounded-xl">
+                    <button 
+                      onClick={() => setSelectionMode('skill')}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${selectionMode === 'skill' ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600' : 'text-gray-500'}`}
+                    >
+                      {language === 'zh' ? '技能练习选题' : 'Skill Tree'}
+                    </button>
+                    <button 
+                      onClick={() => setSelectionMode('paper')}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${selectionMode === 'paper' ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600' : 'text-gray-500'}`}
+                    >
+                      {language === 'zh' ? '按试卷选题' : 'By Paper'}
+                    </button>
+                  </div>
+               </div>
 
-              {/* Question Preview & Stats */}
-              {selectedPaperId && selectedStudents.length > 0 && (
-                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border dark:border-gray-700 max-h-60 overflow-y-auto">
-                   <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">{language === 'zh' ? '题目预览' : 'Preview'}</h4>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={filterWrongBook} 
-                          onChange={(e) => setFilterWrongBook(e.target.checked)}
-                          className="w-4 h-4 rounded text-red-600 focus:ring-red-500"
-                        />
-                        <span className="text-xs font-bold text-red-500">{language === 'zh' ? '仅筛选错题' : 'Mistakes Only'}</span>
-                      </label>
+               {selectionMode === 'paper' ? (
+                 <div className="space-y-6">
+                   <div className="flex gap-2 items-center">
+                    <select 
+                        value={selectedPaperId}
+                        onChange={(e) => setSelectedPaperId(e.target.value)}
+                        className="flex-1 p-4 rounded-2xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 outline-none focus:ring-4 focus:ring-primary-500/20 dark:text-white font-bold"
+                      >
+                        {papers.length === 0 && <option value="">{language === 'zh' ? '暂无试卷' : 'No Papers'}</option>}
+                        {papers.map(p => <option key={p.id} value={p.id}>{p.name} ({p.total}题)</option>)}
+                      </select>
+                      {selectedPaperId && (
+                        <button 
+                          onClick={() => {
+                            const p = papers.find(pp => pp.id === selectedPaperId);
+                            if (p && p.questions && p.questions.length > 0) {
+                              setPreviewQuestion(p.questions[0]);
+                            }
+                          }}
+                          className="p-4 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-400 hover:text-primary-600 transition-all flex items-center gap-2 font-bold"
+                        >
+                          <Eye className="w-5 h-5" />
+                          <span className="hidden md:inline">{language === 'zh' ? '预览题目' : 'Preview'}</span>
+                        </button>
+                      )}
                    </div>
-                   <div className="space-y-2">
-                      {papers.find(p => p.id === selectedPaperId)?.questions?.map((q: any) => {
-                        const stats = questionStats[q.id];
-                        if (filterWrongBook && !stats?.isWrong) return null;
-                        
-                        return (
-                          <div key={q.id} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
-                             <div className="flex items-center gap-2 overflow-hidden">
-                                {stats?.isWrong && <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-[10px] font-black rounded">WRONG</span>}
-                                <span className="text-xs font-bold truncate dark:text-gray-300">{q.stemText}</span>
-                             </div>
-                             {stats && (
-                               <div className="text-[10px] text-gray-400 flex items-center gap-2 shrink-0">
-                                  <span>{language === 'zh' ? '做过' : 'Done'}: {stats.attempts}</span>
-                                  <span className={stats.accuracy < 60 ? 'text-red-500' : 'text-green-500'}>{stats.accuracy.toFixed(0)}%</span>
-                               </div>
-                             )}
-                          </div>
-                        )
-                      })}
-                   </div>
-                </div>
-              )}
+                 </div>
+               ) : (
+                 <div className="space-y-6">
+                    <div className="flex flex-wrap gap-4 mb-6">
+                       <select 
+                         value={skillSubject}
+                         onChange={(e) => setSkillSubject(e.target.value)}
+                         className="p-3 rounded-xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-bold outline-none"
+                       >
+                         {SUBJECTS.filter(s => s.id !== 'ALL').map(s => <option key={s.id} value={s.id}>{language === 'zh' ? s.name : s.enName}</option>)}
+                       </select>
+                       <select 
+                         value={skillGrade}
+                         onChange={(e) => setSkillGrade(parseInt(e.target.value))}
+                         className="p-3 rounded-xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-bold outline-none"
+                       >
+                         {GRADES.map(g => <option key={g.id} value={g.id}>{language === 'zh' ? g.name : g.enName}</option>)}
+                       </select>
+                    </div>
+
+                    {skillsLoading ? <Loading /> : (
+                      <div className="grid md:grid-cols-2 gap-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                         {skills.map(topic => (
+                           <div key={topic.id} className="space-y-3">
+                              <h4 className="font-black text-sm text-primary-600 border-l-4 border-primary-600 pl-2">{topic.name}</h4>
+                              <div className="space-y-2">
+                                {topic.objectives?.map((obj: any) => (
+                                  <div key={obj.id} className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
+                                     <p className="text-xs font-bold mb-2 dark:text-gray-300">{obj.name}</p>
+                                     <div className="flex flex-wrap gap-2">
+                                        {obj.questions?.map((q: any, idx: number) => {
+                                          const isSelected = selectedQuestions.includes(q.id);
+                                          const stats = questionStats[q.id];
+                                          return (
+                                            <div key={q.id} className="flex items-center gap-1 group/q">
+                                              <button
+                                                onClick={() => toggleQuestion(q.id)}
+                                                className={`
+                                                  flex-1 px-3 py-2 rounded-xl text-[10px] font-bold transition-all border text-left truncate
+                                                  ${isSelected 
+                                                    ? 'bg-primary-600 text-white border-primary-600 shadow-md scale-[1.02]' 
+                                                    : 'bg-white dark:bg-gray-800 text-gray-500 border-gray-100 dark:border-gray-700 hover:border-primary-300'}
+                                                  ${stats?.isWrong ? 'ring-2 ring-red-500 ring-offset-1' : ''}
+                                                `}
+                                                title={getStemText(q)}
+                                              >
+                                                {getStemText(q)}
+                                              </button>
+                                              <button 
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setPreviewQuestion(q);
+                                                }}
+                                                className="p-2 bg-gray-100 dark:bg-gray-700 rounded-xl text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all opacity-0 group-hover/q:opacity-100"
+                                              >
+                                                <Eye className="w-3.5 h-3.5" />
+                                              </button>
+                                            </div>
+                                          );
+                                        })}
+                                     </div>
+                                  </div>
+                                ))}
+                              </div>
+                           </div>
+                         ))}
+                      </div>
+                    )}
+                 </div>
+               )}
             </div>
 
-            <div>
-              <label className="block text-xs font-black text-gray-400 uppercase mb-4 tracking-widest">
-                <Send className="w-4 h-4 inline mr-1" /> {language === 'zh' ? '2. 设置截止日期' : '2. Set Deadline'}
-              </label>
-              <input 
-                type="date" 
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-                className="w-full p-4 rounded-2xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 outline-none focus:ring-4 focus:ring-primary-500/20 dark:text-white font-bold" 
-              />
-            </div>
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border dark:border-gray-700 shadow-sm grid md:grid-cols-2 gap-8">
+               <div className="space-y-6">
+                  <h3 className="text-xl font-black dark:text-white flex items-center gap-2">
+                    <Clock className="w-6 h-6 text-primary-600" />
+                    {language === 'zh' ? '第二步：设置详情' : 'Step 2: Settings'}
+                  </h3>
+                  
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">{language === 'zh' ? '作业名称 (可选)' : 'Homework Name'}</label>
+                    <input 
+                      type="text" 
+                      value={homeworkName}
+                      onChange={(e) => setHomeworkName(e.target.value)}
+                      placeholder={language === 'zh' ? '例：第一单元复习' : 'Review Unit 1'}
+                      className="w-full p-4 rounded-2xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-bold outline-none"
+                    />
+                  </div>
 
-            <div>
-              <label className="block text-xs font-black text-gray-400 uppercase mb-4 tracking-widest">
-                <Clock className="w-4 h-4 inline mr-1" /> {language === 'zh' ? '3. 重复布置' : '3. Repeat Setting'}
-              </label>
-              <select 
-                value={repeatInterval}
-                onChange={(e) => setRepeatInterval(e.target.value as any)}
-                className="w-full p-4 rounded-2xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 outline-none focus:ring-4 focus:ring-primary-500/20 dark:text-white font-bold"
-              >
-                <option value="none">{language === 'zh' ? '不重复' : 'No Repeat'}</option>
-                <option value="daily">{language === 'zh' ? '每天' : 'Daily'}</option>
-                <option value="3days">{language === 'zh' ? '每3天' : 'Every 3 Days'}</option>
-                <option value="weekly">{language === 'zh' ? '每周' : 'Weekly'}</option>
-                <option value="monthly">{language === 'zh' ? '每月' : 'Monthly'}</option>
-              </select>
-            </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">{language === 'zh' ? '截止日期' : 'Deadline'}</label>
+                    <input 
+                      type="date" 
+                      value={deadline}
+                      onChange={(e) => setDeadline(e.target.value)}
+                      className="w-full p-4 rounded-2xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-bold outline-none" 
+                    />
+                  </div>
+               </div>
 
-            <div className="pt-4">
-              <button 
-                onClick={handleAssign}
-                className="w-full py-5 bg-primary-600 text-white rounded-[2rem] font-black shadow-xl shadow-primary-600/20 flex items-center justify-center gap-2 hover:bg-primary-700 transition-all disabled:opacity-50" 
-                disabled={selectedStudents.length === 0}
-              >
-                <Send className="w-6 h-6" />
-                {language === 'zh' ? `确认发布 (已选 ${selectedStudents.length} 人)` : `Confirm Assign (${selectedStudents.length})`}
-              </button>
+               <div className="space-y-6">
+                  <h3 className="text-xl font-black dark:text-white flex items-center gap-2">
+                    <Layers className="w-6 h-6 text-primary-600" />
+                    {language === 'zh' ? '第三步：额外选项' : 'Step 3: Options'}
+                  </h3>
+
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">{language === 'zh' ? '重复周期' : 'Repeat Interval'}</label>
+                    <select 
+                      value={repeatInterval}
+                      onChange={(e) => setRepeatInterval(e.target.value as any)}
+                      className="w-full p-4 rounded-2xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-bold outline-none"
+                    >
+                      <option value="none">{language === 'zh' ? '不重复' : 'No Repeat'}</option>
+                      <option value="daily">{language === 'zh' ? '每天' : 'Daily'}</option>
+                      <option value="3days">{language === 'zh' ? '每3天' : 'Every 3 Days'}</option>
+                      <option value="weekly">{language === 'zh' ? '每周' : 'Weekly'}</option>
+                      <option value="monthly">{language === 'zh' ? '每月' : 'Monthly'}</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-4 pt-4">
+                     <button 
+                       onClick={startTrial}
+                       disabled={selectionMode === 'skill' ? selectedQuestions.length === 0 : !selectedPaperId}
+                       className="flex-1 py-4 bg-amber-500 text-white rounded-2xl font-black shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 hover:bg-amber-600 transition-all disabled:opacity-50"
+                     >
+                       <PlayCircle className="w-5 h-5" />
+                       {language === 'zh' ? '试做模式' : 'Trial Mode'}
+                     </button>
+                     <button 
+                        onClick={handleAssign}
+                        disabled={selectedStudents.length === 0 || (selectionMode === 'skill' && selectedQuestions.length === 0) || (selectionMode === 'paper' && !selectedPaperId)}
+                        className="flex-[2] py-4 bg-primary-600 text-white rounded-2xl font-black shadow-lg shadow-primary-600/20 flex items-center justify-center gap-2 hover:bg-primary-700 transition-all disabled:opacity-50"
+                     >
+                        <Send className="w-5 h-5" />
+                        {language === 'zh' ? '立即发布' : 'Assign Now'}
+                     </button>
+                  </div>
+               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border dark:border-gray-700 shadow-sm flex flex-col h-[500px]">
+          <div className="lg:col-span-4 bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border dark:border-gray-700 shadow-sm flex flex-col h-[700px] sticky top-8">
             <div className="flex justify-between items-center mb-6">
               <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                <User className="w-4 h-4" /> {language === 'zh' ? '选择执行学生' : 'Target Students'}
+                <User className="w-4 h-4" /> {language === 'zh' ? '选择学生' : 'Select Students'}
               </label>
               <button 
                 onClick={() => setSelectedStudents(selectedStudents.length === students.length ? [] : students.map(s => s.id))}
                 className="text-xs text-primary-600 font-bold hover:underline"
               >
-                {selectedStudents.length === students.length ? (language === 'zh' ? '全不选' : 'Deselect All') : (language === 'zh' ? '全选' : 'Select All')}
+                {selectedStudents.length === students.length ? (language === 'zh' ? '全不选' : 'None') : (language === 'zh' ? '全选' : 'All')}
               </button>
             </div>
             
-            <div className="relative mb-4">
+            <div className="relative mb-6">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input 
                 type="text" 
-                placeholder={language === 'zh' ? '输入学生名字...' : 'Search student...'}
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-xl text-xs outline-none"
+                placeholder={language === 'zh' ? '搜索学生...' : 'Search...'}
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary-500/20"
               />
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-2 space-y-2">
-               {students.length === 0 && <div className="text-center text-gray-400 mt-10">No students found</div>}
+            <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
                {students.map(s => (
                  <button 
                   key={s.id}
@@ -523,17 +655,31 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                   `}
                  >
                    <div className="flex items-center gap-3">
-                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${selectedStudents.includes(s.id) ? 'bg-primary-600 text-white shadow-lg' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
+                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${selectedStudents.includes(s.id) ? 'bg-primary-600 text-white shadow-lg' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
                         {s.name[0]}
                      </div>
                      <div>
                        <p className="font-bold dark:text-white text-sm">{s.name}</p>
-                       <p className="text-[10px] text-gray-400">{s.grade}</p>
                      </div>
                    </div>
                    {selectedStudents.includes(s.id) && <CheckCircle2 className="w-5 h-5 text-primary-600" />}
                  </button>
                ))}
+            </div>
+
+            <div className="mt-6 pt-6 border-t dark:border-gray-700">
+               <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-black text-gray-400 uppercase tracking-widest">{language === 'zh' ? '所选汇总' : 'Summary'}</span>
+                  <span className="text-xs font-black text-primary-600 bg-primary-50 dark:bg-primary-900/20 px-2 py-1 rounded-lg">
+                    {selectedStudents.length} {language === 'zh' ? '人' : 'Students'}
+                  </span>
+               </div>
+               <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-gray-400 uppercase tracking-widest">{language === 'zh' ? '已选题目' : 'Questions'}</span>
+                  <span className="text-xs font-black text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg">
+                    {selectionMode === 'skill' ? selectedQuestions.length : (papers.find(p => p.id === selectedPaperId)?.total || 0)} {language === 'zh' ? '题' : 'Items'}
+                  </span>
+               </div>
             </div>
           </div>
         </div>
@@ -591,6 +737,82 @@ const Assign: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
           onClose={() => setIsConfirmationModalOpen(false)}
           {...confirmationModalProps}
         />
+      )}
+
+      {/* Question Preview Modal */}
+      {previewQuestion && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+           <div className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[2.5rem] shadow-2xl p-8 md:p-10 border dark:border-gray-700 max-h-[90vh] flex flex-col">
+              <div className="flex justify-between items-center mb-6 shrink-0">
+                 <h3 className="text-xl font-black dark:text-white uppercase tracking-tight flex items-center gap-3">
+                    <Eye className="w-6 h-6 text-primary-600" />
+                    {language === 'zh' ? '题目预览' : 'Question Preview'}
+                 </h3>
+                 <button onClick={() => setPreviewQuestion(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                    <X className="w-6 h-6 dark:text-gray-400" />
+                 </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-2 space-y-8 py-4">
+                 <div>
+                    <span className="px-3 py-1 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 inline-block">
+                       {previewQuestion.subject} · {previewQuestion.type}
+                    </span>
+                    <h4 className="text-2xl font-bold dark:text-white mb-6 leading-relaxed">
+                       {getStemText(previewQuestion)}
+                    </h4>
+                    {previewQuestion.stemImage && (
+                       <div className="rounded-3xl overflow-hidden border-4 border-gray-50 dark:border-gray-800 bg-white shadow-inner mb-8">
+                          <img src={previewQuestion.stemImage} alt="stem" className="w-full h-auto max-h-60 object-contain bg-white" />
+                       </div>
+                    )}
+                 </div>
+
+                 {previewQuestion.type === QuestionType.MULTIPLE_CHOICE && previewQuestion.options && (
+                    <div className="grid gap-4">
+                       {previewQuestion.options.map((opt: any, i: number) => {
+                          const optText = typeof opt === 'string' ? opt : opt.text;
+                          const optImage = typeof opt === 'string' ? null : opt.image;
+                          const optValue = typeof opt === 'string' ? opt : opt.value;
+                          const isCorrect = previewQuestion.answer.includes(optValue);
+                          
+                          return (
+                             <div 
+                                key={i} 
+                                className={`p-5 rounded-2xl border-2 transition-all flex items-center gap-4 ${isCorrect ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800'}`}
+                             >
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${isCorrect ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'}`}>
+                                   {optValue || String.fromCharCode(65 + i)}
+                                </div>
+                                <div className="flex-1 flex flex-col gap-2">
+                                   {optImage && <img src={optImage} className="w-32 h-20 object-contain bg-white rounded-lg border dark:border-gray-700" alt="option" />}
+                                   {optText && <p className={`font-bold ${isCorrect ? 'text-green-700 dark:text-green-400' : 'dark:text-white'}`}>{optText}</p>}
+                                </div>
+                                {isCorrect && <CheckCircle2 className="w-6 h-6 text-green-500" />}
+                             </div>
+                          );
+                       })}
+                    </div>
+                 )}
+
+                 {previewQuestion.type === QuestionType.INPUT && (
+                   <div className="p-6 bg-green-50 dark:bg-green-900/20 rounded-2xl border-2 border-green-100 dark:border-green-800/30">
+                      <p className="text-xs font-black text-green-600 uppercase tracking-widest mb-2">{language === 'zh' ? '正确答案' : 'Correct Answer'}</p>
+                      <p className="text-xl font-bold text-green-700 dark:text-green-400">{previewQuestion.answer}</p>
+                   </div>
+                 )}
+              </div>
+              
+              <div className="mt-8 pt-6 border-t dark:border-gray-700">
+                 <button 
+                    onClick={() => setPreviewQuestion(null)}
+                    className="w-full py-4 bg-primary-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/30"
+                 >
+                    {language === 'zh' ? '关闭预览' : 'Close Preview'}
+                 </button>
+              </div>
+           </div>
+        </div>
       )}
     </div>
   );

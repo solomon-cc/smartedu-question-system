@@ -25,6 +25,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
     // 1. Define the module registry with default settings
     const registry: Record<string, any> = {
       'dashboard': { icon: Home, label: '控制台', labelEn: 'Dashboard', path: '/' },
+      'skill_practice': { icon: Target, label: '技能练习', labelEn: 'Skills', path: '/skills' },
       'students': { icon: Users, label: '学生管理', labelEn: 'Students', path: '/students' },
       'questions': { icon: BookOpen, label: '题目管理', labelEn: 'Questions', path: '/questions' },
       'resources': { icon: ClipboardList, label: '素材管理', labelEn: 'Resource Assets', path: '/resources' },
@@ -46,19 +47,20 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
     
     if (auth?.user?.role === Role.STUDENT) {
       candidateItems = [
-        { id: 'dashboard', ...registry.dashboard, label: '首页', labelEn: 'Home' },
+        { id: 'dashboard', ...registry.dashboard, label: '技能练习', labelEn: 'Skills' },
         { id: 'assignments', icon: ClipboardList, label: '家庭作业', labelEn: 'Homework', path: '/homework' },
         { id: 'assignments', icon: Clock, label: '答题历史', labelEn: 'History', path: '/history' },
         { id: 'dashboard', icon: AlertTriangle, label: '错题本', labelEn: 'Mistakes', path: '/wrong-book' },
         { id: 'stats', ...registry.stats },
-        // Include others from registry in case they are enabled via backend
+        // Include others if enabled via backend
         ...Object.keys(registry)
-          .filter(id => !['dashboard', 'assignments', 'stats', 'help_docs'].includes(id))
+          .filter(id => !['dashboard', 'assignments', 'stats', 'help_docs', 'skill_practice'].includes(id))
           .map(id => ({ id, ...registry[id] }))
       ];
     } else if (auth?.user?.role === Role.TEACHER) {
       candidateItems = [
         { id: 'dashboard', ...registry.dashboard },
+        { id: 'skill_practice', ...registry.skill_practice },
         { id: 'students', ...registry.students },
         { id: 'questions', ...registry.questions },
         { id: 'resources', ...registry.resources },
@@ -68,14 +70,18 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
         { id: 'reinforcements', ...registry.reinforcements },
         // Include others
         ...Object.keys(registry)
-          .filter(id => !['dashboard', 'students', 'questions', 'resources', 'papers', 'assignments', 'ability_tracking', 'reinforcements', 'help_docs'].includes(id))
+          .filter(id => !['dashboard', 'skill_practice', 'students', 'questions', 'resources', 'papers', 'assignments', 'ability_tracking', 'reinforcements', 'help_docs'].includes(id))
           .map(id => ({ id, ...registry[id] }))
       ];
     } else {
       // Admin defaults
-      candidateItems = Object.keys(registry)
-        .filter(id => id !== 'help_docs')
-        .map(id => ({ id, ...registry[id] }));
+      candidateItems = [
+        { id: 'dashboard', ...registry.dashboard },
+        { id: 'skill_practice', ...registry.skill_practice },
+        ...Object.keys(registry)
+          .filter(id => !['dashboard', 'skill_practice', 'help_docs'].includes(id))
+          .map(id => ({ id, ...registry[id] }))
+      ];
     }
 
     // 3. Filter by backend permissions
@@ -116,7 +122,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
 
         <nav className="mt-6 px-4 space-y-2">
           {menuItems.map((item, idx) => {
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path || (item.path === '/' && location.pathname === '');
             return (
               <Link
                 key={idx}
@@ -136,7 +142,7 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
         </nav>
 
         {/* Action Controls in Sidebar Bottom */}
-        <div className="p-4 border-t dark:border-gray-700 space-y-3 shrink-0">
+        <div className="p-4 border-t dark:border-gray-700 space-y-3 shrink-0 mt-auto">
           <div className="flex flex-col gap-2">
             <button 
               onClick={() => setLanguage(language === 'zh' ? 'en' : 'zh')}
@@ -256,8 +262,8 @@ const Layout: React.FC<LayoutProps> = ({ children, language, setLanguage, themeM
           </div>
         </header>
 
-        <main className="flex-1 p-4 lg:p-8 overflow-y-auto scroll-smooth">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 overflow-y-auto scroll-smooth">
+          <div className="p-4 lg:p-6 min-h-full">
             {children}
           </div>
         </main>

@@ -102,13 +102,13 @@ const History: React.FC<{ language: 'zh' | 'en' }> = ({ language }) => {
                    <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <p className="font-bold dark:text-white text-lg mb-4">{idx + 1}. {stemText}</p>
-                        {(q.stemImage || q.stem?.image) && <img src={q.stemImage || q.stem?.image} className="w-48 h-24 object-cover rounded-xl mb-4 border dark:border-gray-700" alt="stem" />}
+                        {(q.stemImage || q.stem?.image) && <img src={q.stemImage || q.stem?.image} className="w-48 h-24 object-contain rounded-xl mb-4 border dark:border-gray-700 bg-white" alt="stem" />}
                         
                         {q.options && (
                           <div className="flex gap-4 mb-6 flex-wrap">
                              {q.options.map((opt: any, i: number) => (
                                <div key={i} className="flex flex-col items-center gap-2 p-3 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700">
-                                  {opt.image && <img src={opt.image} className="w-16 h-16 object-cover rounded-lg" />}
+                                  {opt.image && <img src={opt.image} className="w-16 h-16 object-contain rounded-lg bg-white" />}
                                   <span className="text-[10px] font-bold dark:text-gray-300">{opt.text}</span>
                                </div>
                              ))}
