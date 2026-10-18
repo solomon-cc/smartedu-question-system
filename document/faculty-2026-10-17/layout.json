@@ -1,0 +1,26 @@
+[
+  {
+    "columns": "339px",
+    "photos": true,
+    "scrollWidth": 375,
+    "width": 375
+  },
+  {
+    "columns": "704px",
+    "photos": true,
+    "scrollWidth": 768,
+    "width": 768
+  },
+  {
+    "columns": "466px 466px",
+    "photos": true,
+    "scrollWidth": 1024,
+    "width": 1024
+  },
+  {
+    "columns": "606px 606px",
+    "photos": true,
+    "scrollWidth": 1440,
+    "width": 1440
+  }
+]

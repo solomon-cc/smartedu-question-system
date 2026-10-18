@@ -1,0 +1,22 @@
+[
+  {
+    "footerWidth": 375,
+    "scrollWidth": 375,
+    "width": 375
+  },
+  {
+    "footerWidth": 768,
+    "scrollWidth": 768,
+    "width": 768
+  },
+  {
+    "footerWidth": 1024,
+    "scrollWidth": 1024,
+    "width": 1024
+  },
+  {
+    "footerWidth": 1440,
+    "scrollWidth": 1440,
+    "width": 1440
+  }
+]

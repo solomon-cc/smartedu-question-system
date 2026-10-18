@@ -1,0 +1,1042 @@
+{
+  "D-FLS-1": {
+    "steps": [
+      {
+        "instruction": "Say, “Look at me.”\n【说】“看我”",
+        "visual": false
+      }
+    ]
+  },
+  "D-FLS-2": {
+    "steps": [
+      {
+        "instruction": "Present the image of three cups, the left\nwith a block below it (FLS-2a), pause for 5\nseconds and turn the page.\n【等待】5秒，然后翻页",
+        "visual": true
+      },
+      {
+        "instruction": "Present the image of three cups (FLS-2b).\nSay, “Where did the block go?”\n【说】“积木去哪里了？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-FLS-3": {
+    "steps": [
+      {
+        "instruction": "Say, “Do this,”\nand touch each star one at a time from your\nright to your left.\n【说】“这样做”\n【动作】从右边向左边触摸每一颗星星。",
+        "visual": true
+      }
+    ]
+  },
+  "D-FLS-4": {
+    "steps": [
+      {
+        "instruction": "Say, “Choose one.”\n【说】“选一个”",
+        "visual": true
+      }
+    ]
+  },
+  "D-FLS-5": {
+    "steps": [
+      {
+        "instruction": "Say, “Do this,” and touch your nose.\n【说】“这样做”\n【动作】触摸你的鼻子。",
+        "visual": false
+      }
+    ]
+  },
+  "D-FLS-6": {
+    "steps": [
+      {
+        "instruction": "Say, “Do this,” and make a pincer grasp\n(pinching motion) with your fingers.\n【说】“这样做”\n【动作】用手指做出钳形（捏的动作）",
+        "visual": false
+      }
+    ]
+  },
+  "D-FLS-7": {
+    "steps": [
+      {
+        "instruction": "Say, “Do this,” and purse your lips.\n【说】“这样做”\n【动作】噘起你的嘴唇。（嘟嘴）",
+        "visual": false
+      }
+    ]
+  },
+  "D-FLS-8": {
+    "steps": [
+      {
+        "instruction": "Say, “Do this,” and raise your right arm, then\ntouch your stomach.\n【说】“这样做”\n【动作】举起你的右臂，然后触摸你的肚子",
+        "visual": false
+      }
+    ]
+  },
+  "D-FLS-9": {
+    "steps": [
+      {
+        "instruction": "Say, “Say…Ahh.”\n【说】“说...啊”",
+        "visual": false
+      }
+    ]
+  },
+  "D-FLS-10": {
+    "steps": [
+      {
+        "instruction": "Say, “Say…Book.”\n【说】“说...书包”(备注：汉化双音节）",
+        "visual": false
+      }
+    ]
+  },
+  "D-FLS-11": {
+    "steps": [
+      {
+        "instruction": "Say, “Stand up.”\n【说】“起立”（“站起来”）",
+        "visual": false
+      }
+    ]
+  },
+  "D-FLS-12": {
+    "steps": [
+      {
+        "instruction": "Say, “Jim says, ‘Hi!’ What do you say?”\n【说】“大明说，‘你好’，你说什么？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-FLS-13": {
+    "steps": [
+      {
+        "instruction": "Say, “Say…The dog is big!”\n【说】“说...这只狗很大！”",
+        "visual": false
+      }
+    ]
+  },
+  "D-FLS-14": {
+    "steps": [
+      {
+        "instruction": "Point to the block at the top of the page.\nSay, “Show me same.”\n【动作】指向页面顶部的那块积木。\n【说】“指一样的”（或者“摸相同的”或者“哪一个是一样\n的/相同的”",
+        "visual": true
+      }
+    ]
+  },
+  "D-FLS-15": {
+    "steps": [
+      {
+        "instruction": "Point to the apple at the top of the page.\nSay, “Show me same.”\n【动作】指向页面顶端的苹果。\n【说】“指一样的”（或者“摸相同的”或者“哪一个是一样\n的/相同的”",
+        "visual": true
+      }
+    ]
+  },
+  "D-FLS-16": {
+    "steps": [
+      {
+        "instruction": "Point to the T at the top of the page.\nSay, “Show me same.”\n【动作】指向页面顶端的T。\n【说】“指一样的”（或者“摸相同的”或者“哪一个是一样\n的/相同的”",
+        "visual": true
+      }
+    ]
+  },
+  "D-PLS-1": {
+    "steps": [
+      {
+        "instruction": "Point to the dime at the top of the page.\nSay, “Show me same.”\n【动作】指向页面顶端的1角人民币。\n【说】“指一样的”（或者“摸相同的”或者“哪一个是一样\n的/相同的”",
+        "visual": true
+      }
+    ]
+  },
+  "D-PLS-2": {
+    "steps": [
+      {
+        "instruction": "Say, “Show me the stuffed animal.”\n【说】“指毛绒玩具”（也可以是“摸毛绒玩具”或者“哪一\n个是毛绒玩具？”）",
+        "visual": true
+      }
+    ]
+  },
+  "D-PLS-3": {
+    "steps": [
+      {
+        "instruction": "Say, “Show me the toothbrush.”\n【说】“指牙刷”（也可以是“摸牙刷”或者哪一个是牙\n刷？）”",
+        "visual": true
+      }
+    ]
+  },
+  "D-PLS-4": {
+    "steps": [
+      {
+        "instruction": "Say, “Show me the bread.”\n【说】“指面包”（也可以是“摸面包”或者哪一个是面\n包？）”",
+        "visual": true
+      }
+    ]
+  },
+  "D-PLS-5": {
+    "steps": [
+      {
+        "instruction": "Say, “Show me the horse.”\n【说】“指马”（也可以是“摸马”或者”哪一个是马？”）",
+        "visual": true
+      }
+    ]
+  },
+  "D-PLS-6": {
+    "steps": [
+      {
+        "instruction": "Say, “Clap loudly.”\n【说】“大声拍手”",
+        "visual": false
+      }
+    ]
+  },
+  "D-PLS-7": {
+    "steps": [
+      {
+        "instruction": "Say, “What is your name?”\n【说】“你叫什么名字？”",
+        "visual": false
+      }
+    ]
+  },
+  "D-PLS-8": {
+    "steps": [
+      {
+        "instruction": "Say, “What is this?”\n【说】“这是什么？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-PLS-9": {
+    "steps": [
+      {
+        "instruction": "Say, “What is this?”\n【说】“这是什么？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-PLS-10": {
+    "steps": [
+      {
+        "instruction": "Say, “Point to your knee.”\n【说】“指向你的膝盖”",
+        "visual": false
+      }
+    ]
+  },
+  "D-PLS-11": {
+    "steps": [
+      {
+        "instruction": "Say, “Show me the rectangle.”\n【说】“指长方形”（“摸长方形”或者“哪一个是长方形？”）",
+        "visual": true
+      }
+    ]
+  },
+  "D-PLS-12": {
+    "steps": [
+      {
+        "instruction": "Say, “Show me brown.”\n【说】“指棕色”（也可以是“摸棕色”或“哪一个是棕色？”）",
+        "visual": true
+      }
+    ]
+  },
+  "D-PLS-13": {
+    "steps": [
+      {
+        "instruction": "Say, “Show me the flower.”\n【说】“指花”（也可以是“摸花”或“哪一个是花？”）.”",
+        "visual": true
+      }
+    ]
+  },
+  "D-PLS-14": {
+    "steps": [
+      {
+        "instruction": "Say, “Show me H.”\n【说】“指H”（也可以是“摸H”或“哪一个是H？”）",
+        "visual": true
+      }
+    ]
+  },
+  "D-PLS-15": {
+    "steps": [
+      {
+        "instruction": "Say, “What is this?”\n【说】“这是什么？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-PLS-16": {
+    "steps": [
+      {
+        "instruction": "Say, “What color is this?”\n【说】“这是什么颜色？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VCS-1": {
+    "steps": [
+      {
+        "instruction": "Say, “Say…ribbit.”\n【说】“说...呱呱（青蛙叫声）”",
+        "visual": false
+      }
+    ]
+  },
+  "D-VCS-2": {
+    "steps": [
+      {
+        "instruction": "Say, “Stand up, turn around, and clap your\nhands.”\n【说】“起立，转身，并拍手。”",
+        "visual": false
+      }
+    ]
+  },
+  "D-VCS-3": {
+    "steps": [
+      {
+        "instruction": "Say, “What comes next? L-M-N-O-…”\n【说】“接下来是什么？L-M-N-O-...”",
+        "visual": false
+      }
+    ]
+  },
+  "D-VCS-4": {
+    "steps": [
+      {
+        "instruction": "Say, “What number is this?”\n【说】“这是什么数字？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VCS-5": {
+    "steps": [
+      {
+        "instruction": "Say, “Which letter says ‘mmm’?”\n【说】“哪个字母是‘mmm’”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VCS-6": {
+    "steps": [
+      {
+        "instruction": "Say, “Which one is crying?”\n【说】“哪一个在哭？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VCS-7": {
+    "steps": [
+      {
+        "instruction": "Say, “Tell me something that has spots.”\n【说】“告诉我有斑点的东西”（或者“说一个有斑点的东\n西”)",
+        "visual": false
+      }
+    ]
+  },
+  "D-VCS-8": {
+    "steps": [
+      {
+        "instruction": "Say, “Who is this?”\n【说】“这是谁？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VCS-9": {
+    "steps": [
+      {
+        "instruction": "Say, “Which one is feeling wet?”\n【说】“哪一个感觉是湿的？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VCS-10": {
+    "steps": [
+      {
+        "instruction": "Say, “Which one doesn’t belong?”\n【说】“哪一个不属于？”（或者“哪一个不是一类？”“哪\n一个不一样？）",
+        "visual": true
+      }
+    ]
+  },
+  "D-VCS-11": {
+    "steps": [
+      {
+        "instruction": "VCS-11\nSay, “Bob’s balloon popped. What might he\nbe feeling?”\n【说】“鲍勃的气球爆炸了，他可能会是什么心情（感\n觉）？”",
+        "visual": false
+      }
+    ]
+  },
+  "D-VCS-12": {
+    "steps": [
+      {
+        "instruction": "Say, “Which one is 9:30?”\n【说】“哪一个是9：30？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VCS-13": {
+    "steps": [
+      {
+        "instruction": "Say, “What does it say?”\n【说】“怎么读？” (汉化成拼音）",
+        "visual": true
+      }
+    ]
+  },
+  "D-VCS-14": {
+    "steps": [
+      {
+        "instruction": "Say, “What group does this belong to?”\n【说】“这是属于什么类的？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VCS-15": {
+    "steps": [
+      {
+        "instruction": "Say, “Where are they?”\n【说】“他们在那？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VCS-16": {
+    "steps": [
+      {
+        "instruction": "Say, “Show me his head.”\n【说】“摸男孩的头”（或“指男孩的头”)(汉化）",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-1": {
+    "steps": [
+      {
+        "instruction": "Point to the nickel, and\nsay, “How much is this coin worth?”\n指向1角镍币，并说“这枚硬币值多少钱？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-2": {
+    "steps": [
+      {
+        "instruction": "Say, “Which one is fifteen cents?”\n【说】“哪一个是1元钱？”（汉化）",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-3": {
+    "steps": [
+      {
+        "instruction": "Say, “How many dots are there?”\nThen turn the page.\n【说】“有多少个点？”\n然后翻页",
+        "visual": true
+      },
+      {
+        "instruction": "Say, “How many are there now?”\n【说】“现在有多少个?”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-4": {
+    "steps": [
+      {
+        "instruction": "Say, “How much is it?”\n【说】“是多少？”（答案是多少）",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-5": {
+    "steps": [
+      {
+        "instruction": "Say, “If you were this tornado, how would\nyou feel?”\n【说】“如果你是龙卷风，你会感觉如何？”（你感觉怎\n么样？）",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-6": {
+    "steps": [
+      {
+        "instruction": "Say, “What is 4 + 0?”\n【说】“4+0是多少？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-7": {
+    "steps": [
+      {
+        "instruction": "Say, “Guess how many items are inside.”\n【说】“猜猜里面有多少物品”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-8": {
+    "steps": [
+      {
+        "instruction": "Say, “Give the bunny a name based on what\nhe looks like.”\n【说】“根据长相给兔子起一个名字”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-9": {
+    "steps": [
+      {
+        "instruction": "Say, “What do you think is inside?”\n【说】“你觉得里面是什么？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-10": {
+    "steps": [
+      {
+        "instruction": "Say, “Show me the traveler.”\n【说】“哪一个旅行的时候使用？”（“指一指旅游用\n的”“哪一个用来旅行”）",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-11": {
+    "steps": [
+      {
+        "instruction": "Say, “The fast car is red.”\nTurn the page.\n【说】“那辆快车是红色的。”\n【动作】翻页",
+        "visual": true
+      },
+      {
+        "instruction": "Wait ten seconds.\nSay, “Tell me what I said.”\n【等待】10秒钟，然后\n【说】“我刚才说了什么？”",
+        "visual": false
+      }
+    ]
+  },
+  "D-VMS-12": {
+    "steps": [
+      {
+        "instruction": "Point to the image of an airplane at the top.\nSay, “What else is the same?”\n【动作】指着页面顶端的飞机图片\n【说】“还有什么相同的？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-13": {
+    "steps": [
+      {
+        "instruction": "Say, “Tell me three things about this.”\n【说】“告诉我关于这个的三件事（三个方面，三个特\n征）”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-14": {
+    "steps": [
+      {
+        "instruction": "Point to the image of a pillow.\nSay, “Choose what I might be feeling right\nnow.”\n动作】指向枕头的图片。\n【说】“选择我现在可能是什么感觉”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-15": {
+    "steps": [
+      {
+        "instruction": "Point to the image of the man.\nSay, ““What might he be feeling right\nnow?”\n动作】指向男人的图片。\n【说】“他现在是什么感觉（心情）？”",
+        "visual": true
+      }
+    ]
+  },
+  "D-VMS-16": {
+    "steps": [
+      {
+        "instruction": "Say, “What do you think happens next?”\n【说】“你认为接下来会发生什么？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-LLS-1": {
+    "steps": [
+      {
+        "instruction": "Say, “Do this,” and clap your hands then\nplace them on your head.\n【说】“这样做”\n【动作】拍拍你的手，然后把双手举过头顶",
+        "visual": false
+      }
+    ]
+  },
+  "G-LLS-2": {
+    "steps": [
+      {
+        "instruction": "Say, “What is this?”\n【说】“这是什么？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-LLS-3": {
+    "steps": [
+      {
+        "instruction": "Say, “Show me blue.”\n【说】“哪一个是蓝色？”（或者“哪一个是蓝色”，“摸一\n摸蓝色”）",
+        "visual": true
+      }
+    ]
+  },
+  "G-LLS-4": {
+    "steps": [
+      {
+        "instruction": "Say, “Count the birds.”\n【说】“数一数鸟有几只”（或“鸟有几只”）",
+        "visual": true
+      }
+    ]
+  },
+  "G-LLS-5": {
+    "steps": [
+      {
+        "instruction": "Say, “Find the 外套.”\n【说】“找到外套”（或“哪一个是外套”）",
+        "visual": true
+      }
+    ]
+  },
+  "G-LLS-6": {
+    "steps": [
+      {
+        "instruction": "Point to the L.\nSay, “Find the same.”\n【动作】指向L\n【说】“找到相同的（一样的）”",
+        "visual": true
+      }
+    ]
+  },
+  "G-LLS-7": {
+    "steps": [
+      {
+        "instruction": "Say, “What color is this?”\n【说】“这是什么颜色？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-LLS-8": {
+    "steps": [
+      {
+        "instruction": "Say, “Do this,” and hum in a low tone.\n【说】“这样做”\n【动作】低声哼歌",
+        "visual": false
+      }
+    ]
+  },
+  "G-LLS-9": {
+    "steps": [
+      {
+        "instruction": "Say, “Pretend you are an angry dog.”\n【说】“假装你是一只愤怒（生气）的小狗”",
+        "visual": false
+      }
+    ]
+  },
+  "G-LLS-10": {
+    "steps": [
+      {
+        "instruction": "Say, “Do this…mouse [whisper],\nGIRAFFE [yell].”\n【说】“这样做……老鼠[（低声）吱吱]，\n老虎[（大声）嗷呜]”",
+        "visual": false
+      }
+    ]
+  },
+  "G-LLS-11": {
+    "steps": [
+      {
+        "instruction": "Say, “Point to the foot of the bed.”\n【说】“指床尾”",
+        "visual": true
+      }
+    ]
+  },
+  "G-LLS-12": {
+    "steps": [
+      {
+        "instruction": "Say, “Find lettuce.”\n【说】“找青菜”（汉化）",
+        "visual": true
+      }
+    ]
+  },
+  "G-LLS-13": {
+    "steps": [
+      {
+        "instruction": "Say, “How is this person feeling?”\n【说】“这个人是什么心情（感觉）”",
+        "visual": true
+      }
+    ]
+  },
+  "G-LLS-14": {
+    "steps": [
+      {
+        "instruction": "Say, “Find motorcycle.”\n【说】“找摩托车”（或者“哪一个是摩托车”）",
+        "visual": true
+      }
+    ]
+  },
+  "G-LLS-15": {
+    "steps": [
+      {
+        "instruction": "Say, “What is this?”\n【说】“这是什么？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-LLS-16": {
+    "steps": [
+      {
+        "instruction": "Say, “Say the same as me…itka vanek.”\n【说】“和我说一样的……伊特卡瓦内克”",
+        "visual": false
+      }
+    ]
+  },
+  "G-CMS-1": {
+    "steps": [
+      {
+        "instruction": "Say, “Tell me two things I can do with a\nruler.”\n【说】“告诉直尺能做两件事情”（或“我能用直尺做哪两\n件事情”）",
+        "visual": false
+      }
+    ]
+  },
+  "G-CMS-2": {
+    "steps": [
+      {
+        "instruction": "Present word search in\nLearner Response Booklet (1) with a pencil.\nSay, “Find three words.”\n【呈现】附件1（1）和铅笔\n【说】“圈出三个词语”（汉化）",
+        "visual": false
+      }
+    ]
+  },
+  "G-CMS-3": {
+    "steps": [
+      {
+        "instruction": "Present grid in Learner Response Booklet\n(2) with a pencil. Say, “Draw a path from A\nto B.” After, say, “Draw a different path.”\n【呈现】附件1（2）和铅笔\n【说】“从A到B画一条路，”\n【等待】学习者完成之后\n【说】“再画一条不同的路”",
+        "visual": false
+      }
+    ]
+  },
+  "G-CMS-4": {
+    "steps": [
+      {
+        "instruction": "Say, “Who knows what the item is?”\n【说】“谁知道是什么物品？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-CMS-5": {
+    "steps": [
+      {
+        "instruction": "Say, “This person is telling you how to fly\nan airplane. Should you believe him?\nWhy?”\n【说】“这个人告诉怎么开飞机。你会相信他么，为什\n么？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-CMS-6": {
+    "steps": [
+      {
+        "instruction": "Present blank space in\nLearner Response Booklet (3) with a pencil.\nSay, “Draw a dog with a giraffe’s neck.”\n【呈现】附件1（3）和铅笔\n【说】“画一条狗，这条狗有着长颈鹿的脖子”",
+        "visual": false
+      }
+    ]
+  },
+  "G-CMS-7": {
+    "steps": [
+      {
+        "instruction": "Say, “Where should you put the X to win\nthe game?”\n【说】“X放到哪里能赢”（“要想赢得游戏，把X放在哪\n里？”）",
+        "visual": true
+      }
+    ]
+  },
+  "G-CMS-8": {
+    "steps": [
+      {
+        "instruction": "Say, “In which room do you brush your\nteeth?”\n【说】“你在哪个房间刷牙？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-CMS-9": {
+    "steps": [
+      {
+        "instruction": "Say, “Do this,” and tap table twice fast,\nonce slow, and two more times fast.\n【说】“这样做”\n【动作】拍桌子，2次慢—1次‐2次快",
+        "visual": false
+      }
+    ]
+  },
+  "G-CMS-10": {
+    "steps": [
+      {
+        "instruction": "Say, “Look at these,” and present the 3\npictures for 10 seconds.\nThen, turn the page.\n【说】“看这些（图片）”\n【等待】呈现图片10秒钟\n再翻页",
+        "visual": true
+      },
+      {
+        "instruction": "Say “Wait.”\nAfter 15 seconds, say,\n“What did you see before?”\n【说】“等一等”\n【等待】15s后\n【说】“刚才你刚到了什么？”",
+        "visual": false
+      }
+    ]
+  },
+  "G-CMS-11": {
+    "steps": [
+      {
+        "instruction": "Say, “Which ones do you need to make a\nrectangle?”\n【说】“如果你要拼长方形，可以哪几个？”",
+        "visual": false
+      }
+    ]
+  },
+  "G-CMS-12": {
+    "steps": [
+      {
+        "instruction": "Present scrambled words in Learner Response Booklet (4) with a\npencil.\nSay, “For each one, use all of the letters to spell a word.”\n【呈现】附件1（4）和铅笔\n【说】“每一个格子里的汉字组词”（汉化）",
+        "visual": false
+      }
+    ]
+  },
+  "G-CMS-13": {
+    "steps": [
+      {
+        "instruction": "Present pictures of cubes in three orders.\nSay, “Which one is in order from biggest to\nsmallest?”\n【说】“哪一个是从大到小的顺序？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-CMS-14": {
+    "steps": [
+      {
+        "instruction": "Present dot array in\nLearner Response Booklet (5) with a pencil.\nSay, “Connect the dots.”\n【呈现】附件1（5）和铅笔\n【说】“连接这些点”",
+        "visual": false
+      }
+    ]
+  },
+  "G-CMS-15": {
+    "steps": [
+      {
+        "instruction": "Say, “I was in the garden, using my rake,\nand I almost screamed when I saw\na….Which one?”\n【说】“我在花园里，正在挖土，当我看到哪一个会尖\n叫？”（汉化“耙子汉化为挖土”）",
+        "visual": true
+      }
+    ]
+  },
+  "G-CMS-16": {
+    "steps": [
+      {
+        "instruction": "Say, “What is this?”\n【说】“这是什么？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-CPM-1": {
+    "steps": [
+      {
+        "instruction": "Say, “Which one does not belong?”\n【说】“哪一个不是一类的？”（“哪一个不属于？”）",
+        "visual": true
+      }
+    ]
+  },
+  "G-CPM-2": {
+    "steps": [
+      {
+        "instruction": "Pretend to cry,\nwhimpering and rubbing your left eye.\nSay, “What might you say to me?”\n【动作】假装哭，小声抽泣，擦左眼睛。\n【说】“你可以跟我说什么？”",
+        "visual": false
+      }
+    ]
+  },
+  "G-CPM-3": {
+    "steps": [
+      {
+        "instruction": "Say, “Do you think there are more or less\nthan 20 things inside?”\n【说】“你觉得这里面的有20件物品吗？（比20件物品\n多还是少？）”",
+        "visual": true
+      }
+    ]
+  },
+  "G-CPM-4": {
+    "steps": [
+      {
+        "instruction": "Present the 3 sentences in Learner Response Booklet (6) with apencil.\nSay, “Put the correct punctuation mark at the end of each sentence.”\n【呈现】附件1（6）和铅笔\n【说】“在句子结尾写正确的标点符号”",
+        "visual": false
+      }
+    ]
+  },
+  "G-CPM-5": {
+    "steps": [
+      {
+        "instruction": "Say, “You are talking to Laura, but you don’t know what she said.”\nPoint to the blank part of the sentence and\nsay, “Tell me what would go here…blank\ndid you say, Laura?”\n【说】“妈妈正在给罗拉打电话，但是她不知道罗拉说了什么”\n【动作】指向句子的空白地方\n【说】“这个空白的地方，罗拉，你刚才说了……” （汉化）",
+        "visual": true
+      }
+    ]
+  },
+  "G-CPM-6": {
+    "steps": [
+      {
+        "instruction": "Say, “How many syllables are in the word\nhippopotamus?” Repeat “hip‐po‐pot‐amus”\nand clap with each syllable.\n（不汉化）",
+        "visual": false
+      }
+    ]
+  },
+  "G-CPM-7": {
+    "steps": [
+      {
+        "instruction": "Point to the drawing at the top of the page, and the array\nof chalk, paint, and crayons below.\nSay, “What did the person use to make this?”\n【动作】指页面顶部的话\n【动作】指粉笔、颜料和蜡笔\n【说】“用什么画的这幅画？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-CPM-8": {
+    "steps": [
+      {
+        "instruction": "Present the maze in Learner Response Booklet (7) with apencil.\nSay, “Begin at the START [point]\nand draw a line to the FINISH [point].”\n【呈现】附件1（7）和铅笔\n【动作】指着开始和结束\n【说】“迷宫”（或者“从开始到结束画一条线”）",
+        "visual": false
+      }
+    ]
+  },
+  "G-CPM-9": {
+    "steps": [
+      {
+        "instruction": "Say, “Pretend to drive a car.”\n【说】“假装开小汽车”",
+        "visual": false
+      }
+    ]
+  },
+  "G-CPM-10": {
+    "steps": [
+      {
+        "instruction": "Say, “What shape is this?”\n【说】这是什么形状？",
+        "visual": true
+      }
+    ]
+  },
+  "G-CPM-11": {
+    "steps": [
+      {
+        "instruction": "Say, “Which one would a girl wear at the\nbeach?”\n【说】“女孩在沙滩上（游泳池）应该穿哪一件？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-CPM-12": {
+    "steps": [
+      {
+        "instruction": "Say, “What do you do here?”\n【说】“你在这里做什么？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-CPM-13": {
+    "steps": [
+      {
+        "instruction": "Present the page in\nLearner Response Booklet (8) with apencil.、\nSay, “Write cow.”\nRepeat with “list” and “block.”\n【呈现】附件1（8）和铅笔\n【说】“写’日月’”（重复一遍）“\n【说】“上中下”（重复一遍）\n【说】“一个人” （重复一遍）",
+        "visual": false
+      }
+    ]
+  },
+  "G-CPM-14": {
+    "steps": [
+      {
+        "instruction": "Present the page in\nLearner Response Booklet (9) with a\npencil. Say, “Write 400.”\nRepeat with “46” and “789.”\n【呈现】附件1（9）和铅笔\n【说】“写’400’”（重复一遍）“\n【说】“46”（重复一遍）\n【说】“789” （重复一遍）",
+        "visual": false
+      }
+    ]
+  },
+  "G-CPM-15": {
+    "steps": [
+      {
+        "instruction": "Clap your hands rapidly.\nSay, “Which one was that like?”\n【动作】快速拍手\n【说】“像哪一个？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-CPM-16": {
+    "steps": [
+      {
+        "instruction": "Present the images of a black X, red circle,\nand green triangle.\nSay, “Point to the stop sign.”\n【说】“哪一个是停下来的符号”（“指向停止的标志”）",
+        "visual": true
+      }
+    ]
+  },
+  "G-RPR-1": {
+    "steps": [
+      {
+        "instruction": "Say, “I need a teaspoon of sugar. Which\nshould I use to measure?”\n【说】“我需要一小勺糖，我应该用哪一个来测量”",
+        "visual": true
+      }
+    ]
+  },
+  "G-RPR-2": {
+    "steps": [
+      {
+        "instruction": "Say, “Which one doesn’t belong?”\n【说】“哪一个不属于？”（或“哪一个跟其他的不一样”）",
+        "visual": true
+      }
+    ]
+  },
+  "G-RPR-3": {
+    "steps": [
+      {
+        "instruction": "Say, “The sun came out at night. What\nwas wrong with that sentence?”\n【说】“晚上太阳出来了。这句话有什么问题？”",
+        "visual": false
+      }
+    ]
+  },
+  "G-RPR-4": {
+    "steps": [
+      {
+        "instruction": "Say, “How long will it be until 2:00?”\n【说】“还有多久到2点钟”",
+        "visual": true
+      }
+    ]
+  },
+  "G-RPR-5": {
+    "steps": [
+      {
+        "instruction": "Present the addition problems in\nLearner Response Booklet (10) with a\npencil. Say, “Add.”\n【呈现】附件1（10）和铅笔\n【说】“加法“",
+        "visual": false
+      }
+    ]
+  },
+  "G-RPR-6": {
+    "steps": [
+      {
+        "instruction": "Point to the dot, then slide your finger\nalong the red arrow to the X, and say,\n“What is the distance in miles from the\ndot to the X along the red line?”\n【动作】指着点，然后顺着红色的箭头划向X，然后\n【说】沿着箭头从点到×，有多少英里？",
+        "visual": true
+      }
+    ]
+  },
+  "G-RPR-7": {
+    "steps": [
+      {
+        "instruction": "Say, “I need a drink of water,\nwhich can I use?”\n【说】“我需要喝水，我能用哪一个？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-RPR-8": {
+    "steps": [
+      {
+        "instruction": "Say, “Give this a name based on what it is\nused for.”\n【说】根据它的用途，给它起一个名字",
+        "visual": true
+      }
+    ]
+  },
+  "G-RPR-9": {
+    "steps": [
+      {
+        "instruction": "Say, “I’m thinking of something that has\nfour legs, stripes, and a tail. What is it?”\n【说】“我正在想一样东西（动物），有四条腿，有条\n纹，还有尾巴。是什么？”",
+        "visual": false
+      }
+    ]
+  },
+  "G-RPR-10": {
+    "steps": [
+      {
+        "instruction": "Read three statements, “It will rain today. I\nam hungry. I need an umbrella!” and say,\n“Which one doesn’t belong in the story?”\n【阅读】“今天要下雨” 、“我饿了”、“我需要一把雨伞”\n【说】“哪句话不属于同一个故事里面”",
+        "visual": true
+      }
+    ]
+  },
+  "G-RPR-11": {
+    "steps": [
+      {
+        "instruction": "Say, “Which colors will make this color?”.\n【说】这个颜色是那两种颜色在一起组成的？",
+        "visual": true
+      }
+    ]
+  },
+  "G-RPR-12": {
+    "steps": [
+      {
+        "instruction": "Present the image and blank space\ninLearner Response Booklet (11) with apencil.\nSay, “Draw a house, but different than this one.”\n【呈现】附件1（11）和铅笔\n【说】画一个房子，但是跟这一个不一样",
+        "visual": false
+      }
+    ]
+  },
+  "G-RPR-13": {
+    "steps": [
+      {
+        "instruction": "Present and read the riddle, “Sara has\neither eaten an apple or a cookie. She\ndidn’t eat an apple. What did she eat?”\n【读】“莎娃吃了苹果或者饼干。她没有吃苹果，她吃\n了什么？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-RPR-14": {
+    "steps": [
+      {
+        "instruction": "Say, “Tom has 5 chips and eats 2 of them.\nHow many are left?”\n【说】“汤姆有5根薯条，他吃了其中2根，还剩几根？”",
+        "visual": true
+      }
+    ]
+  },
+  "G-RPR-15": {
+    "steps": [
+      {
+        "instruction": "Say, “What does this feel like?”\n【说】“这表示什么？”（“这给人什么感觉”）",
+        "visual": true
+      }
+    ]
+  },
+  "G-RPR-16": {
+    "steps": [
+      {
+        "instruction": "Say, “How much is this?”\n【说】“这是多少钱？”（汉化）",
+        "visual": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+[
+  {
+    "globalSidebar": false,
+    "heading": " 找到适合的起点，  让成长 一步一步发生。",
+    "page": "#/",
+    "scrollWidth": 375,
+    "width": 375
+  },
+  {
+    "globalSidebar": false,
+    "heading": "每个知识点，都是新的起点",
+    "page": "#/library",
+    "scrollWidth": 375,
+    "width": 375
+  },
+  {
+    "globalSidebar": false,
+    "heading": "更好的支持，来自持续的学习",
+    "page": "#/training",
+    "scrollWidth": 375,
+    "width": 375
+  },
+  {
+    "globalSidebar": false,
+    "heading": " 找到适合的起点，  让成长 一步一步发生。",
+    "page": "#/",
+    "scrollWidth": 768,
+    "width": 768
+  },
+  {
+    "globalSidebar": false,
+    "heading": "每个知识点，都是新的起点",
+    "page": "#/library",
+    "scrollWidth": 768,
+    "width": 768
+  },
+  {
+    "globalSidebar": false,
+    "heading": "更好的支持，来自持续的学习",
+    "page": "#/training",
+    "scrollWidth": 768,
+    "width": 768
+  },
+  {
+    "globalSidebar": false,
+    "heading": " 找到适合的起点，  让成长 一步一步发生。",
+    "page": "#/",
+    "scrollWidth": 1024,
+    "width": 1024
+  },
+  {
+    "globalSidebar": false,
+    "heading": "每个知识点，都是新的起点",
+    "page": "#/library",
+    "scrollWidth": 1024,
+    "width": 1024
+  },
+  {
+    "globalSidebar": false,
+    "heading": "更好的支持，来自持续的学习",
+    "page": "#/training",
+    "scrollWidth": 1024,
+    "width": 1024
+  },
+  {
+    "globalSidebar": false,
+    "heading": " 找到适合的起点，  让成长 一步一步发生。",
+    "page": "#/",
+    "scrollWidth": 1440,
+    "width": 1440
+  },
+  {
+    "globalSidebar": false,
+    "heading": "每个知识点，都是新的起点",
+    "page": "#/library",
+    "scrollWidth": 1440,
+    "width": 1440
+  },
+  {
+    "globalSidebar": false,
+    "heading": "更好的支持，来自持续的学习",
+    "page": "#/training",
+    "scrollWidth": 1440,
+    "width": 1440
+  }
+]

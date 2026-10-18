@@ -1,0 +1,2058 @@
+[
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 1,
+    "code": "FLS-1",
+    "title": "眼神接触2秒",
+    "script": "第4页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Look at me.”\n【说】“看我”\nFLS-1\nEye contact for 2 seconds\n眼神接触2秒",
+    "scriptPages": [
+      4
+    ],
+    "stimulusPages": [
+      5
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 2,
+    "code": "FLS-2",
+    "title": "寻找隐藏的积木",
+    "script": "第6页\nCorrect Response(正确反应）\nScript(脚本）\nPresent the image of three cups, the left\nwith a block below it (FLS-2a), pause for 5\nseconds and turn the page.\n【等待】5秒，然后翻页\nFLS-2a\n\n第8页\nCorrect Response(正确反应）\nScript(脚本）\nPresent the image of three cups (FLS-2b).\nSay, “Where did the block go?”\n【说】“积木去哪里了？”\nFLS-2b\nLeft cup\n左边的杯子",
+    "scriptPages": [
+      6,
+      8
+    ],
+    "stimulusPages": [
+      7,
+      9
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 3,
+    "code": "FLS-3",
+    "title": "边指边数星星",
+    "script": "第10页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Do this,”\nand touch each star one at a time from your\nright to your left.\n【说】“这样做”\n【动作】从右边向左边触摸每一颗星星。\nFLS-3\nCounts 1-5 while  pointing\n一边点一边数1-5",
+    "scriptPages": [
+      10
+    ],
+    "stimulusPages": [
+      11
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 4,
+    "code": "FLS-4",
+    "title": "选择一个物体",
+    "script": "第12页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Choose one.”\n【说】“选一个”\nFLS-4\nSelects an item\n选择一个物体",
+    "scriptPages": [
+      12
+    ],
+    "stimulusPages": [
+      13
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 5,
+    "code": "FLS-5",
+    "title": "模仿触摸鼻子",
+    "script": "第14页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Do this,” and touch your nose.\n【说】“这样做”\n【动作】触摸你的鼻子。\nFLS-5\nTouches nose\n触摸鼻子",
+    "scriptPages": [
+      14
+    ],
+    "stimulusPages": [
+      15
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 6,
+    "code": "FLS-6",
+    "title": "模仿捏的动作",
+    "script": "第16页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Do this,” and make a pincer grasp\n(pinching motion) with your fingers.\n【说】“这样做”\n【动作】用手指做出钳形（捏的动作）\nFLS-6\nMakes pincer grasp\n做出钳形",
+    "scriptPages": [
+      16
+    ],
+    "stimulusPages": [
+      17
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 7,
+    "code": "FLS-7",
+    "title": "模仿噘嘴",
+    "script": "第18页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Do this,” and purse your lips.\n【说】“这样做”\n【动作】噘起你的嘴唇。（嘟嘴）\nFLS-7\nPurses lips\n噘起嘴唇。（嘟嘴）",
+    "scriptPages": [
+      18
+    ],
+    "stimulusPages": [
+      19
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 8,
+    "code": "FLS-8",
+    "title": "模仿举臂并摸肚子",
+    "script": "第20页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Do this,” and raise your right arm, then\ntouch your stomach.\n【说】“这样做”\n【动作】举起你的右臂，然后触摸你的肚子\nFLS-8\nRaises arm, touches stomach\n举起右臂，然后触摸肚子",
+    "scriptPages": [
+      20
+    ],
+    "stimulusPages": [
+      21
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 9,
+    "code": "FLS-9",
+    "title": "仿说“啊”",
+    "script": "第22页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Say…Ahh.”\n【说】“说...啊”\nFLS-9\nSays, “Ahh”\n说，“啊”",
+    "scriptPages": [
+      22
+    ],
+    "stimulusPages": [
+      23
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 10,
+    "code": "FLS-10",
+    "title": "仿说“书包”",
+    "script": "第24页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Say…Book.”\n【说】“说...书包”(备注：汉化双音节）\nFLS-10\nSay，”Book.”\n说，“书包”",
+    "scriptPages": [
+      24
+    ],
+    "stimulusPages": [
+      25
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 11,
+    "code": "FLS-11",
+    "title": "听指令站起来",
+    "script": "第26页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Stand up.”\n【说】“起立”（“站起来”）\nFLS-11\nStands up\n站起来",
+    "scriptPages": [
+      26
+    ],
+    "stimulusPages": [
+      27
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 12,
+    "code": "FLS-12",
+    "title": "回应问候",
+    "script": "第28页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Jim says, ‘Hi!’ What do you say?”\n【说】“大明说，‘你好’，你说什么？”\nFLS-12\nSays a greeting\n说出打招呼",
+    "scriptPages": [
+      28
+    ],
+    "stimulusPages": [
+      29
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 13,
+    "code": "FLS-13",
+    "title": "仿说句子",
+    "script": "第30页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Say…The dog is big!”\n【说】“说...这只狗很大！”\nFLS-13\nSay, “The dog is big!”\n说，“这只狗很大！”",
+    "scriptPages": [
+      30
+    ],
+    "stimulusPages": [
+      31
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 14,
+    "code": "FLS-14",
+    "title": "积木配对",
+    "script": "第32页\nCorrect Response(正确反应）\nScript(脚本）\nPoint to the block at the top of the page.\nSay, “Show me same.”\n【动作】指向页面顶部的那块积木。\n【说】 “指一样的”（或者“摸相同的”或者“哪一个是一样\n的/相同的”\nFLS-14\nblock\n积木",
+    "scriptPages": [
+      32
+    ],
+    "stimulusPages": [
+      33
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 15,
+    "code": "FLS-15",
+    "title": "苹果配对",
+    "script": "第34页\nCorrect Response(正确反应）\nScript(脚本）\nPoint to the apple at the top of the page.\nSay, “Show me same.”\n【动作】指向页面顶端的苹果。\n【说】“指一样的”（或者“摸相同的”或者“哪一个是一样\n的/相同的”\nFLS-15\napple\n苹果",
+    "scriptPages": [
+      34
+    ],
+    "stimulusPages": [
+      35
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "FLS",
+    "itemNumber": 16,
+    "code": "FLS-16",
+    "title": "字母T配对",
+    "script": "第36页\nCorrect Response(正确反应）\nScript(脚本）\nPoint to the T at the top of the page.\nSay, “Show me same.”\n【动作】指向页面顶端的T。\n【说】“指一样的”（或者“摸相同的”或者“哪一个是一样\n的/相同的”\nFLS-16\nT\nT",
+    "scriptPages": [
+      36
+    ],
+    "stimulusPages": [
+      37
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 1,
+    "code": "PLS-1",
+    "title": "硬币配对",
+    "script": "第38页\nCorrect Response(正确反应）\nScript(脚本）\nPoint to the dime at the top of the page. \nSay, “Show me same.”\n【动作】指向页面顶端的1角人民币。\n【说】“指一样的”（或者“摸相同的”或者“哪一个是一样\n的/相同的”\nPLS-1\n1角",
+    "scriptPages": [
+      38
+    ],
+    "stimulusPages": [
+      39
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 2,
+    "code": "PLS-2",
+    "title": "指认毛绒玩具",
+    "script": "第40页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Show me the stuffed animal.”\n【说】“指毛绒玩具”（也可以是“摸毛绒玩具”或者“哪一\n个是毛绒玩具？”）\nPLS-2\nBear\n小熊",
+    "scriptPages": [
+      40
+    ],
+    "stimulusPages": [
+      41
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 3,
+    "code": "PLS-3",
+    "title": "指认牙刷",
+    "script": "第42页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Show me the toothbrush.”\n【说】“指牙刷”（也可以是“摸牙刷”或者哪一个是牙\n刷？）”\nPLS-3\nToothbrush\n牙刷",
+    "scriptPages": [
+      42
+    ],
+    "stimulusPages": [
+      43
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 4,
+    "code": "PLS-4",
+    "title": "指认面包",
+    "script": "第44页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Show me the bread.”\n【说】“指面包”（也可以是“摸面包”或者哪一个是面\n包？）”\nPLS-4\nbread\n面包",
+    "scriptPages": [
+      44
+    ],
+    "stimulusPages": [
+      45
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 5,
+    "code": "PLS-5",
+    "title": "指认马",
+    "script": "第46页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Show me the horse.”\n【说】“指马”（也可以是“摸马”或者”哪一个是马？”）\nPLS-5\nhorse\n马",
+    "scriptPages": [
+      46
+    ],
+    "stimulusPages": [
+      47
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 6,
+    "code": "PLS-6",
+    "title": "大声拍手",
+    "script": "第48页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Clap loudly.”\n【说】“大声拍手”\nPLS-6\nClap loudly\n大声拍手",
+    "scriptPages": [
+      48
+    ],
+    "stimulusPages": [
+      49
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 7,
+    "code": "PLS-7",
+    "title": "说出自己的名字",
+    "script": "第50页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What is your name?”\n【说】“你叫什么名字？”\nPLS-7\nSays his/her name\n说出他/她的名字",
+    "scriptPages": [
+      50
+    ],
+    "stimulusPages": [
+      51
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 8,
+    "code": "PLS-8",
+    "title": "命名椅子",
+    "script": "第52页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What is this?”\n【说】“这是什么？”\nPLS-8\nSays, “Chair”\n说，“椅子”",
+    "scriptPages": [
+      52
+    ],
+    "stimulusPages": [
+      53
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 9,
+    "code": "PLS-9",
+    "title": "命名裙子",
+    "script": "第54页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What is this?”\n【说】“这是什么？”\nPLS-9\nSays, “Dress”\n说，“裙子”",
+    "scriptPages": [
+      54
+    ],
+    "stimulusPages": [
+      55
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 10,
+    "code": "PLS-10",
+    "title": "指向膝盖",
+    "script": "第56页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Point to your knee.”\n【说】“指向你的膝盖”\nPLS-10\nPoints to knee\n指向膝盖",
+    "scriptPages": [
+      56
+    ],
+    "stimulusPages": [
+      57
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 11,
+    "code": "PLS-11",
+    "title": "指认长方形",
+    "script": "第58页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Show me the rectangle.”\n【说】“指长方形”（“摸长方形”或者“哪一个是长方形？”）\nPLS-11\nRectangle\n长方形",
+    "scriptPages": [
+      58
+    ],
+    "stimulusPages": [
+      59
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 12,
+    "code": "PLS-12",
+    "title": "指认棕色",
+    "script": "第60页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Show me brown.”\n【说】“指棕色”（也可以是“摸棕色”或“哪一个是棕色？”）\nPLS-12\nBrown\n棕色",
+    "scriptPages": [
+      60
+    ],
+    "stimulusPages": [
+      61
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 13,
+    "code": "PLS-13",
+    "title": "指认花",
+    "script": "第62页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Show me the flower.”\n【说】“指花”（也可以是“摸花”或“哪一个是花？”）.”\nPLS-13\nFlower\n花",
+    "scriptPages": [
+      62
+    ],
+    "stimulusPages": [
+      63
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 14,
+    "code": "PLS-14",
+    "title": "指认字母H",
+    "script": "第64页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Show me H.”\n【说】“指H”（也可以是“摸H”或“哪一个是H？”）\nPLS-14\nH\nH",
+    "scriptPages": [
+      64
+    ],
+    "stimulusPages": [
+      65
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 15,
+    "code": "PLS-15",
+    "title": "命名星星",
+    "script": "第66页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What is this?”\n【说】“这是什么？”\nPLS-15\nSays, “Star”\n说，“星星”或者“五角星”",
+    "scriptPages": [
+      66
+    ],
+    "stimulusPages": [
+      67
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "PLS",
+    "itemNumber": 16,
+    "code": "PLS-16",
+    "title": "命名红色",
+    "script": "第68页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What color is this?”\n【说】“这是什么颜色？”\nPLS-16\nSay, “Red”\n说，“红色”",
+    "scriptPages": [
+      68
+    ],
+    "stimulusPages": [
+      69
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 1,
+    "code": "VCS-1",
+    "title": "模仿青蛙叫声",
+    "script": "第70页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Say…ribbit.”\n【说】“说...呱呱（青蛙叫声）”\nVCS-1\nSays, “Ribbit”\n说，“呱呱”",
+    "scriptPages": [
+      70
+    ],
+    "stimulusPages": [
+      71
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 2,
+    "code": "VCS-2",
+    "title": "执行连续动作",
+    "script": "第72页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Stand up, turn around, and clap your\nhands.”\n【说】“起立，转身，并拍手。”\nVCS-2\nStand up, turn around, and clap your\nhands\n起立，转身，并拍手",
+    "scriptPages": [
+      72
+    ],
+    "stimulusPages": [
+      73
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 3,
+    "code": "VCS-3",
+    "title": "接续字母序列",
+    "script": "第74页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What comes next? L-M-N-O-…”\n【说】“接下来是什么？L-M-N-O-...”\nVCS-3\nSays, “P”\n说，“P”",
+    "scriptPages": [
+      74
+    ],
+    "stimulusPages": [
+      75
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 4,
+    "code": "VCS-4",
+    "title": "命名数字5",
+    "script": "第76页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What number is this?”\n【说】“这是什么数字？”\nVCS-4\nSays, “Five”\n说，“5”",
+    "scriptPages": [
+      76
+    ],
+    "stimulusPages": [
+      77
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 5,
+    "code": "VCS-5",
+    "title": "辨识字母发音",
+    "script": "第78页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Which letter says ‘mmm’?”\n【说】“哪个字母是‘mmm’”\nVCS-5\nM\nM",
+    "scriptPages": [
+      78
+    ],
+    "stimulusPages": [
+      79
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 6,
+    "code": "VCS-6",
+    "title": "识别哭泣",
+    "script": "第80页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Which one is crying?”\n【说】“哪一个在哭？”\nVCS-6\nCrying\n在哭的",
+    "scriptPages": [
+      80
+    ],
+    "stimulusPages": [
+      81
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 7,
+    "code": "VCS-7",
+    "title": "说出有斑点的东西",
+    "script": "第82页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Tell me something that has spots.”\n【说】“告诉我有斑点的东西”（或者“说一个有斑点的东\n西”)\nVCS-7\nExample: Says, “Ladybug”\n例如，说：斑点狗、七星瓢虫",
+    "scriptPages": [
+      82
+    ],
+    "stimulusPages": [
+      83
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 8,
+    "code": "VCS-8",
+    "title": "识别医生",
+    "script": "第84页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Who is this?”\n【说】“这是谁？”\nVCS-8\nSays, “Doctor”\n说，“医生”",
+    "scriptPages": [
+      84
+    ],
+    "stimulusPages": [
+      85
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 9,
+    "code": "VCS-9",
+    "title": "识别湿的感觉",
+    "script": "第86页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Which one is feeling wet?”\n【说】“哪一个感觉是湿的？”\nVCS-9\nPerson in the rain\n中间的",
+    "scriptPages": [
+      86
+    ],
+    "stimulusPages": [
+      87
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 10,
+    "code": "VCS-10",
+    "title": "找出不同类物品",
+    "script": "第88页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Which one doesn’t belong?”\n【说】“哪一个不属于？”（或者“哪一个不是一类？”“哪\n一个不一样？）\nVCS-10\nHat\n中间的",
+    "scriptPages": [
+      88
+    ],
+    "stimulusPages": [
+      89
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 11,
+    "code": "VCS-11",
+    "title": "推测气球爆炸后的心情",
+    "script": "第90页\nCorrect Response(正确反应）\nScript(脚本）\nVCS-11\nSay, “Bob’s balloon popped. What might he\nbe feeling?”\n【说】“鲍勃的气球爆炸了，他可能会是什么心情（感\n觉）？”\nVCS-11\nExample: Says, “Sad”\n比如，说“伤心”（“难过”、“害怕”）",
+    "scriptPages": [
+      90
+    ],
+    "stimulusPages": [
+      91
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 12,
+    "code": "VCS-12",
+    "title": "辨识9:30",
+    "script": "第92页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Which one is 9:30?”\n【说】“哪一个是9：30？”\nVCS-12\n9:30\n9:30",
+    "scriptPages": [
+      92
+    ],
+    "stimulusPages": [
+      93
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 13,
+    "code": "VCS-13",
+    "title": "读出拼音",
+    "script": "第94页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What does it say?”\n【说】“怎么读？” (汉化成拼音）\nVCS-13\nSan\nsan",
+    "scriptPages": [
+      94
+    ],
+    "stimulusPages": [
+      95
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 14,
+    "code": "VCS-14",
+    "title": "判断所属类别",
+    "script": "第96页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What group does this belong to?”\n【说】“这是属于什么类的？”\nVCS-14\nSays, “Animal”\n说，“老虎”",
+    "scriptPages": [
+      96
+    ],
+    "stimulusPages": [
+      97
+    ],
+    "responsePage": 0,
+    "note": "原文英文正确反应为 Animal，中文为“老虎”，两者不一致；请评估人员核对后记录实际反应。"
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 15,
+    "code": "VCS-15",
+    "title": "识别学校场景",
+    "script": "第98页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Where are they?”\n【说】“他们在那？”\nVCS-15\nSays, “School”\n说，“学校”（“教室”）",
+    "scriptPages": [
+      98
+    ],
+    "stimulusPages": [
+      99
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VCS",
+    "itemNumber": 16,
+    "code": "VCS-16",
+    "title": "指向男孩的头",
+    "script": "第100页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Show me his head.”\n【说】“摸男孩的头”（或“指男孩的头”)(汉化）\nVCS-16\nBoy’s head\n男孩的头",
+    "scriptPages": [
+      100
+    ],
+    "stimulusPages": [
+      101
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 1,
+    "code": "VMS-1",
+    "title": "识别硬币面值",
+    "script": "第102页\nCorrect Response(正确反应）\nScript(脚本）\nPoint to the nickel, and\nsay, “How much is this coin worth?”\n指向1角镍币，并说“这枚硬币值多少钱？”\nVMS-1\n1角",
+    "scriptPages": [
+      102
+    ],
+    "stimulusPages": [
+      103
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 2,
+    "code": "VMS-2",
+    "title": "组合1元钱",
+    "script": "第104页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Which one is fifteen cents?”\n【说】“哪一个是1元钱？”（汉化）\nVms-2\n两个5角",
+    "scriptPages": [
+      104
+    ],
+    "stimulusPages": [
+      105
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 3,
+    "code": "VMS-3",
+    "title": "记数与数量变化",
+    "script": "第106页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “How many dots are there?”\nThen turn the page.\n【说】“有多少个点？”\n然后翻页\n\n第108页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “How many are there now?”\n【说】“现在有多少个?”\nVMS-3b\nSays, “Seven”\n说，“7”",
+    "scriptPages": [
+      106,
+      108
+    ],
+    "stimulusPages": [
+      107,
+      109
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 4,
+    "code": "VMS-4",
+    "title": "计算图片算式",
+    "script": "第110页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “How much is it?”\n【说】“是多少？”（答案是多少）\nVMS-4\nSays, “Five”\n说，“5”",
+    "scriptPages": [
+      110
+    ],
+    "stimulusPages": [
+      111
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 5,
+    "code": "VMS-5",
+    "title": "想象龙卷风的感觉",
+    "script": "第112页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “If you were this tornado, how would\nyou feel?”\n【说】“如果你是龙卷风，你会感觉如何？”（你感觉怎\n么样？）\nSays, “Mad”\n说，“发疯”",
+    "scriptPages": [
+      112
+    ],
+    "stimulusPages": [
+      113
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 6,
+    "code": "VMS-6",
+    "title": "计算4+0",
+    "script": "第114页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What is 4 + 0?”\n【说】“4+0是多少？”\nVMS-6\nFour\n4",
+    "scriptPages": [
+      114
+    ],
+    "stimulusPages": [
+      115
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 7,
+    "code": "VMS-7",
+    "title": "估计物品数量",
+    "script": "第116页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Guess how many items are inside.”\n【说】“猜猜里面有多少物品”\nVMS-7\nStates a quantity\n说出一个数量",
+    "scriptPages": [
+      116
+    ],
+    "stimulusPages": [
+      117
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 8,
+    "code": "VMS-8",
+    "title": "按外观给兔子命名",
+    "script": "第118页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Give the bunny a name based on what\nhe looks like.”\n【说】“根据长相给兔子起一个名字”\nVMS-8\nExample: Says,“Floppy”\n举例：说，“大黄”",
+    "scriptPages": [
+      118
+    ],
+    "stimulusPages": [
+      119
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 9,
+    "code": "VMS-9",
+    "title": "推测盒内物品",
+    "script": "第120页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What do you think is inside?”\n【说】“你觉得里面是什么？”\nVMS-9\nExample: Says, “A toy”\n举例：说，“玩具”（“吃的”……）",
+    "scriptPages": [
+      120
+    ],
+    "stimulusPages": [
+      121
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 10,
+    "code": "VMS-10",
+    "title": "选择旅行用品",
+    "script": "第122页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Show me the traveler.”\n【说】“哪一个旅行的时候使用？”（“指一指旅游用\n的”“哪一个用来旅行”）\nVCS-10\nBackpack\n背包",
+    "scriptPages": [
+      122
+    ],
+    "stimulusPages": [
+      123
+    ],
+    "responsePage": 0,
+    "note": "原文件第122–123页标为 VCS-10；按所在 VMS 序列登记为 VMS-10，保留原页供核对。"
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 11,
+    "code": "VMS-11",
+    "title": "延迟复述句子",
+    "script": "第124页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “The fast car is red.”\nTurn the page.\n【说】“那辆快车是红色的。”\n【动作】翻页\nVMS-11a\n\n第126页\nCorrect Response(正确反应）\nScript(脚本）\nWait ten seconds.\nSay, “Tell me what I said.”\n【等待】10秒钟，然后\n【说】“我刚才说了什么？”\nVMS-11b\nSays, “The fast car is red”\n说，“那辆快车是红色的。”",
+    "scriptPages": [
+      124,
+      126
+    ],
+    "stimulusPages": [
+      125,
+      127
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 12,
+    "code": "VMS-12",
+    "title": "比较飞机与鸟",
+    "script": "第128页\nCorrect Response(正确反应）\nScript(脚本）\nPoint to the image of an airplane at the top.\nSay, “What else is the same?”\n【动作】指着页面顶端的飞机图片\n【说】“还有什么相同的？”\nVMS-12\nBird\n鸟",
+    "scriptPages": [
+      128
+    ],
+    "stimulusPages": [
+      129
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 13,
+    "code": "VMS-13",
+    "title": "描述物体三个特征",
+    "script": "第130页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Tell me three things about this.”\n【说】“告诉我关于这个的三件事（三个方面，三个特\n征）”\nVMS-13\nExample: Says, “You can drive it”\n举例：说，“红色的，有轮子的，可以开的”",
+    "scriptPages": [
+      130
+    ],
+    "stimulusPages": [
+      131
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 14,
+    "code": "VMS-14",
+    "title": "根据枕头推测感觉",
+    "script": "第132页\nCorrect Response(正确反应）\nScript(脚本）\nPoint to the image of a pillow.\nSay, “Choose what I might be feeling right\nnow.”\n动作】指向枕头的图片。\n【说】“选择我现在可能是什么感觉”\nVMS-14\nTired person\n累的（困的）",
+    "scriptPages": [
+      132
+    ],
+    "stimulusPages": [
+      133
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 15,
+    "code": "VMS-15",
+    "title": "推测人物不适",
+    "script": "第134页\nCorrect Response(正确反应）\nScript(脚本）\nPoint to the image of the man.\nSay, ““What might he be feeling right\nnow?”\n动作】指向男人的图片。\n【说】“他现在是什么感觉（心情）？”\nVMS-15\nExample: Says,“Headache”\n举例：说，“头疼”（“不舒服”）",
+    "scriptPages": [
+      134
+    ],
+    "stimulusPages": [
+      135
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "D",
+    "category": "VMS",
+    "itemNumber": 16,
+    "code": "VMS-16",
+    "title": "预测生日场景后续",
+    "script": "第136页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What do you think happens next?”\n【说】“你认为接下来会发生什么？”\nVMS-16\nExamples: Says,“Blowout the candles”\n举例：说“吹灭蜡烛”（“唱生日快乐歌”“吃蛋糕”）",
+    "scriptPages": [
+      136
+    ],
+    "stimulusPages": [
+      137
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 1,
+    "code": "LLS-1",
+    "title": "模仿拍手与头部动作",
+    "script": "第4页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Do this,” and clap your hands then\nplace them on your head.\n【说】“这样做”\n【动作】拍拍你的手，然后把双手举过头顶\nLLS-1\nclap hands then place hands on head.\n拍手，然后双手举过头顶。",
+    "scriptPages": [
+      4
+    ],
+    "stimulusPages": [
+      5
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 2,
+    "code": "LLS-2",
+    "title": "命名狮子",
+    "script": "第6页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What is this?”\n【说】“这是什么？”\nLLS-2\nSays, “Lion”\n说，“狮子”",
+    "scriptPages": [
+      6
+    ],
+    "stimulusPages": [
+      7
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 3,
+    "code": "LLS-3",
+    "title": "辨识藏蓝色",
+    "script": "第8页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Show me blue.”\n【说】“哪一个是蓝色？”（或者“哪一个是蓝色”，“摸一\n摸蓝色”）\nLLS-3\nSelects navy blue\n选择藏蓝色",
+    "scriptPages": [
+      8
+    ],
+    "stimulusPages": [
+      9
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 4,
+    "code": "LLS-4",
+    "title": "数鸟",
+    "script": "第10页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Count the birds.”\n【说】“数一数鸟有几只”（或“鸟有几只”）\nLLS-4\nCounts 4 birds\n数4只鸟",
+    "scriptPages": [
+      10
+    ],
+    "stimulusPages": [
+      11
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 5,
+    "code": "LLS-5",
+    "title": "辨识西服外套",
+    "script": "第12页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Find the 外套.”\n【说】“找到外套”（或“哪一个是外套”）\nLLS-5\nSelects suit jacket\n选择西服外套",
+    "scriptPages": [
+      12
+    ],
+    "stimulusPages": [
+      13
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 6,
+    "code": "LLS-6",
+    "title": "大小写字母配对",
+    "script": "第14页\nCorrect Response(正确反应）\nScript(脚本）\nPoint to the L.\nSay, “Find the same.”\n【动作】指向L\n【说】“找到相同的（一样的）”\nLLS-6\nSelects the lowercase l.\n选择小写的l",
+    "scriptPages": [
+      14
+    ],
+    "stimulusPages": [
+      15
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 7,
+    "code": "LLS-7",
+    "title": "命名绿色",
+    "script": "第16页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What color is this?”\n【说】“这是什么颜色？”\nLLS-7\nSays, “Green”\n说，绿色",
+    "scriptPages": [
+      16
+    ],
+    "stimulusPages": [
+      17
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 8,
+    "code": "LLS-8",
+    "title": "低声哼歌",
+    "script": "第18页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Do this,” and hum in a low tone.\n【说】“这样做”\n【动作】低声哼歌\nLLS-8\nhum in a low tone\n低声哼歌",
+    "scriptPages": [
+      18
+    ],
+    "stimulusPages": [
+      19
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 9,
+    "code": "LLS-9",
+    "title": "假装生气的小狗",
+    "script": "第20页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Pretend you are an angry dog.”\n【说】“假装你是一只愤怒（生气）的小狗”\nLLS-9\nBarks, growls \n[狗叫】",
+    "scriptPages": [
+      20
+    ],
+    "stimulusPages": [
+      21
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 10,
+    "code": "LLS-10",
+    "title": "模仿声音变化",
+    "script": "第22页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Do this…mouse [whisper],\nGIRAFFE [yell].”\n【说】“这样做……老鼠[（低声）吱吱]，\n老虎[（大声）嗷呜]”\nLLS-10\nSay, “Do this…mouse [whisper],\nGIRAFFE [yell].”\n说，“老鼠[（低声）吱吱]，\n老虎[（大声）嗷呜]”",
+    "scriptPages": [
+      22
+    ],
+    "stimulusPages": [
+      23
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 11,
+    "code": "LLS-11",
+    "title": "指床尾",
+    "script": "第24页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Point to the foot of the bed.”\n【说】“指床尾”\nLLS-11\n指床尾\nPoint to the end of the bed",
+    "scriptPages": [
+      24
+    ],
+    "stimulusPages": [
+      25
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 12,
+    "code": "LLS-12",
+    "title": "寻找青菜",
+    "script": "第26页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Find lettuce.”\n【说】“找青菜”（汉化）\nLLS-12\nSelects salad\n选择沙拉",
+    "scriptPages": [
+      26
+    ],
+    "stimulusPages": [
+      27
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 13,
+    "code": "LLS-13",
+    "title": "识别生气",
+    "script": "第28页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “How is this person feeling?”\n【说】“这个人是什么心情（感觉）”\nLLS-13\nExample: Says, “Angry”\n举例：说“生气”（或“愤怒”）",
+    "scriptPages": [
+      28
+    ],
+    "stimulusPages": [
+      29
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 14,
+    "code": "LLS-14",
+    "title": "辨识摩托车",
+    "script": "第30页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Find motorcycle.”\n【说】“找摩托车”（或者“哪一个是摩托车”）\nLLS-14\nSelects motorcycle\n选择摩托车",
+    "scriptPages": [
+      30
+    ],
+    "stimulusPages": [
+      31
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 15,
+    "code": "LLS-15",
+    "title": "命名凉鞋",
+    "script": "第32页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What is this?”\n【说】“这是什么？”\nLLS-15\nSays, “Sandal” or “Shoe”\n说，“凉鞋”或者“鞋子”",
+    "scriptPages": [
+      32
+    ],
+    "stimulusPages": [
+      33
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "LLS",
+    "itemNumber": 16,
+    "code": "LLS-16",
+    "title": "仿说陌生语音",
+    "script": "第34页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Say the same as me…itka vanek.”\n【说】“和我说一样的……伊特卡 瓦内克”\nLLS-16\n说，“itka vanek”\n说，“伊特卡 瓦内克”",
+    "scriptPages": [
+      34
+    ],
+    "stimulusPages": [
+      35
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 1,
+    "code": "CMS-1",
+    "title": "说出直尺的两种用途",
+    "script": "第36页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Tell me two things I can do with a\nruler .”\n【说】“告诉直尺能做两件事情”（或“我能用直尺做哪两\n件事情”）\nCMS-1\nExample: Says, “Measure and make a line”\n说，“测量和画直线”",
+    "scriptPages": [
+      36
+    ],
+    "stimulusPages": [
+      37
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 2,
+    "code": "CMS-2",
+    "title": "圈出三个词语",
+    "script": "第38页\nCorrect Response(正确反应）\nScript(脚本）\nPresent word search in\nLearner Response Booklet (1) with a pencil.\nSay, “Find three words.”\n【呈现】附件1（1）和铅笔\n【说】“圈出三个词语”（汉化）\nCMS-2\nCircles “CAT ,” “BOX,” and “MOON” \n圈出“一个人”、“小朋友”、“日月星辰”",
+    "scriptPages": [
+      38
+    ],
+    "stimulusPages": [
+      39
+    ],
+    "responsePage": 2,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 3,
+    "code": "CMS-3",
+    "title": "画两条不同的路径",
+    "script": "第40页\nCorrect Response(正确反应）\nScript(脚本）\nPresent grid in Learner Response Booklet\n(2) with a pencil. Say, “Draw a path from A\nto B.” After, say, “Draw a different path.”\n【呈现】附件1（2）和铅笔\n【说】“从A到B画一条路，”\n【等待】学习者完成之后\n【说】“再画一条不同的路”\nCMS-3\nDraws two distinct  paths from A to B\n从A到B画两条不同的路",
+    "scriptPages": [
+      40
+    ],
+    "stimulusPages": [
+      41
+    ],
+    "responsePage": 3,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 4,
+    "code": "CMS-4",
+    "title": "判断谁知道物品",
+    "script": "第42页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Who knows what the item is?”\n【说】“谁知道是什么物品？”\nCMS-4\nSelects boy or says, “Boy ”\n选择男孩或者说“男孩”",
+    "scriptPages": [
+      42
+    ],
+    "stimulusPages": [
+      43
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 5,
+    "code": "CMS-5",
+    "title": "判断信息是否可信",
+    "script": "第44页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “This person is telling you how to fly\nan airplane. Should you believe him?\nWhy?”\n【说】“这个人告诉怎么开飞机。 你会相信他么，为什\n么？”\nCMS-5\nExample: Says,“No; Because it is only a kid, not a pilot!”\n举例：说，“不，因为他知识一个孩子，不是飞行员”",
+    "scriptPages": [
+      44
+    ],
+    "stimulusPages": [
+      45
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 6,
+    "code": "CMS-6",
+    "title": "画长颈鹿脖子的狗",
+    "script": "第46页\nCorrect Response(正确反应）\nScript(脚本）\nPresent blank space in\nLearner Response Booklet (3) with a pencil.\nSay, “Draw a dog with a giraffe’s neck.”\n【呈现】附件1（3）和铅笔\n【说】“画一条狗，这条狗有着长颈鹿的脖子”\nCMS-6\nDraw a dog with a giraffe’s neck\n画一条有长颈鹿脖子的狗",
+    "scriptPages": [
+      46
+    ],
+    "stimulusPages": [
+      47
+    ],
+    "responsePage": 4,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 7,
+    "code": "CMS-7",
+    "title": "选择井字棋获胜位置",
+    "script": "第48页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Where should you put the X to win\nthe game?”\n【说】“X放到哪里能赢”（“要想赢得游戏，把X放在哪\n里？”）\nCMS-7\nSelects upper left square\n选择左上角的方格",
+    "scriptPages": [
+      48
+    ],
+    "stimulusPages": [
+      49
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 8,
+    "code": "CMS-8",
+    "title": "识别刷牙场所",
+    "script": "第50页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “In which room do you brush your\nteeth?”\n【说】“你在哪个房间刷牙？”\nCMS-8\nSelects bathroom\n选择浴室",
+    "scriptPages": [
+      50
+    ],
+    "stimulusPages": [
+      51
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 9,
+    "code": "CMS-9",
+    "title": "模仿拍桌节奏",
+    "script": "第52页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Do this,” and tap table twice fast,\nonce slow, and two more times fast.\n【说】“这样做”\n【动作】拍桌子，2次慢—1次-2次快\nCMS-9\ntap table twice fast,once slow, and two more times fast\n拍桌子，2次慢—1次-2次快",
+    "scriptPages": [
+      52
+    ],
+    "stimulusPages": [
+      53
+    ],
+    "responsePage": 0,
+    "note": "原文英文节奏为快、快、慢、快、快，中文表述不同；请核对后施测并在备注中记录采用的指令。"
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 10,
+    "code": "CMS-10",
+    "title": "延迟回忆三个物体",
+    "script": "第54页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Look at these,” and present the 3\npictures for 10 seconds.\nThen, turn the page.\n【说】“看这些（图片）”\n【等待】呈现图片10秒钟\n再翻页\nCMS-10a\n\n第56页\nCorrect Response(正确反应）\nScript(脚本）\nSay “Wait.”\nAfter 15 seconds, say,\n“What did you see before?”\n【说】“等一等”\n【等待】15s后\n【说】“刚才你刚到了什么？”\nCMS-10b\nNames all three items\n说出三个物体的名字（青蛙、花、笔）",
+    "scriptPages": [
+      54,
+      56
+    ],
+    "stimulusPages": [
+      55,
+      57
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 11,
+    "code": "CMS-11",
+    "title": "选择拼成长方形的图形",
+    "script": "第58页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Which ones do you need to make a\nrectangle?”\n【说】“如果你要拼长方形，可以哪几个？”\nCMS-11\nSelects square and two triangles\n选择正方形和两个三角形",
+    "scriptPages": [
+      58
+    ],
+    "stimulusPages": [
+      59
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 12,
+    "code": "CMS-12",
+    "title": "组合汉字",
+    "script": "第60页\nCorrect Response(正确反应）\nScript(脚本）\nPresent scrambled words in Learner Response Booklet (4) with a\npencil.\nSay, “For each one, use all of the letters to spell a word.”\n【呈现】附件1（4）和铅笔\n【说】“每一个格子里的汉字组词”（汉化）\nCMS-12\nWrites (1) PIG, (2)BARN,(3) HOUSE\n写（1）男 （2）河 （ 3）树",
+    "scriptPages": [
+      60
+    ],
+    "stimulusPages": [
+      61
+    ],
+    "responsePage": 5,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 13,
+    "code": "CMS-13",
+    "title": "按大小排序",
+    "script": "第62页\nCorrect Response(正确反应）\nScript(脚本）\nPresent pictures of cubes in three orders.\nSay, “Which one is in order from biggest to\nsmallest?”\n【说】“哪一个是从大到小的顺序？”\nCMS-13\nSelects large cube to small cube arrangement\n选择中间的图",
+    "scriptPages": [
+      62
+    ],
+    "stimulusPages": [
+      63
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 14,
+    "code": "CMS-14",
+    "title": "按1至10连点",
+    "script": "第64页\nCorrect Response(正确反应）\nScript(脚本）\nPresent dot array in \nLearner Response Booklet (5) with a pencil.\nSay, “Connect the dots.”\n【呈现】附件1（5）和铅笔\n【说】“连接这些点”\nCMS-14\nDraws a line to connect dots from 1-10\n画一条线从1-10连接起来",
+    "scriptPages": [
+      64
+    ],
+    "stimulusPages": [
+      65
+    ],
+    "responsePage": 6,
+    "note": "作答册第6页（内页5）误标 CMS-12；按 G 翻页册 CMS-14 的连点任务关联。"
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 15,
+    "code": "CMS-15",
+    "title": "根据情境选择蛇",
+    "script": "第66页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “I was in the garden, using my rake,\nand I almost screamed when I saw\na….Which one?”\n【说】“我在花园里，正在挖土，当我看到哪一个会尖\n叫？”（汉化“耙子汉化为挖土”）\nCMS-15\nSelects snake\n选择蛇",
+    "scriptPages": [
+      66
+    ],
+    "stimulusPages": [
+      67
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CMS",
+    "itemNumber": 16,
+    "code": "CMS-16",
+    "title": "命名货车",
+    "script": "第68页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What is this?”\n【说】“这是什么？”\nCMS-16\nSays, “Truck”\n说，“货车”",
+    "scriptPages": [
+      68
+    ],
+    "stimulusPages": [
+      69
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 1,
+    "code": "CPM-1",
+    "title": "找出不同类物品",
+    "script": "第70页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Which one does not belong?”\n【说】“哪一个不是一类的？”（“哪一个不属于？”）\nCPM-1\nSelects lamp.\n选择灯",
+    "scriptPages": [
+      70
+    ],
+    "stimulusPages": [
+      71
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 2,
+    "code": "CPM-2",
+    "title": "回应他人哭泣",
+    "script": "第72页\nCorrect Response(正确反应）\nScript(脚本）\nPretend to cry,\nwhimpering and rubbing your left eye.\nSay, “What might you say to me?”\n【动作】假装哭，小声抽泣，擦左眼睛。\n【说】“你可以跟我说什么？”\nCPM-2\nExample: Says, “Are you okay?” \n举例：说，“你怎么了？”",
+    "scriptPages": [
+      72
+    ],
+    "stimulusPages": [
+      73
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 3,
+    "code": "CPM-3",
+    "title": "估计是否少于20件",
+    "script": "第74页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Do you think there are more or less\nthan 20 things inside?”\n【说】“你觉得这里面的有20件物品吗？（比20件物品\n多还是少？ ）”\nCPM-3\nSays,“Less” \n说：少",
+    "scriptPages": [
+      74
+    ],
+    "stimulusPages": [
+      75
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 4,
+    "code": "CPM-4",
+    "title": "补写标点符号",
+    "script": "第76页\nCorrect Response(正确反应）\nScript(脚本）\nPresent the 3 sentences in Learner Response Booklet (6) with apencil. \nSay, “Put the correct punctuation mark at the end of each sentence.”\n【呈现】附件1（6）和铅笔\n【说】“在句子结尾写正确的标点符号”\nCPM-4\nWrites (1) period, (2) exclamation mark, (3) question mark\n写：（1）。 （2）！ （3）？",
+    "scriptPages": [
+      76
+    ],
+    "stimulusPages": [
+      77
+    ],
+    "responsePage": 7,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 5,
+    "code": "CPM-5",
+    "title": "补充疑问词",
+    "script": "第78页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “You are talking to Laura, but you don’t know what she said.”\nPoint to the blank part of the sentence and\nsay, “Tell me what would go here…blank\ndid you say, Laura?”\n【说】“妈妈正在给罗拉打电话，但是她不知道罗拉说了什么”\n【动作】指向句子的空白地方\n【说】“这个空白的地方，罗拉，你刚才说了……” （汉化）\nCPM-5\nSay，“What”\n说，“什么”",
+    "scriptPages": [
+      78
+    ],
+    "stimulusPages": [
+      79
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 6,
+    "code": "CPM-6",
+    "title": "辨识英语音节",
+    "script": "第80页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “How many syllables are in the word\nhippopotamus?” Repeat “hip-po-pot-amus”\nand clap with each syllable.\n（不汉化）\nCPM-6\nSays, “Five",
+    "scriptPages": [
+      80
+    ],
+    "stimulusPages": [
+      81
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 7,
+    "code": "CPM-7",
+    "title": "判断绘画工具",
+    "script": "第82页\nCorrect Response(正确反应）\nScript(脚本）\nPoint to the drawing at the top of the page, and the array \nof chalk, paint, and crayons below. \nSay, “What did the person use to make this?”\n【动作】指页面顶部的话\n【动作】指粉笔、颜料和蜡笔\n【说】“用什么画的这幅画？”\nCPM-7\nSelects crayons\n选择，蜡笔",
+    "scriptPages": [
+      82
+    ],
+    "stimulusPages": [
+      83
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 8,
+    "code": "CPM-8",
+    "title": "走迷宫",
+    "script": "第84页\nCorrect Response(正确反应）\nScript(脚本）\nPresent the maze in Learner Response Booklet (7) with apencil. \nSay, “Begin at the START [point]\nand draw a line to the FINISH [point].”\n【呈现】附件1（7）和铅笔\n【动作】指着开始和结束\n【说】“迷宫”（或者“从开始到结束画一条线”）\nCPM-8\ndraw a line from start to finish\n从开始到结束画一条线",
+    "scriptPages": [
+      84
+    ],
+    "stimulusPages": [
+      85
+    ],
+    "responsePage": 8,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 9,
+    "code": "CPM-9",
+    "title": "假装开车",
+    "script": "第86页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Pretend to drive a car .”\n【说】“假装开小汽车”\nCPM-9\nAct out drive a car\n表演开小汽车",
+    "scriptPages": [
+      86
+    ],
+    "stimulusPages": [
+      87
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 10,
+    "code": "CPM-10",
+    "title": "辨识长方形",
+    "script": "第88页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What shape is this?”\n【说】这是什么形状？\nCPM-10\nSays, “Rectangle”\n说。“长方形”",
+    "scriptPages": [
+      88
+    ],
+    "stimulusPages": [
+      89
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 11,
+    "code": "CPM-11",
+    "title": "选择沙滩泳装",
+    "script": "第90页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Which one would a girl wear at the\nbeach?”\n【说】“女孩在沙滩上（游泳池）应该穿哪一件？”\nCPM-11\nSelects，swim suit.\n选择，泳衣",
+    "scriptPages": [
+      90
+    ],
+    "stimulusPages": [
+      91
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 12,
+    "code": "CPM-12",
+    "title": "说出场所中的活动",
+    "script": "第92页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What do you do here?”\n【说】“你在这里做什么？”\nCPM-12\nExample: Says, “Eat”\n举例：说，“吃饭”，“做饭”",
+    "scriptPages": [
+      92
+    ],
+    "stimulusPages": [
+      93
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 13,
+    "code": "CPM-13",
+    "title": "听写词语",
+    "script": "第94页\nCorrect Response(正确反应）\nScript(脚本）\nPresent the page in\nLearner Response Booklet (8) with apencil.、\nSay, “Write cow.”\nRepeat with “list” and “block.”\n【呈现】附件1（8）和铅笔\n【说】 “写’日月’”（重复一遍）“\n【说】“上中下”（重复一遍）\n【说】“一个人” （重复一遍）\nCPM-13\nWrite，（1）COW （2）LIST （3）BLOCK\n写， “日月”、“上中下”和“一个人”",
+    "scriptPages": [
+      94
+    ],
+    "stimulusPages": [
+      95
+    ],
+    "responsePage": 9,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 14,
+    "code": "CPM-14",
+    "title": "听写数字",
+    "script": "第96页\nCorrect Response(正确反应）\nScript(脚本）\nPresent the page in\nLearner Response Booklet (9) with a\npencil. Say, “Write 400.”\nRepeat with “46” and “789.”\n【呈现】附件1（9）和铅笔\n【说】 “写’400’”（重复一遍）“\n【说】“46”（重复一遍）\n【说】“789” （重复一遍）\nCPM-14\nWrite，（1）400 （2）46 （3）789\n写，“400”、“46”和“789”",
+    "scriptPages": [
+      96
+    ],
+    "stimulusPages": [
+      97
+    ],
+    "responsePage": 10,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 15,
+    "code": "CPM-15",
+    "title": "将快节奏与猎豹匹配",
+    "script": "第98页\nCorrect Response(正确反应）\nScript(脚本）\nClap your hands rapidly.\nSay, “Which one was that like?”\n【动作】快速拍手\n【说】“像哪一个？”\nCPM-15\nSelects cheetah\n选择，猎豹",
+    "scriptPages": [
+      98
+    ],
+    "stimulusPages": [
+      99
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "CPM",
+    "itemNumber": 16,
+    "code": "CPM-16",
+    "title": "选择停止标志",
+    "script": "第100页\nCorrect Response(正确反应）\nScript(脚本）\nPresent the images of a black X, red circle,\nand green triangle.\nSay, “Point to the stop sign.”\n【说】 “哪一个是停下来的符号”（“指向停止的标志”）\nCPM-16\nSelects red circle\n选择，红色的圆形",
+    "scriptPages": [
+      100
+    ],
+    "stimulusPages": [
+      101
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 1,
+    "code": "RPR-1",
+    "title": "选择测量糖的工具",
+    "script": "第102页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “I need a teaspoon of sugar . Which\nshould I use to measure?”\n【说】“我需要一小勺糖，我应该用哪一个来测量”\nRPR-1\nSelects teaspoon\n选择，勺子",
+    "scriptPages": [
+      102
+    ],
+    "stimulusPages": [
+      103
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 2,
+    "code": "RPR-2",
+    "title": "找出不同的数字",
+    "script": "第104页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Which one doesn’t belong?”\n【说】“哪一个不属于？”（或“哪一个跟其他的不一样”）\nRPR-2\nSelects “18”\n选择，18",
+    "scriptPages": [
+      104
+    ],
+    "stimulusPages": [
+      105
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 3,
+    "code": "RPR-3",
+    "title": "纠正不合理句子",
+    "script": "第106页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “The sun came out at night. What\nwas wrong with that sentence?”\n【说】“晚上太阳出来了。这句话有什么问题？”\nRPR-3\nSays, “The moon comes out.” or “Sun comes in morning.”\n举例：说，“晚上月亮出来了”，“晚上星星出来了”，“早\n上太阳出来了”",
+    "scriptPages": [
+      106
+    ],
+    "stimulusPages": [
+      107
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 4,
+    "code": "RPR-4",
+    "title": "推算到2点的时长",
+    "script": "第108页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “How long will it be until 2:00?”\n【说】“还有多久到2点钟”\nRPR-4\nSays, “One hour”\n说，“一个小时”",
+    "scriptPages": [
+      108
+    ],
+    "stimulusPages": [
+      109
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 5,
+    "code": "RPR-5",
+    "title": "完成加法",
+    "script": "第110页\nCorrect Response(正确反应）\nScript(脚本）\nPresent the addition problems in\nLearner Response Booklet (10) with a\npencil. Say, “Add.”\n【呈现】附件1（10）和铅笔\n【说】 “加法“\nRPR-5\n写，（1）5 （2）10 （3）28\nWrite，（1）5 （2）10 （3）28",
+    "scriptPages": [
+      110
+    ],
+    "stimulusPages": [
+      111
+    ],
+    "responsePage": 11,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 6,
+    "code": "RPR-6",
+    "title": "估算路线距离",
+    "script": "第112页\nCorrect Response(正确反应）\nScript(脚本）\nPoint to the dot, then slide your finger\nalong the red arrow to the X, and say,\n“What is the distance in miles from the\ndot to the X along the red line?”\n【动作】指着点，然后顺着红色的箭头划向X，然后\n【说】沿着箭头从点到×，有多少英里？\nRPR-6\nSay，“2” or “3”(miles ）\n说，“2”或者“3”(英里）",
+    "scriptPages": [
+      112
+    ],
+    "stimulusPages": [
+      113
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 7,
+    "code": "RPR-7",
+    "title": "选择可盛水的物品",
+    "script": "第114页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “I need a drink of water,\nwhich can I use?”\n【说】“我需要喝水，我能用哪一个？”\nRPR-7\nSelects bowl\n选择，碗",
+    "scriptPages": [
+      114
+    ],
+    "stimulusPages": [
+      115
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 8,
+    "code": "RPR-8",
+    "title": "按用途命名",
+    "script": "第116页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Give this a name based on what it is\nused for .”\n【说】根据它的用途，给它起一个名字\nRPR -8\nExample: Says, “Mr . Chill”\n举例，说，“冷藏先生”",
+    "scriptPages": [
+      116
+    ],
+    "stimulusPages": [
+      117
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 9,
+    "code": "RPR-9",
+    "title": "根据特征猜动物",
+    "script": "第118页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “I’m thinking of something that has\nfour legs, stripes, and a tail. What is it?”\n【说】“我正在想一样东西（动物），有四条腿，有条\n纹，还有尾巴。是什么？”\nPRP-9\nExample: Says,“Zebra”\n举例：说，“斑马”",
+    "scriptPages": [
+      118
+    ],
+    "stimulusPages": [
+      119
+    ],
+    "responsePage": 0,
+    "note": "原脚本页标为 PRP-9，材料页为 RPR-9；按材料页及序列登记。"
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 10,
+    "code": "RPR-10",
+    "title": "找出无关语句",
+    "script": "第120页\nCorrect Response(正确反应）\nScript(脚本）\nRead three statements, “It will rain today. I\nam hungry. I need an umbrella!” and say,\n“Which one doesn’t belong in the story?”\n【阅读】“今天要下雨” 、“我饿了”、“我需要一把雨伞”\n【说】 “哪句话不属于同一个故事里面”\nRPR-10\nSelect，“I am hungry”\n选择，“我饿了”",
+    "scriptPages": [
+      120
+    ],
+    "stimulusPages": [
+      121
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 11,
+    "code": "RPR-11",
+    "title": "识别混色组合",
+    "script": "第122页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Which colors will make this color?”.\n【说】这个颜色是那两种颜色在一起组成的？\nRPR-11\nSelects red and blue\n选择，红色和蓝色",
+    "scriptPages": [
+      122
+    ],
+    "stimulusPages": [
+      123
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 12,
+    "code": "RPR-12",
+    "title": "画不同的房子",
+    "script": "第124页\nCorrect Response(正确反应）\nScript(脚本）\nPresent the image and blank space \ninLearner Response Booklet (11) with apencil.\nSay, “Draw a house, but different than this one.”\n【呈现】附件1（11）和铅笔\n【说】画一个房子，但是跟这一个不一样\nRPR-12\nDraw a non-identical  house\n画一个不完全一样的房子",
+    "scriptPages": [
+      124
+    ],
+    "stimulusPages": [
+      125
+    ],
+    "responsePage": 12,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 13,
+    "code": "RPR-13",
+    "title": "排除推理",
+    "script": "第126页\nCorrect Response(正确反应）\nScript(脚本）\nPresent and read the riddle, “Sara has\neither eaten an apple or a cookie. She\ndidn’t eat an apple. What did she eat?”\n【读】“莎娃吃了苹果或者饼干。她没有吃苹果，她吃\n了什么？”\nRPR-13\nSelects， cookie\n选择，饼干",
+    "scriptPages": [
+      126
+    ],
+    "stimulusPages": [
+      127
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 14,
+    "code": "RPR-14",
+    "title": "计算剩余薯条",
+    "script": "第128页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “Tom has 5 chips and eats 2 of them.\nHow many are left?”\n【说】“汤姆有5根薯条，他吃了其中2根，还剩几根？”\nRPR-14\nSelects，“3”\n选择，3",
+    "scriptPages": [
+      128
+    ],
+    "stimulusPages": [
+      129
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 15,
+    "code": "RPR-15",
+    "title": "识别受伤的感觉",
+    "script": "第130页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “What does this feel like?”\n【说】“这表示什么？”（“这给人什么感觉”）\nRPR-15\nSays, “Hurt”\n说， “受伤”",
+    "scriptPages": [
+      130
+    ],
+    "stimulusPages": [
+      131
+    ],
+    "responsePage": 0,
+    "note": ""
+  },
+  {
+    "module": "G",
+    "category": "RPR",
+    "itemNumber": 16,
+    "code": "RPR-16",
+    "title": "识别钱币总额",
+    "script": "第132页\nCorrect Response(正确反应）\nScript(脚本）\nSay, “How much is this?”\n【说】“这是多少钱？”（汉化）\nRPR-16\n说，“1元5角”，“1块5毛”",
+    "scriptPages": [
+      132
+    ],
+    "stimulusPages": [
+      133
+    ],
+    "responsePage": 0,
+    "note": ""
+  }
+]

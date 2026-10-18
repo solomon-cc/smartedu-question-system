@@ -1,0 +1,1061 @@
+/* Animal Island's MIT tokens adapted to Vue controls; student workspace only.
+   Palette source: docs/design-system/design-tokens.md, official app-tile colors.
+   Brand green and white replace the original cream palette at the user's request.
+   Vue reference: animal-island-vue/skill/SKILL.md; retain readable pastel accents. */
+.student-island,
+.v-theme--studentIsland,
+.v-theme--studentIslandDark {
+  --island-bg: #f4f8f6;
+  --island-surface: #ffffff;
+  --island-content: #eef5f1;
+  --island-heading: #315e4c;
+  --island-text: #34483e;
+  --island-muted: #536b5d;
+  --island-border: #ccddd3;
+  --island-mint: #e6f9f6;
+  --island-shadow: #a6bfb1;
+  --island-blue: #889df0;
+  --island-yellow: #f7cd67;
+  --island-pink: #f8a6b2;
+  --island-purple: #b77dee;
+  --island-teal: #82d5bb;
+  --island-orange: #e59266;
+  --island-green: #8ac68a;
+  --island-brand: #315e4c;
+  --island-sticker-ink: #315e4c;
+  --island-on-brand: #ffffff;
+  --island-action: var(--island-brand);
+  --island-on-color: #293d32;
+  --island-tint-ratio: 24%;
+  font-family: 'Nunito', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+.student-island {
+  color: var(--island-text);
+  font-weight: 500;
+}
+.student-island,
+.island-overlay {
+  /* Vuetify repeats theme classes on icons and buttons; activity tokens must
+     inherit from the owning card instead of resetting on each themed child. */
+  --island-tone: var(--island-teal);
+  --island-tone-ink: #286151;
+  --island-tone-soft: color-mix(
+    in srgb,
+    var(--island-tone) var(--island-tint-ratio),
+    var(--island-surface)
+  );
+}
+.student-island :is(h1, h2, h3, h4, p) {
+  margin: 0;
+}
+.v-theme--studentIslandDark {
+  --island-bg: #18231e;
+  --island-surface: #24342b;
+  --island-content: #30473a;
+  --island-heading: #a6dfca;
+  --island-text: #e9f2ec;
+  --island-muted: #bdd0c3;
+  --island-border: #688472;
+  --island-mint: #354a40;
+  --island-shadow: #101b15;
+  --island-brand: #a6dfca;
+  --island-on-brand: #263b30;
+  --island-tint-ratio: 18%;
+}
+/* Stable activity colors: the same route keeps its color on every screen. */
+:is(.student-island, .island-overlay) [data-island-tone='green'] {
+  --island-tone: var(--island-green);
+  --island-tone-ink: #315e4c;
+}
+:is(.student-island, .island-overlay) [data-island-tone='blue'] {
+  --island-tone: var(--island-blue);
+  --island-tone-ink: #435499;
+}
+:is(.student-island, .island-overlay) [data-island-tone='yellow'] {
+  --island-tone: var(--island-yellow);
+  --island-tone-ink: #795321;
+}
+:is(.student-island, .island-overlay) [data-island-tone='pink'] {
+  --island-tone: var(--island-pink);
+  --island-tone-ink: #923f53;
+}
+:is(.student-island, .island-overlay) [data-island-tone='purple'] {
+  --island-tone: var(--island-purple);
+  --island-tone-ink: #6a4294;
+}
+:is(.student-island, .island-overlay) [data-island-tone='teal'] {
+  --island-tone: var(--island-teal);
+  --island-tone-ink: #286151;
+}
+:is(.student-island, .island-overlay) [data-island-tone='orange'] {
+  --island-tone: var(--island-orange);
+  --island-tone-ink: #89491f;
+}
+:is(.student-island, .island-overlay) [data-island-tone] {
+  --island-tone-soft: color-mix(
+    in srgb,
+    var(--island-tone) var(--island-tint-ratio),
+    var(--island-surface)
+  );
+}
+:is(.student-island, .island-overlay) [data-island-tone='yellow'] {
+  --island-tone-soft: var(--island-surface);
+}
+.v-theme--studentIslandDark [data-island-tone] {
+  --island-tone-ink: var(--island-tone);
+}
+.student-island.student-island .page-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 32px 40px;
+}
+.student-island.student-island .page-heading {
+  margin-bottom: 24px;
+  gap: 20px;
+  align-items: center;
+}
+.student-island.student-island .page-heading p {
+  color: var(--island-muted);
+  line-height: 1.7;
+  font-size: 15px;
+  max-width: 650px;
+}
+.student-island.student-island h2,
+.student-island.student-island h3,
+.island-overlay h2,
+.island-overlay h3 {
+  color: var(--island-heading);
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+.student-island.student-island h2 {
+  font-size: 21px;
+}
+.student-island.student-island h3 {
+  font-size: 18px;
+}
+.student-island.student-island .muted,
+.student-island.student-island .metric-caption {
+  color: var(--island-muted);
+}
+.student-island.student-island .island-sidebar {
+  background: var(--island-surface);
+  border-right: 1px solid var(--island-border);
+}
+.student-island.student-island .island-topbar,
+.student-island.student-island .island-bottom-nav {
+  background: var(--island-surface);
+  border-color: var(--island-border);
+  box-shadow: none;
+}
+.student-island.student-island .island-topbar {
+  border-bottom: 1px solid var(--island-border);
+}
+.student-island.student-island .island-bottom-nav {
+  border-top: 1px solid var(--island-border);
+  padding-bottom: env(safe-area-inset-bottom);
+  height: calc(72px + env(safe-area-inset-bottom)) !important;
+}
+.student-island.student-island :is(a, button, input, textarea, [tabindex]):focus-visible,
+.island-overlay :is(a, button, input, textarea, [tabindex]):focus-visible {
+  outline: 3px solid rgb(var(--v-theme-primary));
+  outline-offset: 3px;
+}
+.island-card.v-card {
+  background: var(--island-content);
+  border: 1px solid var(--island-border);
+  border-radius: 24px !important;
+  box-shadow: none;
+  overflow: hidden;
+  color: var(--island-text);
+}
+.island-card .v-card-title {
+  font-size: 22px;
+  font-weight: 700;
+  white-space: normal;
+  color: var(--island-heading);
+  padding: 24px 24px 12px;
+}
+.island-card .v-card-text {
+  line-height: 1.7;
+}
+.island-card .v-card-actions {
+  padding: 16px 24px 24px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.island-card .v-list,
+.student-island.student-island .v-expansion-panel {
+  background: transparent;
+  color: var(--island-text);
+}
+.island-button.v-btn {
+  border-radius: 50px !important;
+  text-transform: none;
+  letter-spacing: 0;
+  min-height: 44px;
+  font-weight: 700;
+  transition:
+    background 0.2s,
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+.island-button:is(.v-btn--variant-flat, .v-btn--variant-elevated).bg-primary:not(.v-btn--disabled) {
+  box-shadow: 0 4px 0 var(--island-shadow);
+  margin-bottom: 4px;
+}
+.island-button:is(.v-btn--variant-flat, .v-btn--variant-elevated).bg-primary:not(
+    .v-btn--disabled
+  ):active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--island-shadow);
+}
+.island-button.v-btn--variant-outlined {
+  border-color: var(--island-border);
+  background: var(--island-surface);
+}
+.island-button.v-btn--size-large {
+  min-height: 48px;
+}
+.island-button.v-btn--disabled {
+  opacity: 0.55;
+}
+.island-tag.v-chip {
+  border-radius: 50px;
+  font-weight: 700;
+  min-height: 28px;
+}
+.island-avatar.v-avatar {
+  border-radius: 18px !important;
+  color: var(--island-heading);
+}
+:is(.island-input, .island-textarea, .island-select) .v-field {
+  border-radius: 18px;
+  background: var(--island-surface);
+  color: var(--island-text);
+}
+:is(.island-input, .island-textarea, .island-select) .v-field__outline {
+  --v-field-border-opacity: 1;
+  color: var(--island-border);
+}
+:is(.island-input, .island-textarea, .island-select) .v-field--focused .v-field__outline {
+  color: rgb(var(--v-theme-primary));
+}
+.island-progress.v-progress-linear {
+  border-radius: 50px;
+  min-height: 8px;
+  border: 1px solid var(--island-border);
+  overflow: hidden;
+}
+.island-overlay .v-overlay__content {
+  max-height: calc(100dvh - 32px) !important;
+}
+.island-overlay.v-dialog--fullscreen .v-overlay__content {
+  max-height: 100dvh !important;
+  border-radius: 0;
+}
+.island-overlay .v-card {
+  background: var(--island-content);
+  color: var(--island-text);
+}
+.island-overlay .v-card:not(.game-dialog) {
+  border-radius: 24px !important;
+}
+.island-overlay .editor-footer {
+  background: var(--island-content);
+}
+.student-island.student-island .v-alert,
+.island-overlay .v-alert {
+  border-radius: 18px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.student-island.student-island .v-selection-control {
+  min-height: 48px;
+}
+.student-island.student-island .v-label {
+  opacity: 1;
+}
+.student-island.student-island .v-list-item {
+  min-height: 48px;
+}
+.student-island.student-island .v-list-item__title {
+  white-space: normal;
+}
+.student-island.student-island .v-pagination__item .v-btn,
+.student-island.student-island .v-pagination__next .v-btn,
+.student-island.student-island .v-pagination__prev .v-btn {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50px;
+}
+.student-island.student-island .section-grid {
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+.student-island.student-island .metric-card {
+  padding: 22px;
+  background: var(--island-surface);
+}
+.student-island.student-island .metric-value {
+  font-family: 'Nunito', 'PingFang SC', sans-serif;
+  color: var(--island-heading);
+  font-size: 32px;
+}
+.student-island.student-island .metric-icon {
+  background: var(--island-content);
+  border-radius: 18px;
+  color: var(--island-heading);
+}
+.student-island.student-island .panel-header {
+  padding: 24px;
+  gap: 16px;
+  border-color: var(--island-border);
+}
+.student-island.student-island .practice-card {
+  background: var(--island-surface);
+}
+.student-island.student-island .answer-option {
+  border-color: var(--island-border);
+  border-radius: 18px;
+  background: var(--island-content);
+  padding: 12px 16px;
+  cursor: pointer;
+}
+.student-island.student-island .answer-option:has(input:checked) {
+  border: 2px solid rgb(var(--v-theme-primary));
+  background: var(--island-mint);
+  padding: 11px 15px;
+}
+.student-island.student-island .answer-option .v-label {
+  flex: 1;
+  font-size: 18px;
+  line-height: 1.6;
+}
+.student-island.student-island .answer-option .v-selection-control__wrapper {
+  flex-shrink: 0;
+}
+.student-island.student-island .practice-card .content-image {
+  max-height: 280px;
+  object-fit: contain;
+}
+.student-island.student-island .assessment-welcome {
+  background: var(--island-content);
+  border-radius: 24px;
+  border-color: var(--island-border);
+  padding: 24px;
+  gap: 24px;
+}
+.student-island.student-island .assessment-welcome h2 {
+  font-size: 25px;
+}
+.student-island.student-island .assessment-welcome p {
+  font-size: 15px;
+}
+.student-island.student-island .scene-card {
+  background: var(--island-content);
+  border-color: var(--island-border);
+  border-radius: 24px;
+  box-shadow: none;
+}
+.student-island.student-island .scene-cover {
+  aspect-ratio: 16/10;
+  border-bottom: 1px solid var(--island-border);
+}
+.student-island.student-island .scene-cover img {
+  object-fit: cover;
+}
+.student-island.student-island .scene-card:hover {
+  transform: none;
+  box-shadow: none;
+}
+.student-island.student-island .v-expansion-panel {
+  border-radius: 18px !important;
+  box-shadow: none;
+  border: 1px solid var(--island-border);
+  margin-bottom: 12px;
+}
+.student-island.student-island .v-expansion-panel-title {
+  min-height: 56px;
+  line-height: 1.6;
+}
+.student-island.student-island .v-expansion-panel__shadow {
+  display: none;
+}
+.student-island.student-island .content-image {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+@media (max-width: 959px) {
+  .student-island.student-island .page-container {
+    padding: 24px 24px calc(32px + env(safe-area-inset-bottom));
+  }
+}
+@media (max-width: 599px) {
+  .student-island.student-island .page-container {
+    padding: 20px 16px calc(28px + env(safe-area-inset-bottom));
+  }
+  .student-island.student-island .page-heading {
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .student-island.student-island .page-heading p {
+    font-size: 14px;
+    margin-top: 8px;
+  }
+  .student-island.student-island .heading-actions {
+    width: auto;
+  }
+  .student-island.student-island .heading-actions .island-button {
+    font-size: 13px;
+  }
+  .student-island.student-island .section-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .student-island.student-island .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .student-island.student-island .metric-card {
+    padding: 16px;
+  }
+  .student-island.student-island .metric-value {
+    font-size: 26px;
+  }
+  .student-island.student-island .metric-top {
+    font-size: 13px;
+  }
+  .student-island.student-island .metric-icon {
+    display: none;
+  }
+  .student-island.student-island .panel-header {
+    padding: 20px;
+  }
+  .student-island.student-island h2 {
+    font-size: 20px;
+  }
+  .student-island.student-island .practice-card {
+    padding: 20px;
+  }
+  .student-island.student-island .practice-card .question-stem {
+    font-size: 22px;
+  }
+  .student-island.student-island .practice-card > .d-flex.justify-end .island-button {
+    width: 100%;
+  }
+  .island-card .v-card-title {
+    padding: 20px 20px 12px;
+    font-size: 21px;
+  }
+  .island-card .v-card-actions {
+    padding: 16px 20px 20px;
+  }
+  .island-overlay .v-overlay__content {
+    margin: 16px !important;
+    width: calc(100% - 32px) !important;
+  }
+  .island-overlay.v-dialog--fullscreen .v-overlay__content {
+    margin: 0 !important;
+    width: 100% !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .student-island.student-island *,
+  .island-overlay * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+.student-island.student-island .world-card {
+  background: var(--island-content);
+  border-color: var(--island-border);
+  border-radius: 24px;
+}
+.student-island.student-island .world-cover {
+  aspect-ratio: 16/10;
+  border-bottom: 1px solid var(--island-border);
+}
+.student-island.student-island .world-cover img {
+  object-fit: cover;
+}
+.student-island.student-island .world-format {
+  border-radius: 50px;
+  background: var(--island-surface);
+  color: var(--island-heading);
+  padding: 6px 12px;
+}
+.student-island.student-island .world-text h2 {
+  color: var(--island-heading);
+}
+.student-island.student-island .world-footer .island-button {
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  box-shadow: 0 4px 0 var(--island-shadow);
+}
+.student-island.student-island .practice-record {
+  border-color: var(--island-border);
+}
+.student-island.student-island .practice-record p {
+  color: var(--island-muted);
+  line-height: 1.6;
+}
+.student-island.student-island .student-mood-picker {
+  padding: 24px;
+  margin-bottom: 28px;
+  background: var(--island-content);
+  border: 1px solid var(--island-border);
+  border-radius: 24px;
+}
+.student-island.student-island .student-mood-picker > p {
+  color: var(--island-muted);
+  margin: 8px 0 24px;
+  line-height: 1.7;
+}
+.student-island.student-island .mood-options,
+.island-overlay .v-card .mood-options {
+  gap: 12px;
+  margin-bottom: 0;
+}
+.student-island.student-island .mood-options button,
+.island-overlay .v-card .mood-options button {
+  border-radius: 18px;
+  background: var(--island-surface);
+  border-color: var(--island-border);
+  color: var(--island-heading);
+  min-height: 100px;
+}
+.island-overlay .v-card .mood-options {
+  margin-bottom: 24px;
+}
+.island-overlay .v-card .mood-options button.chosen {
+  background: var(--island-mint);
+  border-color: rgb(var(--v-theme-primary));
+}
+@media (max-width: 599px) {
+  .student-island.student-island .student-mood-picker {
+    padding: 20px;
+  }
+  .student-island.student-island .mood-options,
+  .island-overlay .v-card .mood-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .student-island.student-island .world-text {
+    padding: 20px;
+  }
+  .student-island.student-island .world-footer > .island-button {
+    width: 100%;
+  }
+}
+.student-island.student-island .empty-state {
+  padding: 32px 20px;
+}
+.student-island.student-island .today-card .empty-state {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  column-gap: 16px;
+  text-align: left;
+  padding: 24px 0 0;
+  align-items: center;
+}
+.student-island.student-island .today-card .empty-state .island-avatar {
+  grid-row: 1/3;
+  width: 48px !important;
+  height: 48px !important;
+  background: var(--island-surface) !important;
+}
+.student-island.student-island .today-card .empty-state-title {
+  margin: 0;
+  font-size: 17px;
+}
+.student-island.student-island .today-card .empty-state p {
+  margin: 6px 0 0;
+  max-width: none;
+}
+.student-island.student-island .island-button.v-btn--variant-tonal {
+  background: var(--island-mint);
+  color: rgb(var(--v-theme-primary));
+}
+.student-island.student-island .student-assessment-tasks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 12px;
+  padding: 20px;
+}
+.student-island.student-island .student-assessment-tasks .v-list-item {
+  background: var(--island-surface);
+  border: 1px solid var(--island-border);
+  border-radius: 18px;
+  min-height: 64px;
+}
+.student-island.student-island .assessment-filters {
+  gap: 8px;
+  height: auto;
+  flex-wrap: wrap;
+  border: none;
+  background: transparent;
+}
+.student-island.student-island .assessment-filters .island-button {
+  border: 1px solid var(--island-border) !important;
+}
+.student-island.student-island .v-tabs .v-tab {
+  border-radius: 50px;
+  min-height: 48px;
+  letter-spacing: 0;
+}
+:is(.island-input, .island-textarea, .island-select) .v-label {
+  opacity: 1;
+  color: var(--island-text);
+}
+.student-island.student-island .practice-wrap .page-heading p {
+  display: none;
+}
+.student-island.student-island .practice-card .island-progress.mb-8 {
+  margin-bottom: 20px !important;
+}
+.student-island.student-island .practice-card > .my-7 {
+  margin-top: 20px !important;
+  margin-bottom: 20px !important;
+}
+@media (max-width: 599px) {
+  .student-island.student-island .practice-wrap .page-heading {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+  .student-island.student-island .practice-wrap .page-heading > div:first-child {
+    min-width: 0;
+    flex: 1;
+  }
+  .student-island.student-island .practice-wrap .heading-actions {
+    flex-shrink: 0;
+  }
+  .student-island.student-island .practice-wrap .island-title {
+    font-size: 20px;
+  }
+  .student-island.student-island .practice-wrap .island-title > span {
+    padding: 4px 12px;
+  }
+  .student-island.student-island .practice-card .content-image {
+    max-height: 180px;
+    margin: 16px auto !important;
+  }
+}
+
+/* Student workspace structure: a learning app shell rather than the staff sidebar. */
+.student-island.student-island .page-container {
+  max-width: 1184px;
+  padding-bottom: 48px;
+}
+.student-island.student-island .island-bottom-nav {
+  height: 88px !important;
+  max-width: 640px;
+  width: calc(100% - 48px) !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin: 0 auto;
+  bottom: 16px !important;
+  border: 1px solid var(--island-border);
+  border-radius: 32px;
+  padding: 0 12px;
+  overflow: hidden;
+}
+.student-island.student-island .island-topbar {
+  border-bottom-style: dashed;
+}
+.student-island.student-island .practice-wrap {
+  max-width: 1100px;
+}
+.student-island.student-island .practice-card {
+  padding: 28px;
+}
+.student-question-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+.student-question-layout.has-picture {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: start;
+}
+.student-question-layout .question-board {
+  padding: 24px;
+  border-radius: 24px;
+  background: var(--island-content);
+}
+.student-question-layout .question-stem {
+  font-size: 28px;
+}
+.student-island.student-island .student-question-layout .content-image {
+  max-height: 330px;
+  width: 100%;
+  margin: 20px auto 0 !important;
+  border-radius: 16px;
+}
+.student-question-layout .answer-board > .my-7 {
+  margin-top: 0 !important;
+}
+.student-question-layout .practice-actions .island-button {
+  width: 100%;
+  min-height: 52px;
+}
+.student-learning-picker {
+  margin-bottom: 28px;
+}
+.learning-subjects {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.student-island.student-island .learning-subject.v-btn {
+  height: 142px;
+  border-radius: 24px;
+  border: 2px solid var(--island-border);
+  background: var(--island-surface);
+  padding: 16px;
+  position: relative;
+}
+.student-island.student-island .learning-subject.chosen {
+  border-color: var(--island-tone-ink);
+  background: var(--island-tone-soft);
+}
+.learning-subject .v-btn__content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.subject-token {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 24px;
+  background: var(--island-content);
+  color: var(--island-heading);
+}
+.subject-label {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--island-heading);
+}
+.subject-selected {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: rgb(var(--v-theme-primary));
+}
+.learning-launch {
+  padding: 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: center;
+}
+.learning-launch > div:first-child p {
+  margin: 12px 0 0 24px;
+  color: var(--island-muted);
+}
+.learning-levels {
+  grid-column: 1 / -1;
+}
+.learning-levels h3 {
+  margin-bottom: 12px;
+  font-size: 17px;
+}
+.level-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.level-count {
+  margin-left: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.learning-launch > .island-button {
+  grid-row: 1;
+  grid-column: 2;
+  min-width: 176px;
+}
+@media (max-width: 959px) {
+  .student-question-layout.has-picture {
+    grid-template-columns: 1fr;
+  }
+  .student-island.student-island .student-question-layout .content-image {
+    max-height: 240px;
+  }
+}
+@media (max-width: 599px) {
+  .student-island.student-island .island-bottom-nav {
+    width: 100% !important;
+    max-width: none;
+    bottom: 0 !important;
+    border-radius: 0;
+    border: 0;
+    border-top: 1px solid var(--island-border);
+    padding: 0 8px env(safe-area-inset-bottom);
+    height: calc(88px + env(safe-area-inset-bottom)) !important;
+  }
+  .student-island.student-island .practice-card {
+    padding: 16px;
+  }
+  .student-question-layout {
+    gap: 20px;
+  }
+  .student-question-layout .question-board {
+    padding: 16px;
+    border-radius: 20px;
+  }
+  .student-question-layout .question-stem {
+    font-size: 23px;
+  }
+  .student-island.student-island .student-question-layout .content-image {
+    max-height: 190px;
+    margin-top: 12px !important;
+  }
+  .learning-subjects {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .student-island.student-island .learning-subject.v-btn {
+    height: 126px;
+  }
+  .subject-token {
+    width: 54px;
+    height: 54px;
+    border-radius: 20px;
+  }
+  .learning-launch {
+    padding: 20px;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .learning-launch > .island-button {
+    grid-row: auto;
+    grid-column: auto;
+    width: 100%;
+  }
+  .student-island.student-island .page-container:has(.practice-wrap) {
+    padding-top: 16px;
+  }
+}
+
+/* Colored paper cards: content stays calm, activity artwork carries the palette. */
+.student-island.student-island .island-tonal-surface {
+  background: var(--island-tone-soft);
+  border-color: var(--island-tone);
+}
+.student-island.student-island .today-icon,
+.student-island.student-island .task-rest-icon {
+  background: var(--island-green);
+  color: var(--island-on-color);
+}
+.student-island.student-island .activity-card {
+  border-color: var(--island-tone);
+  background: var(--island-tone-soft);
+}
+.student-island.student-island .activity-art,
+.student-island.student-island .activity-card:first-child .activity-art {
+  background: var(--island-tone);
+}
+.student-island.student-island .activity-go {
+  background: var(--island-tone);
+  color: var(--island-on-color);
+}
+.student-island.student-island .feeling-art {
+  color: var(--island-on-color);
+}
+.student-island.student-island .memory-links a {
+  background: var(--island-tone-soft);
+  border-color: var(--island-tone);
+}
+.student-island.student-island .memory-links a > .v-icon:first-child {
+  color: var(--island-tone-ink);
+}
+.student-island.student-island .island-nav-link > .v-icon,
+.student-island.student-island .island-bottom-nav .v-btn[data-island-tone] .v-icon {
+  color: var(--island-tone-ink);
+}
+.student-island.student-island .island-nav-link.selected,
+.student-island.student-island .island-bottom-nav .v-btn--active[data-island-tone] {
+  background: var(--island-tone-soft);
+  color: var(--island-text);
+}
+.student-island.student-island .learning-subject.v-btn {
+  border-color: var(--island-tone);
+}
+.student-island.student-island .learning-subject.chosen {
+  border-color: var(--island-tone-ink);
+}
+.student-island.student-island .subject-token {
+  background: var(--island-tone);
+  color: var(--island-on-color);
+}
+.student-island.student-island .subject-selected {
+  color: var(--island-tone-ink);
+}
+.student-island.student-island .world-card[data-island-tone] {
+  background: var(--island-tone-soft);
+  border-color: var(--island-tone);
+}
+.student-island.student-island .world-card[data-island-tone] .world-format {
+  background: var(--island-tone);
+  color: var(--island-on-color);
+}
+.student-island.student-island .metric-card[data-island-tone] {
+  background: var(--island-tone-soft);
+  border-color: var(--island-tone);
+}
+.student-island.student-island .metric-card[data-island-tone] .metric-icon {
+  background: var(--island-tone);
+  color: var(--island-on-color);
+}
+.student-island.student-island .student-mood-picker {
+  background: var(--island-surface);
+  border-color: var(--island-pink);
+}
+:is(.student-island.student-island, .island-overlay) .mood-options button[data-island-tone] {
+  background: var(--island-tone-soft);
+  border-color: var(--island-tone);
+  color: var(--island-text);
+}
+:is(.student-island.student-island, .island-overlay)
+  .mood-options
+  button[data-island-tone]
+  .v-icon {
+  background: var(--island-tone);
+  border-radius: 50%;
+  color: var(--island-on-color);
+  padding: 8px;
+  box-sizing: content-box;
+}
+:is(.student-island.student-island, .island-overlay) .mood-options button[data-island-tone].chosen {
+  border: 2px solid var(--island-tone-ink);
+  outline: 2px solid var(--island-tone-ink);
+  outline-offset: 2px;
+  background: var(--island-tone-soft);
+}
+/* Shared brand green for primary actions across student, teacher and admin. */
+:is(.student-island.student-island, .island-overlay)
+  .island-button.bg-primary:is(.v-btn--variant-flat, .v-btn--variant-elevated):not(
+    .v-btn--disabled
+  ),
+.student-island.student-island .world-footer .island-button {
+  background: var(--island-action) !important;
+  color: var(--island-on-brand) !important;
+}
+:is(.student-island.student-island, .island-overlay)
+  .island-button.bg-primary:is(.v-btn--variant-flat, .v-btn--variant-elevated):not(
+    .v-btn--disabled
+  ):hover {
+  background: color-mix(in srgb, var(--island-action) 92%, var(--island-on-brand)) !important;
+}
+
+/* Quiet, hand-drawn student workspace; motion follows a deliberate touch only. */
+.naive-v-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  flex-shrink: 0;
+  font-style: normal;
+}
+.naive-v-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.student-island.student-island .activity-art,
+.student-island.student-island .activity-card:first-child .activity-art {
+  background: var(--island-tone-soft);
+  position: relative;
+}
+.student-island.student-island .activity-art::before {
+  content: '';
+  position: absolute;
+  width: 78%;
+  aspect-ratio: 1;
+  border-radius: 48% 52% 58% 42%;
+  background: var(--island-tone);
+  opacity: 0.32;
+  pointer-events: none;
+}
+.student-island.student-island .activity-art:has(img)::before {
+  display: none;
+}
+.student-island.student-island .feeling-art {
+  position: relative;
+  color: var(--island-heading);
+  transform: rotate(-4deg);
+}
+.student-island.student-island .today-card {
+  border: 2px solid var(--island-border);
+  background: var(--island-surface);
+}
+.student-island.student-island .today-icon {
+  background: var(--island-content);
+}
+.student-island.student-island .task-rest-icon {
+  background: var(--island-content);
+  border-radius: 38% 46% 42% 48%;
+  color: var(--island-heading);
+}
+.student-island.student-island .activity-card {
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--island-tone) 55%, var(--island-surface));
+}
+.student-island.student-island .activity-card,
+.student-island.student-island .learning-subject.v-btn,
+.student-island.student-island .memory-links a,
+.student-island.student-island .world-card {
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+.student-island.student-island .activity-card:active,
+.student-island.student-island .memory-links a:active,
+.student-island.student-island .learning-subject.v-btn:active {
+  transform: translateY(2px) scale(0.985);
+}
+.student-island.student-island .learning-subject .subject-token {
+  border-radius: 22px 26px 20px 28px;
+}
+.student-island.student-island .subject-token .naive-v-icon {
+  font-size: 42px !important;
+}
+.student-island.student-island .empty-state .island-avatar {
+  border-radius: 42% 48% 38% 46% !important;
+  background: var(--island-content);
+  color: var(--island-heading);
+}
+.student-island.student-island .island-bottom-nav .naive-v-icon {
+  font-size: 32px !important;
+}
+.student-island.student-island .island-bottom-nav .v-bottom-navigation__content {
+  gap: 8px;
+}
+.student-island.student-island .island-bottom-nav .v-btn {
+  margin-inline: 0;
+}
+.student-island.student-island .mood-options .naive-v-icon {
+  background: transparent;
+  padding: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .student-island.student-island
+    :is(.activity-card, .memory-links a, .learning-subject.v-btn, .world-card, .island-button) {
+    transition: none;
+    transform: none;
+  }
+  .student-island.student-island
+    :is(.activity-card, .memory-links a, .learning-subject.v-btn):is(:hover, :active) {
+    transform: none;
+  }
+}

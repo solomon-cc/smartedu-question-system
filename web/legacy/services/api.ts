@@ -1,0 +1,544 @@
+import { Question, User, Resource } from '../types';
+
+const isProd = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PROD;
+const API_URL = isProd
+  ? 'https://go-admin.ylmz.com.cn/api' 
+  : 'http://localhost:8080/api';
+
+const getHeaders = () => {
+  const userStr = localStorage.getItem('user');
+  const token = userStr ? JSON.parse(userStr).token : '';
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : '',
+  };
+};
+
+const handleResponse = async (res: Response) => {
+  if (res.status === 401) {
+    localStorage.removeItem('user');
+    window.location.hash = '#/login';
+    throw new Error('Unauthorized');
+  }
+  
+  if (res.status === 403) {
+    const result = await res.json();
+    throw new Error(result.error || '您没有执行此操作的权限');
+  }
+  
+  const result = await res.json();
+  
+  if (!res.ok || result.code !== 0) {
+    throw new Error(result.err || result.error || 'Request failed');
+  }
+  
+  return result.data;
+};
+
+export const api = {
+  request: async (path: string, method: string = 'GET', body?: any) => {
+    const res = await fetch(`${API_URL}${path}`, {
+      method,
+      headers: getHeaders(),
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return handleResponse(res);
+  },
+  auth: {
+    login: async (username: string, password: string): Promise<{ user: User; token: string }> => {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      return handleResponse(res);
+    },
+    register: async (phoneNumber: string, nickname: string, password: string): Promise<any> => {
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber, nickname, password }),
+      });
+      return handleResponse(res);
+    },
+  },
+  config: {
+    getPublic: async (): Promise<any> => {
+      const res = await fetch(`${API_URL}/config/public`, { headers: { 'Content-Type': 'application/json' } });
+      return handleResponse(res);
+    }
+  },
+  questions: {
+    list: async (params: { page?: number; pageSize?: number; subject?: string; grade?: number } = {}): Promise<{ list: Question[]; total: number }> => {
+      const urlParams = new URLSearchParams();
+      if (params.page) urlParams.append('page', params.page.toString());
+      if (params.pageSize) urlParams.append('pageSize', params.pageSize.toString());
+      if (params.subject) urlParams.append('subject', params.subject);
+      if (params.grade) urlParams.append('grade', params.grade.toString());
+      
+      const res = await fetch(`${API_URL}/questions?${urlParams.toString()}`, { headers: getHeaders() });
+      return handleResponse(res);
+    },
+    gradeStats: async (subject: string): Promise<{ grade: number; count: number }[]> => {
+      const res = await fetch(`${API_URL}/questions/stats/grades?subject=${subject}`, { headers: getHeaders() });
+      return handleResponse(res);
+    },
+    create: async (data: Partial<Question>): Promise<Question> => {
+      const res = await fetch(`${API_URL}/questions`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    bulkCreate: async (data: Partial<Question>[]): Promise<{ imported: number }> => {
+      const res = await fetch(`${API_URL}/questions/bulk`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, data: Partial<Question>): Promise<Question> => {
+      const res = await fetch(`${API_URL}/questions/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    delete: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_URL}/questions/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      if (res.status === 401) {
+        localStorage.removeItem('user');
+        window.location.hash = '#/login';
+        throw new Error('Unauthorized');
+      }
+      if (!res.ok) throw new Error('Failed to delete question');
+    },
+  },
+  papers: {
+    list: async (): Promise<any[]> => {
+      const res = await fetch(`${API_URL}/papers`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
+    },
+    create: async (data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/papers`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/papers/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    delete: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_URL}/papers/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      if (res.status === 401) {
+        localStorage.removeItem('user');
+        window.location.hash = '#/login';
+        throw new Error('Unauthorized');
+      }
+      if (!res.ok) throw new Error('Failed to delete paper');
+    }
+  },
+  homework: {
+    list: async (): Promise<any[]> => {
+      const res = await fetch(`${API_URL}/homeworks`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
+    },
+    assign: async (data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/homeworks/assign`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    complete: async (id: string): Promise<any> => {
+      const res = await fetch(`${API_URL}/homeworks/${id}/complete`, {
+        method: 'PUT',
+        headers: getHeaders(),
+      });
+      return handleResponse(res);
+    }
+  },
+  dashboard: {
+    stats: async (): Promise<any> => {
+      const res = await fetch(`${API_URL}/dashboard/stats`, { headers: getHeaders() });
+      return handleResponse(res);
+    },
+    onlineUsers: async (): Promise<any> => {
+      const res = await fetch(`${API_URL}/dashboard/online-users`, { headers: getHeaders() });
+      return handleResponse(res);
+    }
+  },
+  history: {
+    list: async (page = 1, pageSize = 10, homeworkId?: string, studentId?: string): Promise<{ list: any[], total: number }> => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString()
+      });
+      if (homeworkId) params.append('homeworkId', homeworkId);
+      if (studentId) params.append('studentId', studentId);
+      const res = await fetch(`${API_URL}/history?${params.toString()}`, { headers: getHeaders() });
+      return handleResponse(res);
+    },
+    create: async (data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/history`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    }
+  },
+  student: {
+    stats: async (): Promise<any> => {
+      const res = await fetch(`${API_URL}/student/stats`, { headers: getHeaders() });
+      return handleResponse(res);
+    }
+  },
+  students: {
+    list: async (): Promise<User[]> => {
+      const res = await fetch(`${API_URL}/students`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
+    },
+    getDetail: async (id: string): Promise<any> => {
+      const res = await fetch(`${API_URL}/students/${id}`, { headers: getHeaders() });
+      return handleResponse(res);
+    }
+  },
+  teacher: {
+    stats: async (): Promise<any> => {
+      const res = await fetch(`${API_URL}/teacher/stats`, { headers: getHeaders() });
+      return handleResponse(res);
+    }
+  },
+  admin: {
+    listUsers: async (): Promise<User[]> => {
+      const res = await fetch(`${API_URL}/admin/users`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
+    },
+    createUser: async (data: Partial<User>): Promise<User> => {
+      const res = await fetch(`${API_URL}/admin/users`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    updateUser: async (id: string, data: Partial<User>): Promise<User> => {
+      const res = await fetch(`${API_URL}/admin/users/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    deleteUser: async (id: string): Promise<void> => {
+       const res = await fetch(`${API_URL}/admin/users/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+       });
+       if (res.status === 401) {
+         localStorage.removeItem('user');
+         window.location.hash = '#/login';
+         throw new Error('Unauthorized');
+       }
+       if (!res.ok) throw new Error('Failed to delete user');
+    },
+    logs: async (): Promise<any[]> => {
+       const res = await fetch(`${API_URL}/admin/logs`, { headers: getHeaders() });
+       const data = await handleResponse(res);
+       return data || [];
+    },
+    homeworks: async (): Promise<any[]> => {
+       const res = await fetch(`${API_URL}/admin/homeworks`, { headers: getHeaders() });
+       const data = await handleResponse(res);
+       return data || [];
+    },
+    practices: async (): Promise<any[]> => {
+       const res = await fetch(`${API_URL}/admin/practices`, { headers: getHeaders() });
+       const data = await handleResponse(res);
+       return data || [];
+    },
+    getConfig: async (): Promise<any> => {
+      const res = await fetch(`${API_URL}/admin/config`, { headers: getHeaders() });
+      return handleResponse(res);
+    },
+    updateConfig: async (data: any): Promise<any> => {
+       const res = await fetch(`${API_URL}/admin/config`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    getSettings: async (): Promise<any> => {
+      const res = await fetch(`${API_URL}/admin/settings`, { headers: getHeaders() });
+      return handleResponse(res);
+    },
+    updateSettings: async (data: any): Promise<any> => {
+       const res = await fetch(`${API_URL}/admin/settings`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    listPermissions: async (): Promise<any[]> => {
+      const res = await fetch(`${API_URL}/admin/permissions`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
+    },
+    updatePermissions: async (data: any[]): Promise<any> => {
+      const res = await fetch(`${API_URL}/admin/permissions`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    }
+  },
+  me: {
+    get: async (): Promise<User> => {
+      const res = await fetch(`${API_URL}/me`, { headers: getHeaders() });
+      return handleResponse(res);
+    },
+    update: async (data: { name?: string; password?: string }): Promise<User> => {
+      const res = await fetch(`${API_URL}/me`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    getPermissions: async (): Promise<any[]> => {
+      const res = await fetch(`${API_URL}/me/permissions`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
+    }
+  },
+  wrongBook: {
+    list: async (studentId?: string): Promise<any[]> => {
+      const url = studentId 
+        ? `${API_URL}/wrong-book?studentId=${studentId}`
+        : `${API_URL}/wrong-book`;
+      const res = await fetch(url, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
+    }
+  },
+  reinforcements: {
+    list: async (): Promise<any[]> => {
+      const res = await fetch(`${API_URL}/reinforcements`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
+    },
+    create: async (data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/reinforcements`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/reinforcements/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    delete: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_URL}/reinforcements/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      if (res.status === 401) {
+        localStorage.removeItem('user');
+        window.location.hash = '#/login';
+        throw new Error('Unauthorized');
+      }
+      if (!res.ok) throw new Error('Failed to delete reinforcement');
+    }
+  },
+  resources: {
+    list: async (page = 1, pageSize = 10, keyword = ''): Promise<{ list: Resource[], total: number }> => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+        keyword: keyword
+      });
+      const res = await fetch(`${API_URL}/resources?${params.toString()}`, { headers: getHeaders() });
+      return handleResponse(res);
+    },
+    create: async (data: any): Promise<Resource> => {
+      const res = await fetch(`${API_URL}/resources`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, data: any): Promise<Resource> => {
+      const res = await fetch(`${API_URL}/resources/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    delete: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_URL}/resources/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      if (res.status === 401) {
+        localStorage.removeItem('user');
+        window.location.hash = '#/login';
+        throw new Error('Unauthorized');
+      }
+      if (!res.ok) throw new Error('Failed to delete resource');
+    }
+  },
+  skills: {
+    list: async (): Promise<any[]> => {
+      const res = await fetch(`${API_URL}/skills`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
+    },
+    createTopic: async (data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/skills`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    updateTopic: async (id: string, data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/skills/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    deleteTopic: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_URL}/skills/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      if (!res.ok) throw new Error('Failed to delete topic');
+    },
+    createObjective: async (data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/objectives`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    updateObjective: async (id: string, data: any): Promise<any> => {
+      const res = await fetch(`${API_URL}/objectives/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    deleteObjective: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_URL}/objectives/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      if (!res.ok) throw new Error('Failed to delete objective');
+    },
+    questions: async (params: { subject?: string; grade?: number } = {}): Promise<any[]> => {
+      const urlParams = new URLSearchParams();
+      if (params.subject) urlParams.append('subject', params.subject);
+      if (params.grade) urlParams.append('grade', params.grade.toString());
+      const res = await fetch(`${API_URL}/skills/questions?${urlParams.toString()}`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
+    }
+  },
+  ability: {
+    matrix: async (studentId: string): Promise<any[]> => {
+      const res = await fetch(`${API_URL}/ability/matrix?studentId=${studentId}`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data || [];
+    }
+  },
+  scenarios: {
+    list: async (): Promise<any[]> => {
+      return api.request('/scenarios');
+    },
+    create: async (data: any): Promise<any> => {
+      return api.request('/scenarios', 'POST', data);
+    },
+    update: async (id: string, data: any): Promise<any> => {
+      return api.request(`/scenarios/${id}`, 'PUT', data);
+    },
+    delete: async (id: string): Promise<void> => {
+      await api.request(`/scenarios/${id}`, 'DELETE');
+    },
+    listItems: async (id: string): Promise<any[]> => {
+      return api.request(`/scenarios/${id}/items`);
+    },
+    createItem: async (id: string, data: any): Promise<any> => {
+      return api.request(`/scenarios/${id}/items`, 'POST', data);
+    }
+  },
+  assessments: {
+    list: async (studentId?: string): Promise<any[]> => {
+      const path = studentId ? `/assessments?studentId=${studentId}` : '/assessments';
+      return api.request(path);
+    },
+    create: async (data: any): Promise<any> => {
+      return api.request('/assessments', 'POST', data);
+    },
+    getDetail: async (id: string): Promise<any> => {
+      return api.request(`/assessments/${id}`);
+    },
+    update: async (id: string, data: any): Promise<any> => {
+      return api.request(`/assessments/${id}`, 'PUT', data);
+    },
+    listScores: async (id: string): Promise<any[]> => {
+      return api.request(`/assessments/${id}/scores`);
+    },
+    saveScore: async (id: string, data: any): Promise<any> => {
+      return api.request(`/assessments/${id}/scores`, 'POST', data);
+    }
+  },
+  moodDiaries: {
+    list: async (studentId?: string): Promise<any[]> => {
+      const path = studentId ? `/mood-diaries?studentId=${studentId}` : '/mood-diaries';
+      return api.request(path);
+    },
+    create: async (data: any): Promise<any> => {
+      return api.request('/mood-diaries', 'POST', data);
+    },
+    stats: async (studentId: string): Promise<any[]> => {
+      return api.request(`/mood-diaries/stats?studentId=${studentId}`);
+    }
+  }
+};
