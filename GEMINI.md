@@ -22,12 +22,12 @@ If an API is missing:
 
 ### Frontend
 
-* Framework: React 19
+* Framework: Vue 3.5 + Vuetify 4.2.2
 * Language: TypeScript
-* Router: React Router v7 (HashRouter)
+* Router: Vue Router 4 (createWebHashHistory)
 * Build Tool: Vite
-* Styling: Tailwind CSS
-* Icons: Lucide React
+* Styling: Vuetify themes + web/src/style.css
+* Icons: Material Design Icons
 
 ### Backend
 
@@ -42,7 +42,7 @@ If an API is missing:
 
 ### Login Flow
 
-1. Frontend calls `POST /login`
+1. Frontend calls `POST /api/auth/login`
 2. Backend returns JWT token
 3. Frontend stores token securely
 4. All protected requests must include:

@@ -6,6 +6,8 @@ const (
 	RoleStudent Role = "STUDENT"
 	RoleTeacher Role = "TEACHER"
 	RoleAdmin   Role = "ADMIN"
+	RoleParent  Role = "PARENT"
+	RoleTrainer Role = "TRAINER"
 )
 
 type User struct {
@@ -122,31 +124,31 @@ type Homework struct {
 }
 
 type History struct {
-	ID           string   `json:"id" gorm:"primaryKey;type:varchar(191)"`
-	StudentID    string   `json:"studentId" gorm:"type:varchar(191)"`
-	HomeworkID   string   `json:"homeworkId" gorm:"type:varchar(191)"`
-	Type         string   `json:"type" gorm:"type:varchar(191)"`
-	Name         string   `json:"name" gorm:"type:varchar(191)"`
-	NameEn       string   `json:"nameEn" gorm:"type:varchar(191)"`
-	Date         string   `json:"date" gorm:"type:varchar(191)"`
-	Score        string   `json:"score,omitempty" gorm:"type:varchar(191)"`
-	Total        string   `json:"total,omitempty" gorm:"type:varchar(191)"`
-	CorrectCount int      `json:"correctCount,omitempty"`
-	WrongCount   int      `json:"wrongCount,omitempty"`
-	Questions    []any    `json:"questions" gorm:"serializer:json"` // Stores HistoryQuestionResult
+	ID           string `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	StudentID    string `json:"studentId" gorm:"type:varchar(191)"`
+	HomeworkID   string `json:"homeworkId" gorm:"type:varchar(191)"`
+	Type         string `json:"type" gorm:"type:varchar(191)"`
+	Name         string `json:"name" gorm:"type:varchar(191)"`
+	NameEn       string `json:"nameEn" gorm:"type:varchar(191)"`
+	Date         string `json:"date" gorm:"type:varchar(191)"`
+	Score        string `json:"score,omitempty" gorm:"type:varchar(191)"`
+	Total        string `json:"total,omitempty" gorm:"type:varchar(191)"`
+	CorrectCount int    `json:"correctCount,omitempty"`
+	WrongCount   int    `json:"wrongCount,omitempty"`
+	Questions    []any  `json:"questions" gorm:"serializer:json"` // Stores HistoryQuestionResult
 }
 
 // HistoryQuestionResult is a helper struct to define the JSON structure inside History.Questions
 type HistoryQuestionResult struct {
-	ID          string       `json:"id"`
-	Subject     string       `json:"subject"` // Added for filtering
-	Stem        string       `json:"stem"`
-	Answer      string       `json:"answer"`
-	UserAnswer  string       `json:"userAnswer"`
-	Status      string       `json:"status"` // "correct", "wrong"
-	Attempts    int          `json:"attempts"`
-	AttemptLog  []AttemptLog `json:"attemptLog,omitempty"`
-	Options     []Option     `json:"options,omitempty"`
+	ID         string       `json:"id"`
+	Subject    string       `json:"subject"` // Added for filtering
+	Stem       string       `json:"stem"`
+	Answer     string       `json:"answer"`
+	UserAnswer string       `json:"userAnswer"`
+	Status     string       `json:"status"` // "correct", "wrong"
+	Attempts   int          `json:"attempts"`
+	AttemptLog []AttemptLog `json:"attemptLog,omitempty"`
+	Options    []Option     `json:"options,omitempty"`
 }
 
 type AttemptLog struct {
@@ -178,6 +180,7 @@ type AuditLog struct {
 // New Models for Error Processing Logic
 
 type StudentWrongQuestion struct {
+	ShowAnswer  bool     `json:"showAnswer" gorm:"-"`
 	ID          string   `json:"id" gorm:"primaryKey;type:varchar(191)"`
 	StudentID   string   `json:"studentId" gorm:"type:varchar(191);index"`
 	QuestionID  string   `json:"questionId" gorm:"type:varchar(191);index"`
@@ -212,10 +215,13 @@ type SystemSettingsConfig struct {
 }
 
 type RolePermission struct {
-	Role        Role   `json:"role" gorm:"primaryKey;type:varchar(191)"`
-	ModuleID    string `json:"moduleId" gorm:"primaryKey;type:varchar(191)"`
-	UIAccess    bool   `json:"uiAccess"`
-	APIAccess   bool   `json:"apiAccess"`
+	Role              Role     `json:"role" gorm:"primaryKey;type:varchar(191)"`
+	ModuleID          string   `json:"moduleId" gorm:"primaryKey;type:varchar(191)"`
+	ParentID          string   `json:"parentId" gorm:"type:varchar(191);index"` // Grouping for sub-systems
+	UIAccess          bool     `json:"uiAccess"`
+	APIAccess         bool     `json:"apiAccess"`
+	SortOrder         int      `json:"sortOrder" gorm:"default:0"`
+	WorkspaceSections []string `json:"workspaceSections,omitempty" gorm:"-"`
 }
 
 // Ability Tracking Models
@@ -238,10 +244,64 @@ type SkillObjective struct {
 }
 
 type AbilityRecord struct {
-	ID          string `json:"id" gorm:"primaryKey;type:varchar(191)"`
-	StudentID   string `json:"studentId" gorm:"type:varchar(191);index"`
-	ObjectiveID string `json:"objectiveId" gorm:"type:varchar(191);index"`
-	Date        string `json:"date" gorm:"type:varchar(191);index"`
-	Status      string `json:"status" gorm:"type:varchar(20)"` // "Y" (Pass), "N" (Fail)
+	ID          string  `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	StudentID   string  `json:"studentId" gorm:"type:varchar(191);index"`
+	ObjectiveID string  `json:"objectiveId" gorm:"type:varchar(191);index"`
+	Date        string  `json:"date" gorm:"type:varchar(191);index"`
+	Status      string  `json:"status" gorm:"type:varchar(20)"` // "Y" (Pass), "N" (Fail)
 	Accuracy    float64 `json:"accuracy"`
+}
+
+// Scenario Models
+type Scenario struct {
+	Game        *ScenarioGameDefinition `json:"game,omitempty" gorm:"serializer:json;type:longtext"`
+	ID          string                  `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	Name        string                  `json:"name" gorm:"type:varchar(191)"`
+	Description string                  `json:"description" gorm:"type:text"`
+	Icon        string                  `json:"icon" gorm:"type:varchar(191)"`
+	Image       string                  `json:"image" gorm:"type:text"`
+	Type        string                  `json:"type" gorm:"type:varchar(191)"` // "supermarket", "school", etc.
+}
+
+type ScenarioItem struct {
+	Art        string  `json:"art" gorm:"type:varchar(40)"`
+	ID         string  `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	ScenarioID string  `json:"scenarioId" gorm:"type:varchar(191);index"`
+	Name       string  `json:"name" gorm:"type:varchar(191)"`
+	Price      float64 `json:"price"`
+	Image      string  `json:"image" gorm:"type:text"`
+}
+
+// VB-MAPP Models
+type VBMAPPAssessment struct {
+	ID         string `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	StudentID  string `json:"studentId" gorm:"type:varchar(191);index"`
+	AssessorID string `json:"assessorId" gorm:"type:varchar(191)"`
+	Date       string `json:"date" gorm:"type:varchar(191)"`
+	Status     string `json:"status" gorm:"type:varchar(20)"` // "ongoing", "completed"
+}
+
+type VBMAPPScore struct {
+	ID           string  `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	AssessmentID string  `json:"assessmentId" gorm:"type:varchar(191);index"`
+	Area         string  `json:"area" gorm:"type:varchar(50)"`      // "milestone", "barrier", "transition"
+	Category     string  `json:"category" gorm:"type:varchar(191)"` // e.g., "Mand", "Tact"
+	ItemNumber   int     `json:"itemNumber"`
+	Score        float64 `json:"score"` // 0, 0.5, 1
+}
+
+// Mood Diary Models
+type MoodDiary struct {
+	Source            string `json:"source" gorm:"type:varchar(20);default:legacy"`
+	RecorderID        string `json:"recorderId" gorm:"type:varchar(191)"`
+	RecordedAt        string `json:"recordedAt" gorm:"type:varchar(40)"`
+	ID                string `json:"id" gorm:"primaryKey;type:varchar(191)"`
+	StudentID         string `json:"studentId" gorm:"type:varchar(191);index"`
+	Date              string `json:"date" gorm:"type:varchar(191);index"`
+	Mood              int    `json:"mood"` // 1-5 or similar
+	Event             string `json:"event" gorm:"type:text"`
+	Feeling           string `json:"feeling" gorm:"type:text"`
+	Thought           string `json:"thought" gorm:"type:text"`
+	PhysicalSensation string `json:"physicalSensation" gorm:"type:text"`
+	Intensity         int    `json:"intensity"` // 1-10
 }

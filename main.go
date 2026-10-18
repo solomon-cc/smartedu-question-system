@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // LoadEnv loads environment variables from a .env file
@@ -29,13 +30,21 @@ func LoadEnv() {
 		if len(parts) == 2 {
 			key := strings.TrimSpace(parts[0])
 			val := strings.TrimSpace(parts[1])
-			os.Setenv(key, val)
+			if _, exists := os.LookupEnv(key); !exists {
+				os.Setenv(key, strings.Trim(val, "\"'"))
+			}
 		}
 	}
 }
 
 func main() {
-	LoadEnv() // Load .env file at startup
+	LoadEnv() // Explicit environment variables take precedence.
+	if secret := os.Getenv("JWT_SECRET"); secret != "" {
+		jwtSecret = []byte(secret)
+	} else {
+		fmt.Println("JWT_SECRET is required")
+		os.Exit(1)
+	}
 	r := gin.Default()
 
 	// Initialize MySQL
@@ -48,7 +57,7 @@ func main() {
 	go startScheduler()
 
 	// Global Middlewares
- r.Use(CORSMiddleware())
+	r.Use(CORSMiddleware())
 
 	// API Routes
 	api := r.Group("/api")
@@ -57,6 +66,8 @@ func main() {
 		api.POST("/auth/login", LoginHandler)
 		api.POST("/auth/register", RegisterHandler)
 		api.GET("/config/public", GetPublicConfig)
+
+		registerPortalRoutes(api)
 
 		// Protected routes
 		protected := api.Group("/")
@@ -83,6 +94,7 @@ func main() {
 
 			// Homeworks
 			protected.GET("/homeworks", GetHomeworks)
+			protected.GET("/homeworks/:id/questions", GetHomeworkQuestions)
 			protected.POST("/homeworks/assign", AssignHomework)
 			protected.PUT("/homeworks/:id/complete", CompleteHomework)
 
@@ -108,10 +120,15 @@ func main() {
 			// Students
 			protected.GET("/students", GetStudents)
 			protected.GET("/students/:id", GetStudentDetail)
+			protected.GET("/students/:id/learning-plans", GetStudentLearningPlans)
+			protected.POST("/students/:id/learning-plans", CreateStudentLearningPlan)
+			protected.POST("/students/:id/learning-plans/:planId/assign", AssignStudentLearningPlan)
+			protected.POST("/students/:id/learning-plans/:planId/reassessment", ReassessStudentLearningPlan)
+			protected.GET("/students/:id/learning-plans/:planId/comparison", CompareStudentLearningPlan)
 
 			// Student Stats
 			protected.GET("/student/stats", GetStudentStats)
-			
+
 			// Teacher Stats
 			protected.GET("/teacher/stats", GetTeacherStats)
 
@@ -125,7 +142,7 @@ func main() {
 				admin.GET("/logs", GetAuditLogs)
 				admin.GET("/homeworks", AdminGetHomeworks)
 				admin.GET("/practices", AdminGetPractices)
-				
+
 				// System Config
 				admin.GET("/config", GetSystemConfig)
 				admin.POST("/config", UpdateSystemConfig)
@@ -138,6 +155,54 @@ func main() {
 			// Analytics
 			protected.GET("/dashboard/stats", GetDashboardStats)
 			protected.GET("/dashboard/online-users", GetOnlineUsers)
+
+			// Application (Scenario Games)
+			protected.GET("/scenarios", GetScenarios)
+			protected.POST("/scenarios", CreateScenario)
+			protected.PUT("/scenarios/:id", UpdateScenario)
+			protected.DELETE("/scenarios/:id", DeleteScenario)
+			protected.GET("/scenarios/:id/items", GetScenarioItems)
+			protected.POST("/scenarios/:id/items", CreateScenarioItem)
+			protected.POST("/scenarios/:id/preview", PreviewScenarioGame)
+			protected.POST("/scenario-sessions", CreateScenarioSession)
+			protected.GET("/scenario-sessions", GetScenarioSessions)
+			protected.GET("/scenario-sessions/:id", GetScenarioSession)
+			protected.POST("/scenario-sessions/:id/actions", SaveScenarioAction)
+
+			// Shared assessment interface. Method adapters own versioned rules and storage.
+			protected.GET("/assessments/methods", GetAssessmentMethods)
+			protected.GET("/assessments/records", GetAllAssessmentRecords)
+			protected.GET("/assessments/methods/:method/catalog", GetMethodAssessmentDefinition)
+			protected.GET("/assessments/methods/:method/records", GetMethodAssessmentRecords)
+			protected.POST("/assessments/methods/:method/records", CreateMethodAssessment)
+			protected.GET("/assessments/methods/:method/records/:id", GetMethodAssessment)
+			protected.GET("/assessments/methods/:method/records/:id/responses", GetMethodAssessmentResponses)
+			protected.POST("/assessments/methods/:method/records/:id/responses", SaveMethodAssessmentResponse)
+			protected.POST("/assessments/methods/:method/records/:id/complete", CompleteMethodAssessment)
+
+			// PK (PEAK) pre-assessments; legacy records retain their own tables and endpoints.
+			protected.GET("/assessments/peak/catalog", GetPEAKCatalog)
+			protected.GET("/assessments/peak", GetPEAKAssessments)
+			protected.POST("/assessments/peak", CreatePEAKAssessment)
+			protected.GET("/assessments/peak/:id/scores", GetPEAKScores)
+			protected.POST("/assessments/peak/:id/scores", SavePEAKScore)
+			protected.PUT("/assessments/peak/:id", CompletePEAKAssessment)
+
+			// Historical VB-MAPP assessments
+			protected.GET("/assessments", GetAssessments)
+			protected.POST("/assessments", CreateAssessment)
+			protected.GET("/assessments/:id", GetAssessmentDetail)
+			protected.PUT("/assessments/:id", UpdateAssessment)
+			protected.GET("/assessments/:id/scores", GetAssessmentScores)
+			protected.POST("/assessments/:id/scores", SaveAssessmentScore)
+
+			// Mood Diary
+			protected.GET("/mood-diaries", GetMoodDiaries)
+			protected.POST("/mood-diaries", CreateMoodDiary)
+			protected.GET("/mood-diaries/stats", GetMoodStats)
+			protected.GET("/mood-diaries/students", GetMoodStudents)
+			protected.GET("/mood-diaries/:id/observations", GetMoodObservations)
+			protected.POST("/mood-diaries/:id/observations", CreateMoodObservation)
 
 			// Ability Tracking
 			protected.GET("/skills", GetSkillTopics)
@@ -167,39 +232,44 @@ func startScheduler() {
 }
 
 func processSchedules() {
-	today := time.Now().Format("2006-01-02")
+	processSchedulesAt(time.Now())
+}
+
+func processSchedulesAt(now time.Time) {
+	today := now.Format("2006-01-02")
 	var dueHws []Homework
-	DB.Where("next_run_date = ? AND repeat_interval != '' AND repeat_interval != 'none'", today).Find(&dueHws)
-
+	// Recover a missed run after downtime, without flooding students with historical copies.
+	DB.Where("next_run_date != '' AND next_run_date <= ? AND repeat_interval != '' AND repeat_interval != 'none'", today).Find(&dueHws)
 	for _, hw := range dueHws {
-		// Clone homework
-		newID := strconv.FormatInt(time.Now().UnixNano(), 36)
-		newHw := Homework{
-			ID:             newID,
-			TeacherID:      hw.TeacherID,
-			PaperID:        hw.PaperID,
-			Name:           fmt.Sprintf("%s (Auto)", hw.Name),
-			ClassID:        hw.ClassID,
-			StartDate:      today,
-			EndDate:        today, // Or calculate based on original duration
-			Status:         "pending",
-			Total:          hw.Total,
-			StudentIDs:     hw.StudentIDs,
-			RepeatInterval: hw.RepeatInterval,
-			ParentID:       hw.ID,
+		nextRun := calculateNextRun(now, hw.RepeatInterval)
+		if nextRun == "" {
+			continue
 		}
-
-		// Calculate next run for new one
-		nextRun := calculateNextRun(time.Now(), hw.RepeatInterval)
-		newHw.NextRunDate = nextRun
-
-		if err := DB.Create(&newHw).Error; err == nil {
-			// Clear next_run on OLD one to avoid double processing, 
-			// though usually we keep it and only the LATEST one has a next_run?
-			// Strategy: Only the most recent recurring homework has next_run_date.
-			hw.NextRunDate = ""
-			DB.Save(&hw)
-			fmt.Printf("[Scheduler] Auto-assigned homework: %s for %s\n", newHw.Name, today)
+		endDate := today
+		start, startErr := time.Parse("2006-01-02", hw.StartDate)
+		end, endErr := time.Parse("2006-01-02", hw.EndDate)
+		if startErr == nil && endErr == nil && !end.Before(start) {
+			endDate = now.AddDate(0, 0, int(end.Sub(start).Hours()/24)).Format("2006-01-02")
+		}
+		newHw := Homework{
+			ID: strconv.FormatInt(time.Now().UnixNano(), 36), TeacherID: hw.TeacherID, PaperID: hw.PaperID,
+			Name: hw.Name, ClassID: hw.ClassID, StartDate: today, EndDate: endDate, Status: "pending",
+			Total: len(hw.StudentIDs), StudentIDs: hw.StudentIDs, RepeatInterval: hw.RepeatInterval,
+			ParentID: hw.ID, NextRunDate: nextRun,
+		}
+		// Claim and create atomically: a retry or concurrent scheduler must not duplicate a task.
+		err := DB.Transaction(func(tx *gorm.DB) error {
+			claim := tx.Model(&Homework{}).Where("id = ? AND next_run_date = ?", hw.ID, hw.NextRunDate).Update("next_run_date", "")
+			if claim.Error != nil {
+				return claim.Error
+			}
+			if claim.RowsAffected == 0 {
+				return nil
+			}
+			return tx.Create(&newHw).Error
+		})
+		if err != nil {
+			fmt.Printf("[Scheduler] Failed to assign recurring homework: %v\n", err)
 		}
 	}
 }

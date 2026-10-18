@@ -5,33 +5,32 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "vue-tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,vue,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,vue,css}\"",
+    "build:company": "vue-tsc --noEmit && vite build --mode company && node scripts/company-assets.mjs",
+    "dev:company": "vite --mode company --port 3001"
   },
   "dependencies": {
-    "exceljs": "^4.4.0",
-    "lucide-react": "^0.563.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-easy-crop": "^5.5.6",
-    "react-image-crop": "^11.0.10",
-    "react-router-dom": "^7.13.0",
-    "recharts": "^3.7.0",
-    "xlsx": "^0.18.5"
+    "@arco-design/web-vue": "^2.58.0",
+    "vue": "^3.5.30",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.2.0",
-    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "@vitest/coverage-v8": "^3.0.5",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vue/test-utils": "^2.4.6",
     "jsdom": "^26.0.0",
+    "prettier": "^3.6.2",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0",
-    "vitest": "^3.0.5"
+    "vite": "^6.4.1",
+    "vitest": "^3.2.4",
+    "vue-tsc": "^3.0.0"
   }
 }

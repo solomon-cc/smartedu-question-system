@@ -31,9 +31,9 @@ smartedu-question-bank: $(BACKEND_SRCS)
 # Frontend targets
 test-frontend:
 	@echo "Running frontend tests..."
-	cd web && npm run test -- --watchAll=false --passWithNoTests || true
+	cd web && npm run test
 
-web/node_modules: web/package.json
+web/node_modules: web/package.json web/package-lock.json
 	@echo "Detected changes in package.json, installing dependencies..."
 	cd web && npm install
 	@touch web/node_modules

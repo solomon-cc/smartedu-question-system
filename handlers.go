@@ -46,6 +46,11 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
+	if foundUser.Status != "active" {
+		SendJSON(c, 1, "Account disabled", nil)
+		return
+	}
+
 	// Verify password
 	if err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(req.Password)); err != nil {
 		SendJSON(c, 1, "Unauthorized", nil)
@@ -90,7 +95,7 @@ func RegisterHandler(c *gin.Context) {
 	if err := DB.Where("`key` = ?", "system_settings").First(&sysConf).Error; err == nil {
 		json.Unmarshal([]byte(sysConf.Value), &settings)
 	}
-	
+
 	if !settings.RegistrationEnabled {
 		SendJSON(c, 1, "Registration is currently disabled", nil)
 		return
@@ -152,21 +157,21 @@ func RegisterHandler(c *gin.Context) {
 // User Handlers (Admin)
 func GetUsers(c *gin.Context) {
 	var users []User
-	DB.Find(&users)
+	DB.Omit("password").Find(&users)
 	SendJSON(c, 0, "", users)
 }
 
 func GetStudents(c *gin.Context) {
 	var students []User
-	DB.Where("role = ?", RoleStudent).Find(&students)
+	DB.Omit("password").Where("role = ?", RoleStudent).Find(&students)
 	SendJSON(c, 0, "", students)
 }
 
 func GetStudentDetail(c *gin.Context) {
 	studentId := c.Param("id")
-	
+
 	var student User
-	if err := DB.First(&student, "id = ? AND role = ?", studentId, RoleStudent).Error; err != nil {
+	if err := DB.Omit("password").First(&student, "id = ? AND role = ?", studentId, RoleStudent).Error; err != nil {
 		SendJSON(c, 1, "Student not found", nil)
 		return
 	}
@@ -185,12 +190,12 @@ func GetStudentDetail(c *gin.Context) {
 		Accuracy float64 `json:"accuracy"`
 	}
 	progress := make([]ProgressPoint, 0)
-	
+
 	now := time.Now()
 	for i := 13; i >= 0; i-- {
 		day := now.AddDate(0, 0, -i)
 		dateStr := day.Format("2006-01-02")
-		
+
 		var results struct {
 			Correct int
 			Total   int
@@ -222,9 +227,9 @@ func GetStudentDetail(c *gin.Context) {
 		CorrectCount int     `json:"correctCount"`
 		AccuracyRate float64 `json:"accuracyRate"`
 	}
-	
+
 	homeworkOverview := make([]HomeworkBrief, 0)
-	
+
 	// Fetch all homeworks where this student is assigned
 	var assignedHomeworks []Homework
 	DB.Where("student_ids LIKE ?", "%\""+studentId+"\"%").Find(&assignedHomeworks)
@@ -247,13 +252,13 @@ func GetStudentDetail(c *gin.Context) {
 		err := DB.Where("student_id = ? AND homework_id = ?", studentId, hw.ID).
 			Order("date DESC").
 			First(&latestHistory).Error
-		
+
 		if err == nil { // Found a submission
 			brief.Status = "completed"
 			brief.Score = strconv.Itoa(latestHistory.CorrectCount) // Set score to correct count
 			brief.Total = latestHistory.Total
 			brief.CorrectCount = latestHistory.CorrectCount
-			
+
 			totalInt, _ := strconv.Atoi(latestHistory.Total)
 			if totalInt > 0 {
 				brief.AccuracyRate = (float64(latestHistory.CorrectCount) / float64(totalInt)) * 100
@@ -261,8 +266,7 @@ func GetStudentDetail(c *gin.Context) {
 		} else { // No submission found
 			// Check if homework is overdue
 			if hw.EndDate != "" {
-				endDate, err := time.Parse("2006-01-02", hw.EndDate)
-				if err == nil && time.Now().After(endDate) {
+				if homeworkPastDeadline(hw.EndDate, time.Now()) {
 					brief.Status = "overdue"
 				}
 			}
@@ -291,6 +295,13 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	if strings.TrimSpace(newUser.Username) == "" || len(newUser.Password) < 8 || !portalValidRole(newUser.Role) {
+		SendJSON(c, 1, "Invalid user details; password must have at least 8 characters", nil)
+		return
+	}
+	if newUser.Status == "" {
+		newUser.Status = "active"
+	}
 	// Hash password
 	hashed, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -304,6 +315,7 @@ func CreateUser(c *gin.Context) {
 		SendJSON(c, 1, "Failed to create user", nil)
 		return
 	}
+	newUser.Password = ""
 	SendJSON(c, 0, "", newUser)
 }
 
@@ -330,12 +342,20 @@ func UpdateUser(c *gin.Context) {
 		}
 		user.Password = string(hashed)
 	}
+	if id == c.GetString("userId") && (updateData.Role != user.Role || updateData.Status != "active") {
+		SendJSON(c, 1, "Cannot disable or change your own role", nil)
+		return
+	}
 	user.Username = updateData.Username
 	user.Name = updateData.Name
 	user.Role = updateData.Role
 	user.Status = updateData.Status
 
-	DB.Save(&user)
+	if err := DB.Save(&user).Error; err != nil {
+		SendJSON(c, 1, "Failed to update user", nil)
+		return
+	}
+	user.Password = ""
 	SendJSON(c, 0, "", user)
 }
 
@@ -384,7 +404,7 @@ func UpdateMe(c *gin.Context) {
 		SendJSON(c, 1, "Failed to update user", nil)
 		return
 	}
-	
+
 	// Don't send password back
 	user.Password = ""
 	SendJSON(c, 0, "", user)
@@ -392,6 +412,10 @@ func UpdateMe(c *gin.Context) {
 
 func DeleteUser(c *gin.Context) {
 	id := c.Param("id")
+	if id == c.GetString("userId") {
+		SendJSON(c, 1, "Cannot delete your own account", nil)
+		return
+	}
 	if err := DB.Delete(&User{}, "id = ?", id).Error; err != nil {
 		SendJSON(c, 1, "Failed to delete user", nil)
 		return
@@ -403,13 +427,13 @@ func DeleteUser(c *gin.Context) {
 func GetDashboardStats(c *gin.Context) {
 	accuracyTrend := make([]StatPoint, 7)
 	completionTrend := make([]StatPoint, 7)
-	
+
 	now := time.Now()
 	for i := 0; i < 7; i++ {
-		day := now.AddDate(0, 0, - (6 - i))
+		day := now.AddDate(0, 0, -(6 - i))
 		dateStr := day.Format("2006-01-02")
 		label := day.Format("01-02")
-		
+
 		// 1. Calculate Accuracy for this day
 		var results struct {
 			Correct int
@@ -497,7 +521,7 @@ func GetOnlineUsers(c *gin.Context) {
 			LastActive: userActiveMap[u.ID],
 		})
 	}
-	
+
 	if onlineUsers == nil {
 		onlineUsers = []OnlineUser{}
 	}
@@ -511,8 +535,23 @@ func GetQuestions(c *gin.Context) {
 	gradeStr := c.Query("grade")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
-	
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
 	query := DB.Model(&Question{})
+	if objectiveID := c.Query("objectiveId"); objectiveID != "" {
+		query = query.Where("objective_id = ?", objectiveID)
+	}
+	if search := strings.TrimSpace(c.Query("search")); search != "" {
+		query = query.Where("stem_text LIKE ?", "%"+search+"%")
+	}
 
 	if subject != "" {
 		// Map English subject enums to Chinese stored values
@@ -522,13 +561,13 @@ func GetQuestions(c *gin.Context) {
 			"READING":  "阅读",
 			"LITERACY": "识字",
 		}
-		
+
 		if mapped, ok := subjectMap[subject]; ok {
 			query = query.Where("subject = ? OR subject = ?", subject, mapped)
 		} else if subject == "语文" {
-            // Keep support for legacy "语文"
-            query = query.Where("subject = ? OR subject = ?", "LANGUAGE", "语言词汇")
-        } else {
+			// Keep support for legacy "语文"
+			query = query.Where("subject = ? OR subject = ?", "LANGUAGE", "语言词汇")
+		} else {
 			query = query.Where("subject = ?", subject)
 		}
 	}
@@ -564,9 +603,9 @@ func GetQuestions(c *gin.Context) {
 			// If status 4 is "Known", maybe it's okay to appear?
 			// But stage 5 is "Difficult" -> "Excluded from homework".
 			// Let's filter out ALL IDs found in StudentWrongQuestion table for this student.
-			
+
 			DB.Model(&StudentWrongQuestion{}).Where("student_id = ?", fmt.Sprintf("%v", userId)).Pluck("question_id", &wrongQIDs)
-			
+
 			if len(wrongQIDs) > 0 {
 				query = query.Where("id NOT IN ?", wrongQIDs)
 			}
@@ -578,7 +617,7 @@ func GetQuestions(c *gin.Context) {
 
 	questions := make([]Question, 0)
 	query.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&questions)
-	
+
 	SendJSON(c, 0, "", gin.H{
 		"list":     questions,
 		"total":    total,
@@ -601,7 +640,7 @@ func GetQuestionGradeStats(c *gin.Context) {
 		"READING":  "阅读",
 		"LITERACY": "识字",
 	}
-	
+
 	mappedSubject := subject
 	if mapped, ok := subjectMap[subject]; ok {
 		mappedSubject = mapped
@@ -624,15 +663,19 @@ func GetQuestionGradeStats(c *gin.Context) {
 
 // Helper to auto-register resources
 func registerResourceIfNew(c *gin.Context, url string, name string) {
-	if url == "" || strings.HasPrefix(url, "data:") { return }
-	
+	if url == "" || strings.HasPrefix(url, "data:") {
+		return
+	}
+
 	userId, _ := c.Get("userId")
 	uid := fmt.Sprintf("%v", userId)
 
 	// Check if already exists to avoid duplicates
 	var count int64
 	DB.Model(&Resource{}).Where("url = ?", url).Count(&count)
-	if count > 0 { return }
+	if count > 0 {
+		return
+	}
 
 	res := Resource{
 		ID:         strconv.FormatInt(time.Now().UnixNano(), 36),
@@ -674,7 +717,7 @@ func CreateQuestion(c *gin.Context) {
 		}
 	}
 
-	q.ID = time.Now().Format("20060102150405")
+	q.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
 	if err := DB.Create(&q).Error; err != nil {
 		SendJSON(c, 1, "Failed to create question", nil)
 		return
@@ -727,7 +770,7 @@ func DeleteQuestion(c *gin.Context) {
 		SendJSON(c, 1, "Question not found", nil)
 		return
 	}
-	
+
 	stem := q.StemText
 	DB.Delete(&q)
 	AddAuditLog(c, "DELETE_QUESTION", fmt.Sprintf("Deleted question: %s", stem))
@@ -743,7 +786,7 @@ func GetPapers(c *gin.Context) {
 	for i, p := range papers {
 		var assignedCount int64
 		DB.Model(&Homework{}).Where("paper_id = ?", p.ID).Count(&assignedCount)
-		
+
 		result[i] = gin.H{
 			"id":            p.ID,
 			"name":          p.Name,
@@ -761,49 +804,79 @@ func CreatePaper(c *gin.Context) {
 		SendJSON(c, 1, err.Error(), nil)
 		return
 	}
-	p.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
-	
-	// Populate Questions from IDs if provided
-	if len(p.QuestionIDs) > 0 {
-		var questions []Question
-		DB.Where("id IN ?", p.QuestionIDs).Find(&questions)
-		p.Questions = questions
+	p.Name = strings.TrimSpace(p.Name)
+	if p.Name == "" {
+		SendJSON(c, 1, "请填写试卷名称", nil)
+		return
 	}
-	p.Total = len(p.Questions)
-
+	if len(p.QuestionIDs) == 0 {
+		for _, q := range p.Questions {
+			p.QuestionIDs = append(p.QuestionIDs, q.ID)
+		}
+	}
+	questions, err := resolvePaperQuestions(p.QuestionIDs, nil)
+	if err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+	p.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
+	p.Questions = questions
+	p.Total = len(questions)
 	if err := DB.Create(&p).Error; err != nil {
-		SendJSON(c, 1, "Failed to create paper", nil)
+		SendJSON(c, 1, "保存试卷失败，请重试", nil)
 		return
 	}
 	SendJSON(c, 0, "", p)
 }
 
 func UpdatePaper(c *gin.Context) {
-	id := c.Param("id")
-	var p Paper
-	if err := c.ShouldBindJSON(&p); err != nil {
+	var stored Paper
+	if DB.First(&stored, "id = ?", c.Param("id")).Error != nil {
+		SendJSON(c, 1, "试卷不存在，请刷新列表", nil)
+		return
+	}
+	var input Paper
+	if err := c.ShouldBindJSON(&input); err != nil {
 		SendJSON(c, 1, err.Error(), nil)
 		return
 	}
-
-	p.ID = id
-	// Populate questions
-	if len(p.QuestionIDs) > 0 {
-		var questions []Question
-		DB.Where("id IN ?", p.QuestionIDs).Find(&questions)
-		p.Questions = questions
-	}
-	p.Total = len(p.Questions)
-	
-	if err := DB.Save(&p).Error; err != nil {
-		SendJSON(c, 1, "Failed to update paper", nil)
+	input.Name = strings.TrimSpace(input.Name)
+	if input.Name == "" {
+		SendJSON(c, 1, "请填写试卷名称", nil)
 		return
 	}
-	SendJSON(c, 0, "", p)
+	if input.QuestionIDs == nil {
+		for _, q := range stored.Questions {
+			input.QuestionIDs = append(input.QuestionIDs, q.ID)
+		}
+	}
+	var references int64
+	DB.Model(&Homework{}).Where("paper_id = ?", stored.ID).Count(&references)
+	if references > 0 && !sameQuestionOrder(input.QuestionIDs, stored.Questions) {
+		SendJSON(c, 1, "此试卷已用于作业，不能修改题目；请创建新试卷", nil)
+		return
+	}
+	questions, err := resolvePaperQuestions(input.QuestionIDs, stored.Questions)
+	if err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+	stored.Name, stored.Questions, stored.QuestionIDs, stored.Total = input.Name, questions, input.QuestionIDs, len(questions)
+	if err := DB.Save(&stored).Error; err != nil {
+		SendJSON(c, 1, "保存试卷失败，请重试", nil)
+		return
+	}
+	SendJSON(c, 0, "", stored)
 }
 
 func DeletePaper(c *gin.Context) {
 	id := c.Param("id")
+	var references int64
+	DB.Model(&Homework{}).Where("paper_id = ?", id).Count(&references)
+	if references > 0 {
+		SendJSON(c, 1, "该试卷已被作业使用，不能删除", nil)
+		return
+	}
 	if err := DB.Delete(&Paper{}, "id = ?", id).Error; err != nil {
 		SendJSON(c, 1, "Failed to delete paper", nil)
 		return
@@ -813,53 +886,36 @@ func DeletePaper(c *gin.Context) {
 
 // Homework Handlers
 func GetHomeworks(c *gin.Context) {
-	userId, _ := c.Get("userId")
-	role, _ := c.Get("role")
-
-	type HomeworkStat struct {
-		ID           string  `json:"id"`
-		TeacherID    string  `json:"teacherId"`
-		PaperID      string  `json:"paperId"`
-		Name         string  `json:"name"`
-		ClassID      string  `json:"classId"`
-		StartDate    string  `json:"startDate"`
-		EndDate      string  `json:"endDate"`
-		Status       string  `json:"status"`
-		Total        int     `json:"total"`       // Assigned count
-		Completed    int     `json:"completed"`   // Submitted count
-		StudentIDs   any     `json:"studentIds"`
+	uid := c.GetString("userId")
+	role := c.GetString("role")
+	homeworks := make([]Homework, 0)
+	q := DB.Model(&Homework{})
+	if role == string(RoleTeacher) {
+		q = q.Where("teacher_id = ?", uid)
 	}
-
-	var results []HomeworkStat
-	
-	query := DB.Table("homeworks").
-		Select(`
-			homeworks.*,
-			(SELECT COUNT(DISTINCT student_id) FROM histories WHERE histories.homework_id = homeworks.id) as completed
-		`)
-
-	if fmt.Sprintf("%v", role) == string(RoleTeacher) {
-		query = query.Where("homeworks.teacher_id = ?", fmt.Sprintf("%v", userId))
+	if err := q.Order("start_date DESC").Find(&homeworks).Error; err != nil {
+		SendJSON(c, 1, "Failed to load homeworks", nil)
+		return
 	}
-	
-	query.Scan(&results)
-
-	// Update status logic in memory/DB if needed, but primary source is now the query
-	for i := range results {
-		if results[i].Total > 0 && results[i].Completed >= results[i].Total {
-			if results[i].Status != "completed" {
-				results[i].Status = "completed"
-				DB.Model(&Homework{}).Where("id = ?", results[i].ID).Update("status", "completed")
-			}
-		} else {
-             if results[i].Status == "completed" {
-                 results[i].Status = "pending"
-                 DB.Model(&Homework{}).Where("id = ?", results[i].ID).Update("status", "pending")
-             }
-        }
+	result := make([]Homework, 0)
+	for _, hw := range homeworks {
+		if role == string(RoleStudent) && !containsStudent(hw.StudentIDs, uid) {
+			continue
+		}
+		var count int64
+		history := DB.Model(&History{}).Where("homework_id = ?", hw.ID)
+		if role == string(RoleStudent) {
+			history = history.Where("student_id = ?", uid)
+		}
+		history.Distinct("student_id").Count(&count)
+		hw.Completed = int(count)
+		hw.Status = "pending"
+		if (role == string(RoleStudent) && count > 0) || (role != string(RoleStudent) && hw.Total > 0 && int(count) >= hw.Total) {
+			hw.Status = "completed"
+		}
+		result = append(result, hw)
 	}
-
-	SendJSON(c, 0, "", results)
+	SendJSON(c, 0, "", result)
 }
 
 func AssignHomework(c *gin.Context) {
@@ -870,15 +926,23 @@ func AssignHomework(c *gin.Context) {
 		return
 	}
 
+	if err := validateAssignment(&h); err != nil {
+		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
 	h.TeacherID = fmt.Sprintf("%v", userId)
 	h.Total = len(h.StudentIDs)
-	
+
 	h.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
 	h.Status = "pending"
 
 	// Initial scheduling if repeat is set
 	if h.RepeatInterval != "" && h.RepeatInterval != "none" {
-		h.NextRunDate = calculateNextRun(time.Now(), h.RepeatInterval)
+		start, _ := time.ParseInLocation("2006-01-02", h.StartDate, time.Local)
+		if start.Before(time.Now()) {
+			start = time.Now()
+		}
+		h.NextRunDate = calculateNextRun(start, h.RepeatInterval)
 	}
 
 	if err := DB.Create(&h).Error; err != nil {
@@ -912,17 +976,21 @@ func BulkCreateQuestions(c *gin.Context) {
 		SendJSON(c, 1, err.Error(), nil)
 		return
 	}
-	
-	now := time.Now().Unix()
+
+	if len(list) == 0 || len(list) > 500 {
+		SendJSON(c, 1, "Import 1 to 500 questions at a time", nil)
+		return
+	}
+	now := time.Now().UnixNano()
 	for i := range list {
 		list[i].ID = strconv.FormatInt(now, 10) + "_" + strconv.Itoa(i)
 	}
-	
+
 	if err := DB.Create(&list).Error; err != nil {
 		SendJSON(c, 1, "Failed to bulk create questions", nil)
 		return
 	}
-	
+
 	AddAuditLog(c, "BULK_CREATE_QUESTIONS", fmt.Sprintf("Bulk imported %d questions", len(list)))
 	SendJSON(c, 0, "", gin.H{"imported": len(list)})
 }
@@ -948,9 +1016,9 @@ func CompleteHomework(c *gin.Context) {
 		Where("homework_id = ?", id).
 		Select("COUNT(DISTINCT student_id)").
 		Scan(&currentCompleted)
-	
+
 	h.Completed = int(currentCompleted)
-	
+
 	// Update status only if fully completed
 	if h.Total > 0 && h.Completed >= h.Total {
 		h.Status = "completed"
@@ -958,9 +1026,9 @@ func CompleteHomework(c *gin.Context) {
 		// If not full, ensure it's pending (or whatever active status is)
 		h.Status = "pending"
 	}
-	
+
 	DB.Save(&h)
-	
+
 	AddAuditLog(c, "COMPLETE_HOMEWORK", fmt.Sprintf("Finished homework: %s", h.Name))
 	SendJSON(c, 0, "", h)
 }
@@ -970,13 +1038,22 @@ func GetHistory(c *gin.Context) {
 	userId, _ := c.Get("userId")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
 	homeworkId := c.Query("homeworkId")
 	targetStudentId := c.Query("studentId")
 
 	histories := make([]History, 0)
 	var total int64
 	role, _ := c.Get("role")
-	
+
 	query := DB.Model(&History{})
 	if fmt.Sprintf("%v", role) == string(RoleStudent) {
 		query = query.Where("student_id = ?", fmt.Sprintf("%v", userId))
@@ -989,14 +1066,14 @@ func GetHistory(c *gin.Context) {
 			// Two-step approach to avoid JOIN issues
 			// 1. Get all homework IDs for this teacher
 			var homeworkIDs []string
-			
+
 			hwQuery := DB.Model(&Homework{}).Where("teacher_id = ?", fmt.Sprintf("%v", userId))
 			if homeworkId != "" {
 				hwQuery = hwQuery.Where("id = ?", homeworkId)
 			}
-			
+
 			hwQuery.Pluck("id", &homeworkIDs)
-			
+
 			if len(homeworkIDs) > 0 {
 				query = query.Where("homework_id IN ?", homeworkIDs)
 			} else {
@@ -1006,6 +1083,9 @@ func GetHistory(c *gin.Context) {
 		}
 	}
 
+	if homeworkId != "" {
+		query = query.Where("homework_id = ?", homeworkId)
+	}
 	query.Count(&total)
 	query.Order("date DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&histories)
 
@@ -1023,10 +1103,17 @@ func CreateHistory(c *gin.Context) {
 		SendJSON(c, 1, err.Error(), nil)
 		return
 	}
-	
+
 	userId, _ := c.Get("userId")
 	studentId := fmt.Sprintf("%v", userId)
 
+	if h.HomeworkID != "" {
+		var hw Homework
+		if DB.First(&hw, "id = ?", h.HomeworkID).Error != nil || (c.GetString("role") == string(RoleStudent) && !containsStudent(hw.StudentIDs, studentId)) {
+			c.AbortWithStatusJSON(403, gin.H{"error": "Homework access denied"})
+			return
+		}
+	}
 	h.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
 	h.StudentID = studentId
 	h.Date = time.Now().Format("2006-01-02 15:04:05")
@@ -1035,27 +1122,37 @@ func CreateHistory(c *gin.Context) {
 		SendJSON(c, 1, "Failed to create history", nil)
 		return
 	}
-	
+
 	// Process Wrong Questions & Ability Tracking
-	go func(history History) {
+	func(history History) {
 		questionsBytes, _ := json.Marshal(history.Questions)
 		var results []HistoryQuestionResult
 		if err := json.Unmarshal(questionsBytes, &results); err == nil {
-			
+
 			// Ability tracking map: ObjectiveID -> {Correct, Total}
 			objStats := make(map[string]struct{ Correct, Total int })
 
 			for _, res := range results {
 				isCorrect := res.Status == "correct"
-				
+
 				// 1. Process Error Logic
 				wrongCount := 0
 				if len(res.AttemptLog) > 0 {
-					for _, att := range res.AttemptLog { if !att.IsCorrect { wrongCount++ } }
+					for _, att := range res.AttemptLog {
+						if !att.IsCorrect {
+							wrongCount++
+						}
+					}
 				} else {
-					if isCorrect { if res.Attempts > 1 { wrongCount = res.Attempts - 1 } } else {
+					if isCorrect {
+						if res.Attempts > 1 {
+							wrongCount = res.Attempts - 1
+						}
+					} else {
 						wrongCount = res.Attempts
-						if wrongCount == 0 { wrongCount = 1 }
+						if wrongCount == 0 {
+							wrongCount = 1
+						}
 					}
 				}
 				processWrongQuestion(history.StudentID, res.ID, isCorrect, wrongCount)
@@ -1068,7 +1165,9 @@ func CreateHistory(c *gin.Context) {
 					if err := DB.First(&fullQ, "id = ?", res.ID).Error; err == nil {
 						fullQ.Attempts++
 						correctCount := 0
-						if isCorrect { correctCount = 1 }
+						if isCorrect {
+							correctCount = 1
+						}
 						// Recalculate CorrectRate
 						// Previous total correct = CorrectRate * (Attempts-1) / 100
 						prevTotalCorrect := (fullQ.CorrectRate * float64(fullQ.Attempts-1)) / 100
@@ -1082,7 +1181,9 @@ func CreateHistory(c *gin.Context) {
 					if q.ObjectiveID != "" {
 						stats := objStats[q.ObjectiveID]
 						stats.Total++
-						if isCorrect { stats.Correct++ }
+						if isCorrect {
+							stats.Correct++
+						}
 						objStats[q.ObjectiveID] = stats
 					}
 				}
@@ -1093,7 +1194,9 @@ func CreateHistory(c *gin.Context) {
 			for objID, stats := range objStats {
 				acc := (float64(stats.Correct) / float64(stats.Total)) * 100
 				status := "N"
-				if acc >= 80 { status = "Y" } // Threshold 80%
+				if acc >= 80 {
+					status = "Y"
+				} // Threshold 80%
 
 				record := AbilityRecord{
 					ID:          strconv.FormatInt(time.Now().UnixNano(), 36),
@@ -1109,6 +1212,18 @@ func CreateHistory(c *gin.Context) {
 	}(h)
 
 	AddAuditLog(c, "PRACTICE_FINISH", fmt.Sprintf("Completed session: %s (Score: %d/%s)", h.Name, h.CorrectCount, h.Total))
+	if h.HomeworkID != "" {
+		var hw Homework
+		if DB.First(&hw, "id = ?", h.HomeworkID).Error == nil {
+			var count int64
+			DB.Model(&History{}).Where("homework_id = ?", hw.ID).Distinct("student_id").Count(&count)
+			status := "pending"
+			if hw.Total > 0 && int(count) >= hw.Total {
+				status = "completed"
+			}
+			DB.Model(&hw).Updates(map[string]interface{}{"completed": int(count), "status": status})
+		}
+	}
 	SendJSON(c, 0, "", h)
 }
 
@@ -1135,7 +1250,7 @@ func processWrongQuestion(studentID string, questionID string, isCorrect bool, w
 			5: {NextWrong: 5, NextCorrect: 5, ShowAnswer: false, Label: "Difficult"},
 		},
 	}
-	
+
 	if err := DB.Where("`key` = ?", "error_logic").First(&sysConf).Error; err == nil {
 		json.Unmarshal([]byte(sysConf.Value), &conf)
 	}
@@ -1147,14 +1262,14 @@ func processWrongQuestion(studentID string, questionID string, isCorrect bool, w
 	if isCorrect {
 		if exists {
 			state.ErrorCount += wrongIncrement
-			
+
 			currentStage := state.Status
 			if stageConf, ok := conf.Stages[currentStage]; ok {
 				state.Status = stageConf.NextCorrect
 			} else {
 				state.Status = 4 // Default fallback
 			}
-			
+
 			state.LastUpdated = now
 			DB.Save(&state)
 		} else if wrongIncrement > 0 {
@@ -1188,7 +1303,7 @@ func processWrongQuestion(studentID string, questionID string, isCorrect bool, w
 		// Existing Error -> State Transition
 		state.ErrorCount += wrongIncrement
 		state.LastUpdated = now
-		
+
 		currentStage := state.Status
 		if stageConf, ok := conf.Stages[currentStage]; ok {
 			state.Status = stageConf.NextWrong
@@ -1208,14 +1323,14 @@ func GetStudentStats(c *gin.Context) {
 	DB.Where("student_id = ?", studentId).Find(&histories)
 
 	practiceTrendMap := make(map[string]struct {
-		Count    int
-		Correct  int
-		Total    int
+		Count   int
+		Correct int
+		Total   int
 	})
 	homeworkTrendMap := make(map[string]struct {
-		Count    int
-		Correct  int
-		Total    int
+		Count   int
+		Correct int
+		Total   int
 	})
 
 	totalPracticeCorrect := 0
@@ -1224,7 +1339,7 @@ func GetStudentStats(c *gin.Context) {
 	for _, h := range histories {
 		date := strings.Split(h.Date, " ")[0]
 		t, _ := strconv.Atoi(h.Total)
-		
+
 		if h.Type == "homework" {
 			entry := homeworkTrendMap[date]
 			entry.Count++
@@ -1237,7 +1352,7 @@ func GetStudentStats(c *gin.Context) {
 			entry.Correct += h.CorrectCount
 			entry.Total += t
 			practiceTrendMap[date] = entry
-			
+
 			totalPracticeCorrect += h.CorrectCount
 			totalPracticeQuestions += t
 		}
@@ -1248,10 +1363,12 @@ func GetStudentStats(c *gin.Context) {
 		Count    int    `json:"count"`
 		Accuracy int    `json:"accuracy"`
 	}
-	
-	processMap := func(m map[string]struct{Count, Correct, Total int}) []TrendPoint {
+
+	processMap := func(m map[string]struct{ Count, Correct, Total int }) []TrendPoint {
 		keys := make([]string, 0, len(m))
-		for k := range m { keys = append(keys, k) }
+		for k := range m {
+			keys = append(keys, k)
+		}
 		sortStrings(keys)
 
 		res := make([]TrendPoint, 0)
@@ -1263,7 +1380,9 @@ func GetStudentStats(c *gin.Context) {
 			}
 			res = append(res, TrendPoint{Date: k, Count: v.Count, Accuracy: acc})
 		}
-		if len(res) > 14 { res = res[len(res)-14:] }
+		if len(res) > 14 {
+			res = res[len(res)-14:]
+		}
 		return res
 	}
 
@@ -1282,7 +1401,9 @@ func GetStudentStats(c *gin.Context) {
 func sortStrings(s []string) {
 	for i := 0; i < len(s); i++ {
 		for j := i + 1; j < len(s); j++ {
-			if s[i] > s[j] { s[i], s[j] = s[j], s[i] }
+			if s[i] > s[j] {
+				s[i], s[j] = s[j], s[i]
+			}
 		}
 	}
 }
@@ -1291,13 +1412,13 @@ func GetTeacherStats(c *gin.Context) {
 	userId, _ := c.Get("userId")
 	teacherId := fmt.Sprintf("%v", userId)
 	today := time.Now().Format("2006-01-02")
-	
+
 	var todayAssigned int64
 	DB.Model(&Homework{}).Where("teacher_id = ? AND start_date LIKE ?", teacherId, today+"%").Count(&todayAssigned)
 
 	var totalAssigned int64
 	var totalCompleted int64
-	
+
 	// Calculate totals in one go to ensure consistency
 	DB.Table("homeworks").
 		Where("teacher_id = ?", teacherId).
@@ -1306,7 +1427,7 @@ func GetTeacherStats(c *gin.Context) {
 			COALESCE(SUM((SELECT COUNT(DISTINCT student_id) FROM histories WHERE histories.homework_id = homeworks.id)), 0) as completed
 		`).
 		Row().Scan(&totalAssigned, &totalCompleted)
-	
+
 	completionRate := 0.0
 	if totalAssigned > 0 {
 		completionRate = (float64(totalCompleted) / float64(totalAssigned)) * 100
@@ -1336,7 +1457,7 @@ func GetTeacherStats(c *gin.Context) {
 		Total     int    `json:"total"`
 	}
 	var recentStats []RecentHWStat
-	
+
 	DB.Table("homeworks").
 		Select("homeworks.id, homeworks.name, homeworks.start_date as date, homeworks.total, (SELECT COUNT(DISTINCT student_id) FROM histories WHERE histories.homework_id = homeworks.id) as completed").
 		Where("homeworks.teacher_id = ?", teacherId).
@@ -1357,8 +1478,8 @@ func GetTeacherStats(c *gin.Context) {
 
 	// Calculate per-student summaries
 	var students []User
-	DB.Where("role = ?", RoleStudent).Find(&students)
-	
+	DB.Omit("password").Where("role = ?", RoleStudent).Find(&students)
+
 	studentSummaries := make([]gin.H, 0)
 	for _, s := range students {
 		// 1. Accuracy
@@ -1370,7 +1491,7 @@ func GetTeacherStats(c *gin.Context) {
 			Select("SUM(correct_count) as correct, SUM(CAST(total AS UNSIGNED)) as total").
 			Where("student_id = ?", s.ID).
 			Scan(&res)
-		
+
 		acc := 0.0
 		if res.Total > 0 {
 			acc = (float64(res.Correct) / float64(res.Total)) * 100
@@ -1396,7 +1517,7 @@ func GetTeacherStats(c *gin.Context) {
 					Group("homework_id"),
 			).
 			Count(&hwCompleted)
-		
+
 		studentSummaries = append(studentSummaries, gin.H{
 			"id":             s.ID,
 			"username":       s.Username,
@@ -1437,10 +1558,10 @@ func AdminGetHomeworks(c *gin.Context) {
 	for _, h := range hws {
 		var teacher User
 		DB.First(&teacher, "id = ?", h.TeacherID)
-		
+
 		var histories []History
 		DB.Where("homework_id = ?", h.ID).Find(&histories)
-		
+
 		var count int64
 		DB.Model(&History{}).Where("homework_id = ?", h.ID).Distinct("student_id").Count(&count)
 
@@ -1448,14 +1569,14 @@ func AdminGetHomeworks(c *gin.Context) {
 		for _, rec := range histories {
 			var student User
 			DB.First(&student, "id = ?", rec.StudentID)
-			
+
 			results = append(results, gin.H{
-				"id": rec.ID,
-				"studentName": student.Username,
-				"date": rec.Date,
+				"id":           rec.ID,
+				"studentName":  student.Username,
+				"date":         rec.Date,
 				"correctCount": rec.CorrectCount,
-				"total": rec.Total,
-				"questions": rec.Questions,
+				"total":        rec.Total,
+				"questions":    rec.Questions,
 			})
 		}
 
@@ -1487,12 +1608,12 @@ func AdminGetPractices(c *gin.Context) {
 		Accuracy    string `json:"accuracy"`
 		Questions   []any  `json:"questions"`
 	}
-	
+
 	res := make([]PracticeDetail, 0)
 	for _, h := range histories {
 		var student User
 		DB.First(&student, "id = ?", h.StudentID)
-		
+
 		acc := "0%"
 		total, _ := strconv.Atoi(h.Total)
 		if total > 0 {
@@ -1557,16 +1678,25 @@ func GetResources(c *gin.Context) {
 	userId, _ := c.Get("userId")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
 	keyword := strings.ToLower(c.Query("keyword"))
 
 	list := make([]Resource, 0)
 	var total int64
-	
+
 	query := DB.Model(&Resource{}).Where("visibility = 'public' OR creator_id = ?", fmt.Sprintf("%v", userId))
 	if keyword != "" {
-		query = query.Where("LOWER(name) LIKE ? OR JSON_CONTAINS(LOWER(tags), ?)", "%"+keyword+"%", "\""+keyword+"\"")
+		query = query.Where("LOWER(name) LIKE ? OR LOWER(tags) LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
 	}
-	
+
 	query.Count(&total)
 	query.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list)
 
@@ -1589,14 +1719,20 @@ func CreateResource(c *gin.Context) {
 
 	if strings.HasPrefix(r.URL, "data:image") {
 		url, err := UploadBase64ToOSS(r.URL)
-		if err == nil { r.URL = url }
+		if err == nil {
+			r.URL = url
+		}
 	}
 
 	r.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
 	r.CreatorID = fmt.Sprintf("%v", userId)
 	r.CreatedAt = time.Now().Format("2006-01-02 15:04:05")
-	if r.Type == "" { r.Type = "image" }
-	if r.Tags == nil { r.Tags = make([]string, 0) }
+	if r.Type == "" {
+		r.Type = "image"
+	}
+	if r.Tags == nil {
+		r.Tags = make([]string, 0)
+	}
 
 	DB.Create(&r)
 	AddAuditLog(c, "CREATE_RESOURCE", fmt.Sprintf("Uploaded resource: %s", r.Name))
@@ -1620,6 +1756,8 @@ func UpdateResource(c *gin.Context) {
 	}
 
 	r.Name = updateData.Name
+	r.URL = updateData.URL
+	r.Type = updateData.Type
 	r.Visibility = updateData.Visibility
 	r.Tags = updateData.Tags
 	DB.Save(&r)
@@ -1629,7 +1767,7 @@ func UpdateResource(c *gin.Context) {
 func DeleteResource(c *gin.Context) {
 	id := c.Param("id")
 	userId, _ := c.Get("userId")
-	
+
 	if err := DB.Delete(&Resource{}, "id = ? AND creator_id = ?", id, fmt.Sprintf("%v", userId)).Error; err != nil {
 		SendJSON(c, 1, "Failed to delete resource", nil)
 		return
@@ -1647,7 +1785,7 @@ func GetAuditLogs(c *gin.Context) {
 func AddAuditLog(c *gin.Context, action, details string) {
 	userId, _ := c.Get("userId")
 	role, _ := c.Get("role")
-	
+
 	username := "system"
 	if uid, ok := userId.(string); ok {
 		var user User
@@ -1668,7 +1806,7 @@ func AddAuditLog(c *gin.Context, action, details string) {
 		Details:   details,
 		Timestamp: time.Now().Format("2006-01-02 15:04:05"),
 	}
-	
+
 	DB.Create(&log)
 	fmt.Printf("[AUDIT] %s | %s | %s\n", log.Username, log.Action, log.Details)
 }
@@ -1680,7 +1818,7 @@ func GetWrongBook(c *gin.Context) {
 	role, _ := c.Get("role")
 
 	targetStudentId := c.Query("studentId")
-	
+
 	query := DB.Preload("Question").Where("status != 4")
 
 	if fmt.Sprintf("%v", role) == string(RoleStudent) {
@@ -1696,6 +1834,15 @@ func GetWrongBook(c *gin.Context) {
 	var wrongs []StudentWrongQuestion
 	query.Find(&wrongs)
 
+	conf := ErrorLogicConfig{GlobalEnabled: true, Stages: map[int]StageConfig{2: {ShowAnswer: true}}}
+	var stored SystemConfig
+	if DB.Where("`key` = ?", "error_logic").First(&stored).Error == nil {
+		json.Unmarshal([]byte(stored.Value), &conf)
+	}
+	for i := range wrongs {
+		wrongs[i].ShowAnswer = conf.GlobalEnabled && conf.Stages[wrongs[i].Status].ShowAnswer
+	}
+
 	SendJSON(c, 0, "", wrongs)
 }
 
@@ -1705,7 +1852,7 @@ func GetSystemConfig(c *gin.Context) {
 	if err := DB.Where("`key` = ?", "error_logic").First(&conf).Error; err != nil {
 		// Return default if not found
 		defaultConf := ErrorLogicConfig{
-			GlobalEnabled: true,
+			GlobalEnabled:               true,
 			ExcludeMistakesFromPractice: false,
 			Stages: map[int]StageConfig{
 				1: {NextWrong: 2, NextCorrect: 4, ShowAnswer: false, Label: "Error"},
@@ -1718,14 +1865,14 @@ func GetSystemConfig(c *gin.Context) {
 		SendJSON(c, 0, "", defaultConf)
 		return
 	}
-	
+
 	// Parse JSON
 	var parsedConf ErrorLogicConfig
 	if err := json.Unmarshal([]byte(conf.Value), &parsedConf); err != nil {
 		SendJSON(c, 1, "Invalid config format", nil)
 		return
 	}
-	
+
 	SendJSON(c, 0, "", parsedConf)
 }
 
@@ -1737,12 +1884,12 @@ func UpdateSystemConfig(c *gin.Context) {
 	}
 
 	confJSON, _ := json.Marshal(parsedConf)
-	
+
 	// Create or Update
 	var conf SystemConfig
 	if err := DB.Where("`key` = ?", "error_logic").First(&conf).Error; err != nil {
 		conf = SystemConfig{
-			Key: "error_logic",
+			Key:   "error_logic",
 			Value: string(confJSON),
 		}
 		DB.Create(&conf)
@@ -1750,16 +1897,16 @@ func UpdateSystemConfig(c *gin.Context) {
 		conf.Value = string(confJSON)
 		DB.Save(&conf)
 	}
-	
+
 	SendJSON(c, 0, "", parsedConf)
 }
 
 func GetSystemSettings(c *gin.Context) {
 	var conf SystemConfig
 	var settings SystemSettingsConfig
-	
+
 	// Default settings
-	settings.RegistrationEnabled = false 
+	settings.RegistrationEnabled = false
 
 	if err := DB.Where("`key` = ?", "system_settings").First(&conf).Error; err == nil {
 		json.Unmarshal([]byte(conf.Value), &settings)
@@ -1775,11 +1922,11 @@ func UpdateSystemSettings(c *gin.Context) {
 	}
 
 	confJSON, _ := json.Marshal(settings)
-	
+
 	var conf SystemConfig
 	if err := DB.Where("`key` = ?", "system_settings").First(&conf).Error; err != nil {
 		conf = SystemConfig{
-			Key: "system_settings",
+			Key:   "system_settings",
 			Value: string(confJSON),
 		}
 		DB.Create(&conf)
@@ -1807,6 +1954,9 @@ func GetMyPermissions(c *gin.Context) {
 	role, _ := c.Get("role")
 	var perms []RolePermission
 	DB.Where("role = ?", role).Find(&perms)
+	for i := range perms {
+		perms[i].WorkspaceSections = teacherWorkspaceSections(perms[i])
+	}
 	SendJSON(c, 0, "", perms)
 }
 
@@ -1823,10 +1973,26 @@ func UpdateRolePermissions(c *gin.Context) {
 		return
 	}
 
-	// Simple way: clear and replace
-	// Production might use a more surgical update
-	DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&RolePermission{})
-	if err := DB.Create(&perms).Error; err != nil {
+	selfAccess := false
+	for _, p := range perms {
+		if p.Role == Role(c.GetString("role")) && p.ModuleID == "permissions" && p.UIAccess && p.APIAccess {
+			selfAccess = true
+		}
+	}
+	if !selfAccess {
+		SendJSON(c, 1, "Cannot remove your own permission management access", nil)
+		return
+	}
+	if len(perms) == 0 {
+		SendJSON(c, 1, "Permissions cannot be empty", nil)
+		return
+	}
+	if err := DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&RolePermission{}).Error; err != nil {
+			return err
+		}
+		return tx.Create(&perms).Error
+	}); err != nil {
 		SendJSON(c, 1, "Failed to update permissions", nil)
 		return
 	}
@@ -1852,7 +2018,7 @@ func CreateSkillTopic(c *gin.Context) {
 		return
 	}
 	topic.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
-	
+
 	var maxOrder int
 	DB.Model(&SkillTopic{}).Select("COALESCE(MAX(sort_order), 0)").Scan(&maxOrder)
 	topic.SortOrder = maxOrder + 1
@@ -1894,7 +2060,7 @@ func CreateSkillObjective(c *gin.Context) {
 		return
 	}
 	obj.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
-	
+
 	var maxOrder int
 	DB.Model(&SkillObjective{}).Where("topic_id = ?", obj.TopicID).Select("COALESCE(MAX(sort_order), 0)").Scan(&maxOrder)
 	obj.SortOrder = maxOrder + 1
@@ -2026,4 +2192,221 @@ func GetAbilityMatrix(c *gin.Context) {
 	var records []AbilityRecord
 	DB.Where("student_id = ?", studentId).Order("date DESC").Find(&records)
 	SendJSON(c, 0, "", records)
+}
+
+// --- Application (Scenario Games) Handlers ---
+
+func GetScenarios(c *gin.Context) {
+	var scenarios []Scenario
+	if err := DB.Find(&scenarios).Error; err != nil {
+		c.JSON(200, Response{Code: 1, Err: err.Error()})
+		return
+	}
+	c.JSON(200, Response{Code: 0, Data: scenarios, Timestamp: time.Now().Unix()})
+}
+
+func CreateScenario(c *gin.Context) {
+	var scenario Scenario
+	if err := c.ShouldBindJSON(&scenario); err != nil {
+		c.JSON(200, Response{Code: 1, Err: err.Error()})
+		return
+	}
+	if scenario.ID == "" {
+		scenario.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
+	}
+	if err := DB.Create(&scenario).Error; err != nil {
+		c.JSON(200, Response{Code: 1, Err: err.Error()})
+		return
+	}
+	c.JSON(200, Response{Code: 0, Data: scenario, Timestamp: time.Now().Unix()})
+}
+
+func UpdateScenario(c *gin.Context) {
+	id := c.Param("id")
+	var scenario Scenario
+	if err := DB.Where("id = ?", id).First(&scenario).Error; err != nil {
+		c.JSON(200, Response{Code: 1, Err: "Scenario not found"})
+		return
+	}
+	if err := c.ShouldBindJSON(&scenario); err != nil {
+		c.JSON(200, Response{Code: 1, Err: err.Error()})
+		return
+	}
+	DB.Save(&scenario)
+	c.JSON(200, Response{Code: 0, Data: scenario, Timestamp: time.Now().Unix()})
+}
+
+func DeleteScenario(c *gin.Context) {
+	id := c.Param("id")
+	DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("scenario_id = ?", id).Delete(&ScenarioItem{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&Scenario{}, "id = ?", id).Error
+	})
+	DB.Delete(&ScenarioItem{}, "scenario_id = ?", id)
+	c.JSON(200, Response{Code: 0, Timestamp: time.Now().Unix()})
+}
+
+func GetScenarioItems(c *gin.Context) {
+	id := c.Param("id")
+	var items []ScenarioItem
+	if err := DB.Where("scenario_id = ?", id).Find(&items).Error; err != nil {
+		c.JSON(200, Response{Code: 1, Err: err.Error()})
+		return
+	}
+	c.JSON(200, Response{Code: 0, Data: items, Timestamp: time.Now().Unix()})
+}
+
+func CreateScenarioItem(c *gin.Context) {
+	id := c.Param("id")
+	var item ScenarioItem
+	if err := c.ShouldBindJSON(&item); err != nil {
+		c.JSON(200, Response{Code: 1, Err: err.Error()})
+		return
+	}
+	item.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
+	item.ScenarioID = id
+	if err := DB.Create(&item).Error; err != nil {
+		c.JSON(200, Response{Code: 1, Err: err.Error()})
+		return
+	}
+	c.JSON(200, Response{Code: 0, Data: item, Timestamp: time.Now().Unix()})
+}
+
+// --- VB-MAPP Assessment Handlers ---
+
+func GetAssessments(c *gin.Context) {
+	studentID := c.Query("studentId")
+	if c.GetString("role") == string(RoleStudent) {
+		studentID = c.GetString("userId")
+	}
+	var assessments []VBMAPPAssessment
+	query := DB.Model(&VBMAPPAssessment{})
+	if studentID != "" {
+		query = query.Where("student_id = ?", studentID)
+	}
+	if err := query.Find(&assessments).Error; err != nil {
+		c.JSON(200, Response{Code: 1, Err: err.Error()})
+		return
+	}
+	c.JSON(200, Response{Code: 0, Data: assessments, Timestamp: time.Now().Unix()})
+}
+
+func CreateAssessment(c *gin.Context) {
+	var assessment VBMAPPAssessment
+	if err := c.ShouldBindJSON(&assessment); err != nil {
+		c.JSON(200, Response{Code: 1, Err: err.Error()})
+		return
+	}
+	assessment.AssessorID = c.GetString("userId")
+	assessment.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
+	assessment.Date = time.Now().Format("2006-01-02")
+	if assessment.Status == "" {
+		assessment.Status = "ongoing"
+	}
+	if err := DB.Create(&assessment).Error; err != nil {
+		c.JSON(200, Response{Code: 1, Err: err.Error()})
+		return
+	}
+	c.JSON(200, Response{Code: 0, Data: assessment, Timestamp: time.Now().Unix()})
+}
+
+func GetAssessmentDetail(c *gin.Context) {
+	if !allowAssessment(c) {
+		return
+	}
+
+	id := c.Param("id")
+	var assessment VBMAPPAssessment
+	if err := DB.Where("id = ?", id).First(&assessment).Error; err != nil {
+		c.JSON(200, Response{Code: 1, Err: "Assessment not found"})
+		return
+	}
+	c.JSON(200, Response{Code: 0, Data: assessment, Timestamp: time.Now().Unix()})
+}
+
+func UpdateAssessment(c *gin.Context) {
+	if !allowAssessment(c) {
+		return
+	}
+
+	id := c.Param("id")
+	var assessment VBMAPPAssessment
+	if err := DB.Where("id = ?", id).First(&assessment).Error; err != nil {
+		c.JSON(200, Response{Code: 1, Err: "Assessment not found"})
+		return
+	}
+	if err := c.ShouldBindJSON(&assessment); err != nil {
+		c.JSON(200, Response{Code: 1, Err: err.Error()})
+		return
+	}
+	DB.Save(&assessment)
+	c.JSON(200, Response{Code: 0, Data: assessment, Timestamp: time.Now().Unix()})
+}
+
+func GetAssessmentScores(c *gin.Context) {
+	if !allowAssessment(c) {
+		return
+	}
+
+	id := c.Param("id")
+	var scores []VBMAPPScore
+	if err := DB.Where("assessment_id = ?", id).Find(&scores).Error; err != nil {
+		c.JSON(200, Response{Code: 1, Err: err.Error()})
+		return
+	}
+	c.JSON(200, Response{Code: 0, Data: scores, Timestamp: time.Now().Unix()})
+}
+
+func SaveAssessmentScore(c *gin.Context) {
+	if !allowAssessment(c) {
+		return
+	}
+
+	assessmentID := c.Param("id")
+	var score VBMAPPScore
+	if err := c.ShouldBindJSON(&score); err != nil {
+		c.JSON(200, Response{Code: 1, Err: err.Error()})
+		return
+	}
+	score.AssessmentID = assessmentID
+
+	// Check if already exists
+	var existing VBMAPPScore
+	result := DB.Where("assessment_id = ? AND area = ? AND category = ? AND item_number = ?",
+		assessmentID, score.Area, score.Category, score.ItemNumber).First(&existing)
+
+	if result.Error == nil {
+		existing.Score = score.Score
+		DB.Save(&existing)
+		c.JSON(200, Response{Code: 0, Data: existing, Timestamp: time.Now().Unix()})
+	} else {
+		score.ID = strconv.FormatInt(time.Now().UnixNano(), 36)
+		DB.Create(&score)
+		c.JSON(200, Response{Code: 0, Data: score, Timestamp: time.Now().Unix()})
+	}
+}
+
+// --- Mood Diary Handlers ---
+
+func GetMoodStats(c *gin.Context) {
+	studentID := c.Query("studentId")
+	if c.GetString("role") == string(RoleStudent) {
+		studentID = c.GetString("userId")
+	}
+	if studentID == "" {
+		c.JSON(200, Response{Code: 1, Err: "studentId is required"})
+		return
+	}
+
+	var stats []struct {
+		Date string `json:"date"`
+		Mood int    `json:"mood"`
+	}
+	DB.Model(&MoodDiary{}).Where("student_id = ?", studentID).
+		Order("date asc").Limit(30).
+		Select("date, mood").Scan(&stats)
+
+	c.JSON(200, Response{Code: 0, Data: stats, Timestamp: time.Now().Unix()})
 }

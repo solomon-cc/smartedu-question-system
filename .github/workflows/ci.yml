@@ -14,7 +14,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version-file: 'go.mod'
     - name: Run Backend Tests
       run: make test-backend
 
@@ -25,12 +25,12 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22'
         cache: 'npm'
         cache-dependency-path: web/package-lock.json
     - name: Install dependencies
       working-directory: web
-      run: npm install
+      run: npm ci
     - name: Run Frontend Tests
       working-directory: web
       run: npm test
@@ -43,10 +43,10 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version-file: 'go.mod'
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22'
     - name: Build All
       run: make build

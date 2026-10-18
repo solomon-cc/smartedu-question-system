@@ -33,6 +33,8 @@ func TestMain(m *testing.M) {
 		&Reinforcement{},
 		&Resource{},
 		&AuditLog{},
+		&SystemConfig{},
+		&StudentWrongQuestion{},
 	)
 	DB = db
 
@@ -148,7 +150,9 @@ func TestPapers(t *testing.T) {
 	r.GET("/papers", GetPapers)
 	r.POST("/papers", CreatePaper)
 
-	p := Paper{Name: "Test Paper", Total: 100}
+	question := Question{ID: "paper-fixture", StemText: "Fixture", Answer: "A"}
+	DB.Save(&question)
+	p := Paper{Name: "Test Paper", QuestionIDs: []string{question.ID}}
 	body, _ := json.Marshal(p)
 	req, _ := http.NewRequest("POST", "/papers", bytes.NewBuffer(body))
 	w := httptest.NewRecorder()
@@ -161,8 +165,8 @@ func TestPapers(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var resp struct {
-		Code int     `json:"code"`
-		Data []any   `json:"data"`
+		Code int   `json:"code"`
+		Data []any `json:"data"`
 	}
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.Equal(t, 0, resp.Code)
@@ -179,7 +183,9 @@ func TestHomeworks(t *testing.T) {
 		AssignHomework(c)
 	})
 
-	h := Homework{Name: "HW1", PaperID: "p1", StudentIDs: []string{"s1"}}
+	DB.Save(&Paper{ID: "p1", Name: "Fixture", Questions: []Question{{ID: "paper-fixture", StemText: "Fixture", Answer: "A"}}, Total: 1})
+	DB.Save(&User{ID: "s1", Username: "homework-fixture", Role: RoleStudent, Status: "active"})
+	h := Homework{Name: "HW1", PaperID: "p1", StudentIDs: []string{"s1"}, StartDate: "2026-09-27", EndDate: "2026-09-28"}
 	body, _ := json.Marshal(h)
 	req, _ := http.NewRequest("POST", "/homeworks/assign", bytes.NewBuffer(body))
 	w := httptest.NewRecorder()
@@ -212,7 +218,7 @@ func TestUsers(t *testing.T) {
 	r.DELETE("/users/:id", DeleteUser)
 
 	// Create
-	u := User{Username: "testuser", Role: RoleStudent, Password: "123"}
+	u := User{Username: "testuser", Role: RoleStudent, Password: "Test-Password-2026"}
 	body, _ := json.Marshal(u)
 	req, _ := http.NewRequest("POST", "/users", bytes.NewBuffer(body))
 	w := httptest.NewRecorder()
@@ -224,6 +230,9 @@ func TestUsers(t *testing.T) {
 		Data User `json:"data"`
 	}
 	json.Unmarshal(w.Body.Bytes(), &createResp)
+	assert.Equal(t, 0, createResp.Code)
+	assert.NotEmpty(t, createResp.Data.ID)
+	assert.Empty(t, createResp.Data.Password)
 	id := createResp.Data.ID
 
 	// List
