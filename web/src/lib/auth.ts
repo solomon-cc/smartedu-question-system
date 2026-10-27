@@ -8,7 +8,19 @@ export interface User {
   role: Role;
   status?: string;
 }
-export const auth = reactive({ user: null as User | null, ready: false });
+export interface Permission {
+  moduleId: string;
+  uiAccess: boolean;
+  apiAccess: boolean;
+}
+export const auth = reactive({
+  user: null as User | null,
+  permissions: [] as Permission[],
+  ready: false,
+});
+export const canModule = (module: string) =>
+  ['ADMIN', 'TEACHER', 'STUDENT'].includes(auth.user?.role || '') &&
+  auth.permissions.some((p) => p.moduleId === module && p.uiAccess && p.apiAccess);
 export const roleNames: Record<Role, string> = {
   ADMIN: '管理员',
   TEACHER: '老师',
@@ -24,10 +36,16 @@ export const canPractice = computed(() =>
 export async function restore() {
   if (token.get()) {
     try {
-      auth.user = await api<User>('/me');
+      const [user, permissions] = await Promise.all([
+        api<User>('/me'),
+        api<Permission[]>('/me/permissions'),
+      ]);
+      auth.user = user;
+      auth.permissions = permissions || [];
     } catch {
       token.clear();
       auth.user = null;
+      auth.permissions = [];
     }
   }
   auth.ready = true;
@@ -38,12 +56,20 @@ export async function login(username: string, password: string) {
     password,
   });
   token.set(data.token);
-  auth.user = data.user;
-  auth.ready = true;
+  try {
+    const permissions = await api<Permission[]>('/me/permissions');
+    auth.user = data.user;
+    auth.permissions = permissions || [];
+    auth.ready = true;
+  } catch (e) {
+    logout();
+    throw e;
+  }
 }
 export function logout() {
   token.clear();
   auth.user = null;
+  auth.permissions = [];
 }
 
 export const landingFor = (role?: Role) =>

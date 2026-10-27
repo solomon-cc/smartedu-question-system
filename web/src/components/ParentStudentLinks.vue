@@ -9,6 +9,7 @@ const links = ref<{ parentId: string; studentId: string }[]>([]),
   parent = ref(''),
   selected = ref<string[]>([]),
   error = ref(''),
+  loadError = ref(''),
   loading = ref(true),
   saving = ref(false),
   baseline = ref('[]');
@@ -24,27 +25,28 @@ const guard = useLeaveGuard(
 );
 async function load() {
   loading.value = true;
-  error.value = '';
+  loadError.value = '';
   try {
-    links.value = await api('/portal/manage/parent-links');
+    links.value = (await api('/portal/manage/parent-links')) || [];
   } catch (e) {
-    error.value = message(e);
+    loadError.value = message(e);
   } finally {
     loading.value = false;
   }
 }
 async function choose(e: Event) {
   const el = e.target as HTMLSelectElement;
+  const desired = el.value;
   if (!(await guard.confirm())) {
     el.value = parent.value;
     return;
   }
-  parent.value = el.value;
+  parent.value = desired;
   selected.value = links.value.filter((l) => l.parentId === parent.value).map((l) => l.studentId);
   baseline.value = JSON.stringify(selected.value);
 }
 async function save() {
-  if (saving.value) return;
+  if (saving.value || loading.value || loadError.value || !parent.value) return;
   saving.value = true;
   error.value = '';
   try {
@@ -70,13 +72,14 @@ onMounted(load);
       <h2>家长与学生关联</h2>
       <p>关联后，家长可查看所关联孩子的评估报告，并陪伴完成针对性练习。</p>
     </div>
-    <a-alert v-if="error" type="error">
-      {{ error }}
+    <a-alert v-if="loadError" type="error">
+      {{ loadError }}
       <a-button @click="load">重试</a-button>
     </a-alert>
+    <a-alert v-if="error" type="error">{{ error }}</a-alert>
     <p v-if="loading" role="status">正在加载关联…</p>
     <p v-else-if="!parents.length" class="muted">添加家长账号后，可在这里关联孩子。</p>
-    <template v-else>
+    <template v-else-if="!loadError">
       <label>
         家长账号
         <select :value="parent" @change="choose" :disabled="saving" aria-label="关联家长账号">

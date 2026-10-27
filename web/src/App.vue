@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { IconDown } from '@arco-design/web-vue/es/icon';
-import { auth, logout, roleNames, manageQuestions, manageCourses } from './lib/auth';
+import { auth, logout, roleNames, manageQuestions, manageCourses, canModule } from './lib/auth';
 import { api, message } from './lib/api';
 import Mark from './components/Mark.vue';
 import { Modal } from '@arco-design/web-vue';
@@ -20,15 +20,19 @@ const router = useRouter(),
 const active = computed(() =>
   route.path.startsWith('/library') || route.path.startsWith('/practice')
     ? 'library'
-    : route.path.startsWith('/assessment')
-      ? 'assessment'
-      : route.path.startsWith('/training')
-        ? 'training'
-        : route.path.startsWith('/learning')
-          ? 'learning'
-          : route.path.startsWith('/manage')
-            ? 'manage'
-            : 'home',
+    : route.path.startsWith('/life')
+      ? 'life'
+      : route.path.startsWith('/mood')
+        ? 'mood'
+        : route.path.startsWith('/assessment')
+          ? 'assessment'
+          : route.path.startsWith('/training')
+            ? 'training'
+            : route.path.startsWith('/learning')
+              ? 'learning'
+              : route.path.startsWith('/manage')
+                ? 'manage'
+                : 'home',
 );
 function openProfile() {
   name.value = auth.user?.name || '';
@@ -91,6 +95,20 @@ async function exit() {
         </a>
         <nav class="main-nav" aria-label="主导航">
           <router-link to="/library" :class="{ active: active === 'library' }">题库</router-link>
+          <router-link
+            v-if="canModule('application_games')"
+            to="/life"
+            :class="{ active: active === 'life' }"
+          >
+            生活
+          </router-link>
+          <router-link
+            v-if="canModule('mood_diary')"
+            to="/mood"
+            :class="{ active: active === 'mood' }"
+          >
+            情绪
+          </router-link>
           <router-link
             v-if="auth.user?.role !== 'TRAINER'"
             to="/assessment"

@@ -4,6 +4,8 @@ import { Message, Modal } from '@arco-design/web-vue';
 import { IconPlus, IconStar } from '@arco-design/web-vue/es/icon';
 import { api, message } from '../lib/api';
 import type { User } from '../lib/auth';
+import { rewardGames, rewardImage } from '../lib/rewards';
+import { vFieldLabel } from '../lib/fieldLabel';
 import PageState from '../components/PageState.vue';
 import { useLeaveGuard } from '../components/useLeaveGuard';
 interface Reward {
@@ -52,7 +54,9 @@ const items = ref<Reward[]>([]),
   saving = ref(false),
   formError = ref(''),
   form = ref(fresh()),
-  baseline = ref('');
+  baseline = ref(''),
+  studentsLoading = ref(true),
+  studentsError = ref('');
 const visible = computed(() =>
   items.value.filter((x) =>
     `${x.name} ${x.prompt}`.toLowerCase().includes(search.value.trim().toLowerCase()),
@@ -62,19 +66,27 @@ const guard = useLeaveGuard(
   () => dialog.value && JSON.stringify(form.value) !== baseline.value,
   () => saving.value,
 );
-const imageSource = (value: string) => /^https?:\/\//.test(value) || /^\/(?!\/)/.test(value);
+const imageSource = rewardImage;
 async function load() {
   loading.value = true;
   error.value = '';
   try {
-    [items.value, students.value] = await Promise.all([
-      api<Reward[]>('/portal/manage/reinforcements'),
-      api<User[]>('/portal/students'),
-    ]);
+    items.value = (await api<Reward[]>('/portal/manage/reinforcements')) || [];
   } catch (e) {
     error.value = message(e);
   } finally {
     loading.value = false;
+  }
+}
+async function loadStudents() {
+  studentsLoading.value = true;
+  studentsError.value = '';
+  try {
+    students.value = (await api<User[]>('/portal/students')) || [];
+  } catch (e) {
+    studentsError.value = message(e);
+  } finally {
+    studentsLoading.value = false;
   }
 }
 function edit(item?: Reward) {
@@ -89,6 +101,15 @@ async function close() {
   if (await guard.confirm()) dialog.value = false;
 }
 async function save() {
+  if (saving.value) return;
+  if (form.value.type === 'game' && !rewardGames.some((g) => g.value === form.value.image)) {
+    formError.value = '请选择一种互动游戏';
+    return;
+  }
+  if (!form.value.isGlobal && (studentsLoading.value || studentsError.value)) {
+    formError.value = '请先重试加载学生列表';
+    return;
+  }
   if (!form.value.name.trim() || (!form.value.isGlobal && !form.value.targetStudentIds.length)) {
     formError.value = '填写强化物名称，并选择适用学生';
     return;
@@ -128,7 +149,10 @@ function remove(item: Reward) {
     },
   });
 }
-onMounted(load);
+onMounted(() => {
+  void load();
+  void loadStudents();
+});
 </script>
 <template>
   <section class="container section management">
@@ -199,7 +223,7 @@ onMounted(load);
       :title="form.id ? '编辑强化物' : '新增强化物'"
       @cancel="close"
     >
-      <form class="dialog-form" @submit.prevent="save">
+      <a-form class="dialog-form" :model="form" layout="vertical" :disabled="saving" @submit="save">
         <a-alert v-if="formError" type="error">{{ formError }}</a-alert>
         <a-form-item label="名称" required>
           <a-input
@@ -209,10 +233,15 @@ onMounted(load);
           />
         </a-form-item>
         <div class="form-grid">
-          <a-form-item label="类型">
-            <a-select v-model="form.type" :options="types" aria-label="强化物类型" />
+          <a-form-item v-field-label="'强化物类型'" label="类型">
+            <a-select
+              v-model="form.type"
+              :options="types"
+              aria-label="强化物类型"
+              @change="form.image = form.type === 'game' ? 'breath' : ''"
+            />
           </a-form-item>
-          <a-form-item label="状态">
+          <a-form-item v-field-label="'强化物状态'" label="状态">
             <a-select
               v-model="form.isActive"
               :options="[
@@ -223,7 +252,7 @@ onMounted(load);
             />
           </a-form-item>
         </div>
-        <a-form-item label="鼓励语">
+        <a-form-item v-field-label="'鼓励语'" label="鼓励语">
           <a-textarea
             v-model="form.prompt"
             :max-length="1000"
@@ -231,20 +260,22 @@ onMounted(load);
           />
         </a-form-item>
         <a-form-item
-          :label="form.type === 'game' ? '游戏标识' : '图片链接或图案标识'"
+          v-field-label="'强化物内容'"
+          :label="form.type === 'game' ? '小游戏' : '图片链接或图案标识'"
           :help="
             form.type === 'game'
-              ? 'reaction、memory、math、clicker、simon、breath'
+              ? '完成后可直接返回练习。'
               : '可填写 http(s) 图片链接，或 star、thumbs、heart、party。'
           "
         >
-          <a-input v-model="form.image" :input-attrs="{ 'aria-label': '强化物内容' }" />
+          <a-select v-if="form.type === 'game'" v-model="form.image" :options="rewardGames" />
+          <a-input v-else v-model="form.image" :input-attrs="{ 'aria-label': '强化物内容' }" />
         </a-form-item>
         <div class="form-grid">
-          <a-form-item label="触发规则">
+          <a-form-item v-field-label="'触发规则'" label="触发规则">
             <a-select v-model="form.ruleType" :options="rules" aria-label="触发规则" />
           </a-form-item>
-          <a-form-item label="间隔次数">
+          <a-form-item v-field-label="'间隔次数'" label="间隔次数">
             <a-input-number
               v-model="form.ruleValue"
               :min="1"
@@ -254,7 +285,7 @@ onMounted(load);
             />
           </a-form-item>
         </div>
-        <a-form-item label="展示时长（秒）">
+        <a-form-item v-field-label="'展示时长'" label="展示时长（秒）">
           <a-input-number
             v-model="form.duration"
             :min="1"
@@ -269,20 +300,26 @@ onMounted(load);
             <a-radio :value="false">指定学生</a-radio>
           </a-radio-group>
         </a-form-item>
-        <a-form-item v-if="!form.isGlobal" label="学生" required>
+        <a-form-item v-if="!form.isGlobal" v-field-label="'适用学生'" label="学生" required>
           <a-select
             v-model="form.targetStudentIds"
+            :loading="studentsLoading"
+            :disabled="saving || studentsLoading || !!studentsError"
             multiple
             allow-search
             :options="students.map((s) => ({ label: s.name || s.username, value: s.id }))"
             aria-label="适用学生"
           />
+          <a-alert v-if="studentsError" type="error">
+            {{ studentsError }}
+            <a-button @click="loadStudents">重试加载学生</a-button>
+          </a-alert>
         </a-form-item>
         <div class="dialog-actions">
           <a-button :disabled="saving" @click="close">取消</a-button>
           <a-button html-type="submit" type="primary" :loading="saving">保存</a-button>
         </div>
-      </form>
+      </a-form>
     </a-modal>
   </section>
 </template>

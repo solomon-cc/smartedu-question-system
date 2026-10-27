@@ -19,7 +19,9 @@ export function companyHashDestination(hash: string): string {
     return platformLogin(
       new URLSearchParams(route.split('?')[1] || '').get('redirect') || '/learning',
     );
-  if (/^\/(assessment|training|practice|learning|manage)(?:[/?]|$)/.test(route))
+  if (
+    /^\/(assessment|training|practice|learning|life|mood|application|manage)(?:[/?]|$)/.test(route)
+  )
     return platformLogin(route);
   return hash;
 }

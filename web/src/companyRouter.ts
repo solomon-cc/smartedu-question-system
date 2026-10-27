@@ -31,7 +31,11 @@ companyRouter.afterEach((to) => {
 
 companyRouter.beforeEach((to) => {
   if (!['/', '/library', '/assessment', '/training'].includes(to.path)) {
-    if (/^\/(assessment|training|practice|learning|manage|login)(?:[/?]|$)/.test(to.path)) {
+    if (
+      /^\/(assessment|training|practice|learning|life|mood|application|manage|login)(?:[/?]|$)/.test(
+        to.path,
+      )
+    ) {
       window.location.assign(
         platformLogin(
           to.path === '/login' ? String(to.query.redirect || '/learning') : to.fullPath,

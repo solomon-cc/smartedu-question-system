@@ -39,6 +39,10 @@ func PortalSaveReinforcement(c *gin.Context) {
 		portalFail(c, 400, "请选择有效类型")
 		return
 	}
+	if item.Type == "game" && !containsStudent([]string{"reaction", "memory", "math", "clicker", "simon", "breath"}, item.Image) {
+		portalFail(c, 400, "请选择有效的互动游戏")
+		return
+	}
 	if item.RuleType != "fixed" && item.RuleType != "correct_count" && item.RuleType != "average" {
 		portalFail(c, 400, "请选择有效触发规则")
 		return

@@ -14,14 +14,17 @@ import { kindName, type Course, type Lesson } from '../lib/types';
 import PageState from '../components/PageState.vue';
 import FileUpload from '../components/FileUpload.vue';
 import { useLeaveGuard } from '../components/useLeaveGuard';
+import { vFieldLabel } from '../lib/fieldLabel';
 const items = ref<Course[]>([]),
   users = ref<User[]>([]),
+  recipientsLoading = ref(false),
+  recipientsError = ref(''),
   loading = ref(true),
   error = ref(''),
   editing = ref(false),
   saving = ref(false),
   formError = ref(''),
-  uploads = ref<Record<number, boolean>>({}),
+  uploads = ref<Record<string, boolean>>({}),
   baseline = ref('');
 const fresh = (): Course => ({
   id: '',
@@ -36,6 +39,12 @@ const fresh = (): Course => ({
   lessons: [],
 });
 const form = ref<Course>(fresh());
+const lessonKeys = new WeakMap<Lesson, string>();
+let nextLessonKey = 0;
+function lessonKey(lesson: Lesson) {
+  if (!lessonKeys.has(lesson)) lessonKeys.set(lesson, `lesson-${++nextLessonKey}`);
+  return lessonKeys.get(lesson)!;
+}
 const busy = computed(() => saving.value || Object.values(uploads.value).some(Boolean));
 const dirty = computed(() => editing.value && JSON.stringify(form.value) !== baseline.value);
 const guard = useLeaveGuard(
@@ -46,14 +55,22 @@ async function load() {
   loading.value = true;
   error.value = '';
   try {
-    [items.value, users.value] = await Promise.all([
-      api('/portal/manage/courses'),
-      api('/portal/recipients'),
-    ]);
+    items.value = (await api<Course[] | null>('/portal/manage/courses')) || [];
   } catch (e) {
     error.value = message(e);
   } finally {
     loading.value = false;
+  }
+}
+async function loadRecipients() {
+  recipientsLoading.value = true;
+  recipientsError.value = '';
+  try {
+    users.value = (await api<User[] | null>('/portal/recipients')) || [];
+  } catch (e) {
+    recipientsError.value = message(e);
+  } finally {
+    recipientsLoading.value = false;
   }
 }
 function edit(c?: Course) {
@@ -69,6 +86,7 @@ async function close() {
   if (await guard.confirm()) editing.value = false;
 }
 function add() {
+  if (busy.value || form.value.lessons.length >= 200) return;
   form.value.lessons.push({ id: '', title: '', kind: 'text', text: '', uploadId: '', duration: 0 });
 }
 function move(i: number, step: number) {
@@ -93,9 +111,28 @@ async function save() {
     formError.value = '请填写课程标题';
     return;
   }
+  if (new TextEncoder().encode(form.value.title.trim()).length > 200) {
+    formError.value = '课程标题过长，请缩短后保存';
+    return;
+  }
   if (form.value.published && !form.value.lessons.length) {
     formError.value = '发布前至少添加一个章节';
     return;
+  }
+  if (form.value.visibility === 'assigned' && !form.value.userIds.length) {
+    formError.value = '请选择至少一位学员';
+    return;
+  }
+  for (const [i, lesson] of form.value.lessons.entries()) {
+    const missing = !lesson.title.trim()
+      ? '章节标题'
+      : lesson.kind === 'text'
+        ? !lesson.text.trim() && '正文'
+        : !lesson.uploadId && '已上传的文件';
+    if (missing) {
+      formError.value = `请补齐第 ${i + 1} 节的${missing}`;
+      return;
+    }
   }
   saving.value = true;
   formError.value = '';
@@ -103,7 +140,11 @@ async function save() {
     await api(
       '/portal/manage/courses' + (form.value.id ? '/' + form.value.id : ''),
       form.value.id ? 'PUT' : 'POST',
-      form.value,
+      {
+        ...form.value,
+        title: form.value.title.trim(),
+        userIds: form.value.visibility === 'assigned' ? form.value.userIds : [],
+      },
     );
     editing.value = false;
     Message.success('课程已保存');
@@ -133,7 +174,10 @@ function remove(c: Course) {
     },
   });
 }
-onMounted(load);
+onMounted(() => {
+  void load();
+  void loadRecipients();
+});
 </script>
 <template>
   <section class="container section management">
@@ -154,7 +198,7 @@ onMounted(load);
         title="暂无课程，点击“创建课程”添加。"
         @retry="load"
       />
-      <div class="manage-course-list">
+      <div v-if="!loading && !error" class="manage-course-list">
         <article v-for="c in items" :key="c.id">
           <div class="course-mini-cover" :class="c.audience">
             {{ c.audience === 'parent' ? '家长' : '老师' }}
@@ -188,7 +232,6 @@ onMounted(load);
       <div class="page-heading">
         <div>
           <h1>{{ form.id ? '编辑课程' : '创建课程' }}</h1>
-          <p>课程信息、章节内容与发布范围，在这里一次整理好。</p>
         </div>
         <a-button
           type="primary"
@@ -208,17 +251,18 @@ onMounted(load);
               <span class="step-label">01</span>
               基本信息
             </h2>
-            <a-form :model="form" layout="vertical">
+            <a-form :model="form" layout="vertical" :disabled="saving">
               <a-form-item field="title" label="课程标题" required>
                 <a-input
                   v-model="form.title"
+                  :input-attrs="{ 'aria-label': '课程标题' }"
                   :max-length="100"
                   show-word-limit
                   placeholder="用简短清晰的标题说明课程主题"
                 />
               </a-form-item>
               <div class="two-fields">
-                <a-form-item field="audience" label="培训分类">
+                <a-form-item v-field-label="'培训分类'" field="audience" label="培训分类">
                   <a-select
                     v-model="form.audience"
                     :options="[
@@ -228,12 +272,13 @@ onMounted(load);
                   />
                 </a-form-item>
                 <a-form-item field="instructor" label="讲师">
-                  <a-input v-model="form.instructor" />
+                  <a-input v-model="form.instructor" :input-attrs="{ 'aria-label': '讲师' }" />
                 </a-form-item>
               </div>
-              <a-form-item field="summary" label="课程介绍">
+              <a-form-item v-field-label="'课程介绍'" field="summary" label="课程介绍">
                 <a-textarea
                   v-model="form.summary"
+                  aria-label="课程介绍"
                   :auto-size="{ minRows: 3, maxRows: 8 }"
                   :max-length="2000"
                   placeholder="适合谁学习？将学到什么？"
@@ -247,7 +292,7 @@ onMounted(load);
                 <span class="step-label">02</span>
                 课程章节
               </h2>
-              <a-button :disabled="busy" @click="add">
+              <a-button :disabled="busy || form.lessons.length >= 200" @click="add">
                 <IconPlus />
                 添加章节
               </a-button>
@@ -255,7 +300,7 @@ onMounted(load);
             <p v-if="!form.lessons.length" class="muted">
               按学习顺序添加章节，支持图文、视频和文档。
             </p>
-            <article v-for="(l, i) in form.lessons" :key="l.id || i" class="lesson-editor">
+            <article v-for="(l, i) in form.lessons" :key="lessonKey(l)" class="lesson-editor">
               <div class="lesson-editor-heading">
                 <strong>第 {{ i + 1 }} 节</strong>
                 <div>
@@ -279,11 +324,11 @@ onMounted(load);
                   </a-button>
                 </div>
               </div>
-              <a-form :model="l" layout="vertical">
+              <a-form :model="l" layout="vertical" :disabled="saving">
                 <a-form-item field="title" label="章节标题" required>
-                  <a-input v-model="l.title" />
+                  <a-input v-model="l.title" :input-attrs="{ 'aria-label': `第${i + 1}节标题` }" />
                 </a-form-item>
-                <a-form-item field="kind" label="内容形式">
+                <a-form-item v-field-label="`第${i + 1}节内容形式`" field="kind" label="内容形式">
                   <a-select
                     v-model="l.kind"
                     :disabled="busy"
@@ -295,15 +340,27 @@ onMounted(load);
                     @change="l.uploadId = ''"
                   />
                 </a-form-item>
-                <a-form-item field="text" v-if="l.kind === 'text'" label="正文" required>
+                <a-form-item
+                  v-field-label="`第${i + 1}节正文`"
+                  field="text"
+                  v-if="l.kind === 'text'"
+                  label="正文"
+                  required
+                >
                   <a-textarea
                     v-model="l.text"
+                    :aria-label="`第${i + 1}节正文`"
                     :auto-size="{ minRows: 6, maxRows: 16 }"
                     placeholder="输入课程正文，保留段落与换行"
                   />
                 </a-form-item>
                 <a-form-item field="uploadId" v-else :label="kindName(l.kind) + '文件'" required>
-                  <FileUpload v-model="l.uploadId" :kind="l.kind" @busy="uploads[i] = $event" />
+                  <FileUpload
+                    v-model="l.uploadId"
+                    :kind="l.kind"
+                    :disabled="saving"
+                    @busy="uploads[lessonKey(l)] = $event"
+                  />
                 </a-form-item>
               </a-form>
             </article>
@@ -314,8 +371,8 @@ onMounted(load);
             <span class="step-label">03</span>
             发布设置
           </h2>
-          <a-form :model="form" layout="vertical">
-            <a-form-item field="visibility" label="学习范围">
+          <a-form :model="form" layout="vertical" :disabled="saving">
+            <a-form-item v-field-label="'学习范围'" field="visibility" label="学习范围">
               <a-select
                 v-model="form.visibility"
                 :options="[
@@ -325,6 +382,7 @@ onMounted(load);
               />
             </a-form-item>
             <a-form-item
+              v-field-label="'指定学员'"
               field="userIds"
               v-if="form.visibility === 'assigned'"
               label="指定学员"
@@ -332,6 +390,8 @@ onMounted(load);
             >
               <a-select
                 v-model="form.userIds"
+                :loading="recipientsLoading"
+                :disabled="saving || recipientsLoading || !!recipientsError"
                 multiple
                 allow-search
                 placeholder="搜索姓名或账号"
@@ -342,6 +402,10 @@ onMounted(load);
                   }))
                 "
               />
+              <div v-if="recipientsError" role="alert">
+                <p class="error-text">{{ recipientsError }}</p>
+                <a-button size="small" @click="loadRecipients">重试加载学员</a-button>
+              </div>
             </a-form-item>
             <a-form-item field="published" label="发布状态">
               <a-radio-group v-model="form.published" direction="vertical">

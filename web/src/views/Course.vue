@@ -30,7 +30,8 @@ const router = useRouter(),
   syncing = ref(false);
 let active = true,
   lastSaved = 0,
-  mediaGeneration = 0;
+  mediaGeneration = 0,
+  loadGeneration = 0;
 const lesson = computed(() => course.value?.lessons.find((l) => l.id === selected.value)),
   index = computed(() => course.value?.lessons.findIndex((l) => l.id === selected.value) ?? 0),
   completeCount = computed(
@@ -90,19 +91,20 @@ function restorePosition() {
     );
   }
 }
-async function select(id: string) {
+async function select(id: string, updateURL = true) {
   if (selected.value === id) return;
   if (video.value) record();
   selected.value = id;
-  await routerQuery();
+  if (updateURL) await routerQuery();
 }
 async function routerQuery() {
-  await router.replace({ query: { lesson: selected.value } });
+  await router.replace({ query: { ...route.query, lesson: selected.value } });
 }
 async function loadMedia() {
   const generation = ++mediaGeneration;
   media.value = '';
   mediaError.value = '';
+  mediaLoading.value = false;
   if (!lesson.value || lesson.value.kind === 'text') return;
   mediaLoading.value = true;
   try {
@@ -116,17 +118,23 @@ async function loadMedia() {
 }
 watch(selected, loadMedia);
 async function load() {
+  if (video.value) record();
+  const generation = ++loadGeneration;
   loading.value = true;
   error.value = '';
+  course.value = null;
+  selected.value = '';
+  saveStatus.value = '';
   try {
     const [c, p] = await Promise.all([
       api<Course>('/portal/courses/' + route.params.id),
       api<{ progress: Progress[] }>('/portal/progress'),
     ]);
+    if (generation !== loadGeneration || !active) return;
     course.value = c;
     c.lessons ||= [];
     const pending = pendingProgress(userID);
-    progress.value = p.progress.map((v) =>
+    progress.value = (p.progress || []).map((v) =>
       pending[v.lessonId] && pending[v.lessonId]!.queuedAt > new Date(v.updatedAt || 0).getTime()
         ? pending[v.lessonId]!
         : v,
@@ -141,11 +149,24 @@ async function load() {
     await nextTick();
     if (Object.keys(pending).length) void sync();
   } catch (e) {
-    error.value = message(e);
+    if (generation === loadGeneration && active) error.value = message(e);
   } finally {
-    loading.value = false;
+    if (generation === loadGeneration && active) loading.value = false;
   }
 }
+watch(
+  () => route.params.id,
+  () => {
+    void load();
+  },
+);
+watch(
+  () => route.query.lesson,
+  (id) => {
+    if (loading.value || !course.value?.lessons.some((l) => l.id === id)) return;
+    void select(String(id), false);
+  },
+);
 function next() {
   const l = course.value?.lessons[index.value + 1];
   if (l) select(l.id);
@@ -154,11 +175,15 @@ const online = () => sync();
 const hidden = () => {
   if (document.hidden && video.value) record();
 };
+const saveBeforeLeave = () => {
+  if (video.value) record();
+};
 let interval: ReturnType<typeof setInterval>;
 onMounted(() => {
   load();
   window.addEventListener('online', online);
   document.addEventListener('visibilitychange', hidden);
+  window.addEventListener('pagehide', saveBeforeLeave);
   interval = setInterval(() => {
     if (active && Object.keys(pendingProgress(userID)).length) void sync();
   }, 15000);
@@ -169,6 +194,9 @@ onBeforeUnmount(() => {
   clearInterval(interval);
   window.removeEventListener('online', online);
   document.removeEventListener('visibilitychange', hidden);
+  window.removeEventListener('pagehide', saveBeforeLeave);
+  loadGeneration++;
+  mediaGeneration++;
 });
 </script>
 <template>

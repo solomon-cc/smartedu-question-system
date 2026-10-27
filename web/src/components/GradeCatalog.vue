@@ -33,27 +33,43 @@ function link(grade: number, subject: string) {
       </header>
       <p class="grade-summary">{{ c.summary }}</p>
       <div class="grade-subject-list">
-        <div v-for="s in c.subjects" :key="s.value" class="grade-subject-row">
-          <span>{{ s.label }}</span>
-          <component
-            :is="loginLinks ? 'a' : RouterLink"
-            v-bind="link(c.grade, s.value)"
-            :aria-label="gradeLabel(c.grade) + s.label + '，' + s.skills + '个知识点'"
-          >
-            <span>{{ s.skills }} 个知识点</span>
-            <IconArrowRight />
-          </component>
-          <span class="grade-row-divider" />
-          <component
-            :is="loginLinks ? 'a' : RouterLink"
-            v-bind="link(c.grade, s.value)"
-            :aria-label="gradeLabel(c.grade) + s.label + '，' + s.questions + '道题目'"
-          >
-            <span>{{ s.questions }} 道题目</span>
-            <IconArrowRight />
-          </component>
-        </div>
+        <component
+          v-for="s in c.subjects"
+          :key="s.value"
+          :is="loginLinks ? 'a' : RouterLink"
+          class="grade-subject-row"
+          v-bind="link(c.grade, s.value)"
+          :aria-label="
+            gradeLabel(c.grade) + s.label + '，' + s.skills + '个知识点，' + s.questions + '道题目'
+          "
+        >
+          <span class="grade-subject-name">{{ s.label }}</span>
+          <span class="grade-subject-count">
+            {{ s.skills }} 个知识点 · {{ s.questions }} 道题目
+          </span>
+          <IconArrowRight />
+        </component>
       </div>
     </article>
   </div>
 </template>
+
+<style scoped>
+a.grade-subject-row {
+  min-height: 44px;
+  color: var(--brand);
+  border-radius: 4px;
+  padding-inline: 6px;
+}
+a.grade-subject-row:hover {
+  background: var(--surface-soft, #f4f8f5);
+}
+a.grade-subject-row .grade-subject-name {
+  margin-right: auto;
+  color: var(--ink);
+}
+.grade-subject-count {
+  font-size: 12px;
+  white-space: nowrap;
+}
+</style>

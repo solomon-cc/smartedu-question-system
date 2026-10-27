@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute, onBeforeRouteUpdate } from 'vue-router';
 import { Message, Modal } from '@arco-design/web-vue';
 import { IconArrowLeft, IconArrowRight, IconCheckCircle } from '@arco-design/web-vue/es/icon';
@@ -7,9 +7,11 @@ import { api, message } from '../lib/api';
 import { manageQuestions } from '../lib/auth';
 import { moduleName, type AssessmentDetail, type AssessmentResponse } from '../lib/assessments';
 import type { Topic } from '../lib/types';
-import presentation from '../lib/peakPresentation.json';
 import PageState from '../components/PageState.vue';
+import AssessmentMaterial from '../components/AssessmentMaterial.vue';
+import { assessmentAsset } from '../lib/assessmentAssets';
 import { useLeaveGuard } from '../components/useLeaveGuard';
+const presentation = ref<Record<string, { steps: { instruction: string; visual: boolean }[] }>>({});
 const route = useRoute(),
   data = ref<AssessmentDetail | null>(null),
   loading = ref(true),
@@ -18,7 +20,8 @@ const route = useRoute(),
   saveError = ref(''),
   index = ref(0),
   page = ref(0),
-  materialsError = ref(false),
+  pdfLoading = ref(false),
+  pdfError = ref(''),
   topics = ref<Topic[]>([]),
   targetOpen = ref(false),
   targetError = ref('');
@@ -58,26 +61,20 @@ const groups = computed(() =>
 );
 const instruction = computed(() => {
   if (!current.value) return '';
-  const p = (presentation as Record<string, { steps: { instruction: string; visual: boolean }[] }>)[
-    `${current.value.module}-${current.value.code}`
-  ];
+  const p = presentation.value[`${current.value.module}-${current.value.code}`];
   return p?.steps[page.value]?.instruction || current.value.script || '请根据原始材料施测。';
 });
 const steps = computed(() => {
   if (!current.value) return [];
-  return (
-    (presentation as Record<string, { steps: { instruction: string; visual: boolean }[] }>)[
-      `${current.value.module}-${current.value.code}`
-    ]?.steps || []
-  );
+  return presentation.value[`${current.value.module}-${current.value.code}`]?.steps || [];
 });
 const image = computed(() => {
   const i = current.value;
   if (!i) return '';
-  if (i.definition?.responsePage) return '/peak/response-' + i.definition.responsePage + '.png';
+  if (i.definition?.responsePage) return 'response-' + i.definition.responsePage + '.png';
   if (steps.value.length && !steps.value[page.value]?.visual) return '';
   const p = i.definition?.stimulusPages[page.value];
-  return p ? '/peak/' + i.module + '-' + p + '.png' : '';
+  return p ? i.module + '-' + p + '.png' : '';
 });
 const stepCount = computed(() =>
   Math.max(steps.value.length, current.value?.definition?.stimulusPages.length || 0, 1),
@@ -92,23 +89,54 @@ function reset() {
   form.value = { score: r?.score ?? null, response: r?.response || '', notes: r?.notes || '' };
   baseline.value = JSON.stringify(form.value);
   page.value = 0;
-  materialsError.value = false;
+  pdfError.value = '';
   saveError.value = '';
 }
+let generation = 0;
 async function load() {
+  const seq = ++generation;
   loading.value = true;
   error.value = '';
   try {
-    data.value = await api<AssessmentDetail>(base.value);
+    const [record, materialSteps] = await Promise.all([
+      api<AssessmentDetail>(base.value),
+      manageQuestions.value ? api('/portal/assessment-presentation') : Promise.resolve({}),
+    ]);
+    if (seq !== generation) return;
+    data.value = record;
+    presentation.value = materialSteps;
     index.value = Math.max(
       0,
       data.value.definition.items.findIndex((i) => !responseFor(i.code)),
     );
     reset();
   } catch (e) {
-    error.value = message(e);
+    if (seq === generation) error.value = message(e);
   } finally {
-    loading.value = false;
+    if (seq === generation) loading.value = false;
+  }
+}
+async function openOriginal() {
+  if (!current.value || pdfLoading.value) return;
+  const item = current.value;
+  const tab = window.open('about:blank', '_blank');
+  if (!tab) {
+    pdfError.value = '请允许此网站打开材料窗口后重试';
+    return;
+  }
+  tab.opener = null;
+  pdfLoading.value = true;
+  pdfError.value = '';
+  try {
+    const blob = await assessmentAsset(item.module + '.pdf');
+    const url = URL.createObjectURL(blob);
+    tab.location.href = url + '#page=' + (item.definition?.scriptPages[0] || 1);
+    window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) {
+    tab.close();
+    pdfError.value = message(e);
+  } finally {
+    pdfLoading.value = false;
   }
 }
 async function chooseItem(e: Event) {
@@ -206,7 +234,9 @@ async function saveTarget() {
     saving.value = false;
   }
 }
-watch(image, () => (materialsError.value = false));
+onBeforeUnmount(() => {
+  generation++;
+});
 onMounted(load);
 </script>
 <template>
@@ -280,32 +310,12 @@ onMounted(load);
               <summary>施测指令（老师查看）</summary>
               <p>{{ instruction }}</p>
               <p v-if="current.definition?.note">{{ current.definition.note }}</p>
-              <a
-                :href="
-                  '/peak/' +
-                  current.module +
-                  '.pdf#page=' +
-                  (current.definition?.scriptPages[0] || 1)
-                "
-                target="_blank"
-                rel="noopener"
-                class="text-link"
-              >
+              <a-button class="text-link" type="text" :loading="pdfLoading" @click="openOriginal">
                 查阅原始材料 ↗
-              </a>
+              </a-button>
+              <p v-if="pdfError" role="alert">{{ pdfError }}</p>
             </details>
-            <div v-if="image" class="stimulus">
-              <img
-                v-if="!materialsError"
-                :src="image"
-                alt="当前评估项目材料"
-                @error="materialsError = true"
-              />
-              <div v-else role="alert">
-                <p>材料加载失败，请检查网络后重试。</p>
-                <a-button @click="materialsError = false">重新加载</a-button>
-              </div>
-            </div>
+            <div v-if="image" class="stimulus"><AssessmentMaterial :file="image" /></div>
             <p v-else class="assessment-note">本步骤不展示图片，请根据施测指令开展。</p>
             <div v-if="stepCount > 1" class="material-pages">
               <a-button :disabled="page === 0" @click="page--">上一页材料</a-button>

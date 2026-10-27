@@ -1,0 +1,17 @@
+[
+  {
+    "role": "PARENT",
+    "life": 0,
+    "mood": 0
+  },
+  {
+    "role": "TRAINER",
+    "life": 0,
+    "mood": 0
+  },
+  {
+    "role": "ADMIN",
+    "life": 1,
+    "mood": 1
+  }
+]

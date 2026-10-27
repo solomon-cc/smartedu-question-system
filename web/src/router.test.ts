@@ -14,11 +14,14 @@ vi.mock('./views/Login.vue', () => ({ default: { template: '<div />' } }));
 vi.mock('./views/QuestionEditor.vue', () => ({ default: { template: '<div />' } }));
 vi.mock('./views/CourseManager.vue', () => ({ default: { template: '<div />' } }));
 vi.mock('./views/Users.vue', () => ({ default: { template: '<div />' } }));
+vi.mock('./views/Life.vue', () => ({ default: { template: '<div />' } }));
+vi.mock('./views/Mood.vue', () => ({ default: { template: '<div />' } }));
 vi.mock('./views/Status.vue', () => ({ default: { template: '<div />' } }));
 beforeEach(async () => {
   vi.stubGlobal('scrollTo', vi.fn());
   auth.ready = true;
   auth.user = null;
+  auth.permissions = [];
   await router.push('/');
 });
 it('preserves the intended practice URL across the login boundary', async () => {
@@ -94,4 +97,35 @@ it('shows the login entry for website visitors even when a platform session exis
 it('opens the platform root at login for visitors', async () => {
   await router.push('/');
   expect(router.currentRoute.value.path).toBe('/login');
+});
+
+it('enforces backend UI and API permissions on life and mood for every role', async () => {
+  for (const role of ['ADMIN', 'TEACHER', 'STUDENT', 'PARENT', 'TRAINER'] as Role[]) {
+    auth.user = { id: role, name: role, username: role, role };
+    for (const [path, moduleId] of [
+      ['/life', 'application_games'],
+      ['/mood', 'mood_diary'],
+    ]) {
+      for (const [uiAccess, apiAccess] of [
+        [false, true],
+        [true, false],
+        [true, true],
+      ]) {
+        auth.permissions = [{ moduleId: moduleId!, uiAccess: uiAccess!, apiAccess: apiAccess! }];
+        await router.push(path!);
+        expect(router.currentRoute.value.path).toBe(
+          ['ADMIN', 'TEACHER', 'STUDENT'].includes(role) && uiAccess && apiAccess
+            ? path
+            : '/learning',
+        );
+      }
+    }
+  }
+});
+it('keeps life and mood behind login with their intended return paths', async () => {
+  for (const path of ['/life', '/mood']) {
+    await router.push(path);
+    expect(router.currentRoute.value.path).toBe('/login');
+    expect(router.currentRoute.value.query.redirect).toBe(path);
+  }
 });

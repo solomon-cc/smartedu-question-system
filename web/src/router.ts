@@ -1,7 +1,26 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
-import { auth, restore, landingFor, manageQuestions, manageCourses, canPractice } from './lib/auth';
+import {
+  auth,
+  restore,
+  landingFor,
+  manageQuestions,
+  manageCourses,
+  canPractice,
+  canModule,
+} from './lib/auth';
 const routes = [
   { path: '/', redirect: '/login' },
+  {
+    path: '/life',
+    component: () => import('./views/Life.vue'),
+    meta: { title: '生活', module: 'application_games' },
+  },
+  {
+    path: '/mood',
+    component: () => import('./views/Mood.vue'),
+    meta: { title: '情绪', module: 'mood_diary' },
+  },
+  { path: '/application', redirect: '/life' },
   { path: '/library', component: () => import('./views/Library.vue'), meta: { title: '题库' } },
   {
     path: '/assessment',
@@ -69,6 +88,7 @@ router.beforeEach(async (to) => {
   if (to.path === '/login' && auth.user && to.query.from !== 'website')
     return landingFor(auth.user.role);
   if (
+    (to.meta.module && !canModule(String(to.meta.module))) ||
     (to.meta.admin && auth.user?.role !== 'ADMIN') ||
     (to.meta.questions && !manageQuestions.value) ||
     (to.meta.courses && !manageCourses.value) ||

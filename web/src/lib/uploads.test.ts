@@ -3,8 +3,12 @@ import { beforeEach, it, expect, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
 import { File } from 'node:buffer';
 import { api } from './api';
-import { uploadFile } from './uploads';
-vi.mock('./api', () => ({ api: vi.fn(), base: '/api', token: { get: () => 'local-test-token' } }));
+import { uploadFile, validateUploadFile } from './uploads';
+vi.mock('./api', () => ({
+  api: vi.fn(),
+  base: '/api',
+  token: { get: () => 'local-test-token', clear: vi.fn() },
+}));
 beforeEach(() => {
   vi.stubGlobal('crypto', webcrypto);
   vi.mocked(api).mockReset();
@@ -63,7 +67,7 @@ it('does not transfer a file that the server already has', async () => {
   expect(result.id).toBe('complete');
   expect(fetchMock).not.toHaveBeenCalled();
 });
-it('pauses without throwing away the durable server task', async () => {
+it('does not initialize a new upload after pause was requested', async () => {
   const f = new File(['test file'], 'test.txt', { lastModified: 100 });
   const controller = new AbortController();
   controller.abort();
@@ -77,5 +81,64 @@ it('pauses without throwing away the durable server task', async () => {
     uploadFile(f as unknown as globalThis.File, controller.signal, () => {}),
   ).rejects.toBeDefined();
   expect(fetchMock).not.toHaveBeenCalled();
+  expect(api).not.toHaveBeenCalled();
+});
+it('does not publish an attachment when paused during finalization', async () => {
+  const f = new File(['file'], 'test.txt', { lastModified: 100 });
+  const controller = new AbortController();
+  vi.mocked(api)
+    .mockResolvedValueOnce({
+      upload: { id: 'finishing', size: f.size, received: f.size, complete: false },
+      chunkSize: 4,
+    })
+    .mockImplementationOnce(async () => {
+      controller.abort();
+      return { id: 'finishing', size: f.size, received: f.size, complete: true };
+    });
+  await expect(
+    uploadFile(f as unknown as globalThis.File, controller.signal, () => {}),
+  ).rejects.toBeDefined();
+  expect(api).toHaveBeenLastCalledWith('/portal/uploads/finishing/complete', 'POST');
+});
+it('fails recoverably when a chunk response is not JSON', async () => {
+  const f = new File(['file'], 'test.txt');
+  vi.mocked(api).mockResolvedValueOnce({
+    upload: { id: 'upload', size: f.size, received: 0, complete: false },
+    chunkSize: 4,
+  });
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(new Response('<html>bad gateway</html>', { status: 502 })),
+  );
+  await expect(
+    uploadFile(f as unknown as globalThis.File, new AbortController().signal, () => {}),
+  ).rejects.toThrow('重新选择同一文件继续');
   expect(api).toHaveBeenCalledTimes(1);
+});
+it('rejects unconfirmed chunk offsets instead of looping forever', async () => {
+  const f = new File(['file'], 'test.txt');
+  const upload = { id: 'upload', size: f.size, received: 0, complete: false };
+  vi.mocked(api).mockResolvedValueOnce({ upload, chunkSize: 4 });
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValue(new Response(JSON.stringify({ code: 0, data: upload })));
+  vi.stubGlobal('fetch', fetchMock);
+  await expect(
+    uploadFile(f as unknown as globalThis.File, new AbortController().signal, () => {}),
+  ).rejects.toThrow('进度未确认');
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+it('validates file size and lesson format before uploading', () => {
+  expect(() => validateUploadFile(new File([], 'empty.txt') as unknown as globalThis.File)).toThrow(
+    '大于 0',
+  );
+  expect(() =>
+    validateUploadFile(new File(['x'], 'wrong.pdf') as unknown as globalThis.File, 'video'),
+  ).toThrow('MP4');
+  expect(() =>
+    validateUploadFile(new File(['x'], 'wrong.mp4') as unknown as globalThis.File, 'document'),
+  ).toThrow();
+  expect(() =>
+    validateUploadFile(new File(['x'], 'valid.MP4') as unknown as globalThis.File, 'video'),
+  ).not.toThrow();
 });

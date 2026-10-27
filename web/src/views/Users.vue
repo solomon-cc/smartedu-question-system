@@ -6,6 +6,7 @@ import { auth, roleNames, type User, type Role } from '../lib/auth';
 import { Message } from '@arco-design/web-vue';
 import { useLeaveGuard } from '../components/useLeaveGuard';
 import ParentStudentLinks from '../components/ParentStudentLinks.vue';
+import { vFieldLabel } from '../lib/fieldLabel';
 import PageState from '../components/PageState.vue';
 const items = ref<User[]>([]),
   loading = ref(true),
@@ -37,7 +38,7 @@ async function load() {
   loading.value = true;
   error.value = '';
   try {
-    items.value = await api('/portal/manage/users');
+    items.value = (await api('/portal/manage/users')) || [];
   } catch (e) {
     error.value = message(e);
   } finally {
@@ -54,6 +55,7 @@ async function close() {
   if (await guard.confirm()) dialog.value = false;
 }
 async function save() {
+  if (saving.value) return;
   if (
     !form.value.username.trim() ||
     (!form.value.id && form.value.password.length < 8) ||
@@ -65,11 +67,12 @@ async function save() {
   saving.value = true;
   formError.value = '';
   try {
-    await api(
+    const saved = await api<User>(
       '/portal/manage/users' + (form.value.id ? '/' + form.value.id : ''),
       form.value.id ? 'PUT' : 'POST',
-      form.value,
+      { ...form.value, username: form.value.username.trim() },
     );
+    if (saved.id === auth.user?.id) auth.user = saved;
     dialog.value = false;
     await load();
     Message.success('成员信息已保存');
@@ -154,19 +157,27 @@ onMounted(load);
       @cancel="close"
     >
       <a-alert v-if="formError" type="error" class="mb-24">{{ formError }}</a-alert>
-      <a-form :model="form" layout="vertical" @submit="save">
+      <a-form :model="form" layout="vertical" :disabled="saving" @submit="save">
         <a-form-item field="username" label="账号" required>
-          <a-input v-model="form.username" autocomplete="off" />
+          <a-input
+            v-model="form.username"
+            :input-attrs="{ 'aria-label': '账号', autocomplete: 'off' }"
+          />
         </a-form-item>
-        <a-form-item field="name" label="姓名"><a-input v-model="form.name" /></a-form-item>
+        <a-form-item field="name" label="姓名">
+          <a-input v-model="form.name" :input-attrs="{ 'aria-label': '姓名' }" />
+        </a-form-item>
         <a-form-item
           field="password"
           :label="form.id ? '重置密码（留空不修改）' : '初始密码'"
           :required="!form.id"
         >
-          <a-input-password v-model="form.password" autocomplete="new-password" />
+          <a-input-password
+            v-model="form.password"
+            :input-attrs="{ 'aria-label': '成员密码', autocomplete: 'new-password' }"
+          />
         </a-form-item>
-        <a-form-item field="role" label="角色">
+        <a-form-item v-field-label="'成员角色'" field="role" label="角色">
           <a-select
             v-model="form.role"
             :disabled="form.id === auth.user?.id"

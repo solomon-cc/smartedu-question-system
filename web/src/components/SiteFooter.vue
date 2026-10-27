@@ -82,7 +82,7 @@ function backToTop() {
   font-weight: 600;
   color: #fff;
 }
-.portal-footer-brand svg {
+.portal-footer-brand .brand-mark {
   width: 42px;
   height: 42px;
   color: #39745b;

@@ -295,12 +295,17 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	if strings.TrimSpace(newUser.Username) == "" || len(newUser.Password) < 8 || !portalValidRole(newUser.Role) {
-		SendJSON(c, 1, "Invalid user details; password must have at least 8 characters", nil)
+	newUser.Username = strings.TrimSpace(newUser.Username)
+	if newUser.Username == "" || len([]rune(newUser.Username)) > 191 || len([]rune(newUser.Name)) > 191 || len(newUser.Password) > 72 || len(newUser.Password) < 8 || !portalValidRole(newUser.Role) {
+		SendJSON(c, 1, "请检查账号、姓名和角色；密码长度应为8至72字节", nil)
 		return
 	}
 	if newUser.Status == "" {
 		newUser.Status = "active"
+	}
+	if newUser.Status != "active" && newUser.Status != "disabled" {
+		SendJSON(c, 1, "请选择有效账号状态", nil)
+		return
 	}
 	// Hash password
 	hashed, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), bcrypt.DefaultCost)
@@ -324,6 +329,12 @@ func UpdateUser(c *gin.Context) {
 	var updateData User
 	if err := c.ShouldBindJSON(&updateData); err != nil {
 		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+
+	updateData.Username = strings.TrimSpace(updateData.Username)
+	if updateData.Username == "" || len([]rune(updateData.Username)) > 191 || len([]rune(updateData.Name)) > 191 || !portalValidRole(updateData.Role) || (updateData.Status != "active" && updateData.Status != "disabled") || updateData.Password != "" && (len(updateData.Password) < 8 || len(updateData.Password) > 72) {
+		SendJSON(c, 1, "请检查账号、角色、状态和密码", nil)
 		return
 	}
 
@@ -379,6 +390,11 @@ func UpdateMe(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&updateData); err != nil {
 		SendJSON(c, 1, err.Error(), nil)
+		return
+	}
+
+	if len([]rune(updateData.Name)) > 191 || updateData.Password != "" && (len(updateData.Password) < 8 || len(updateData.Password) > 72) {
+		SendJSON(c, 1, "姓名过长，或密码长度不在8至72字节范围内", nil)
 		return
 	}
 

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { IconPlus, IconDelete, IconEdit, IconArrowRight } from '@arco-design/web-vue/es/icon';
 import { Modal, Message } from '@arco-design/web-vue';
 import { api, message, query } from '../lib/api';
 import { subjects, subjectName, type Question, type Topic } from '../lib/types';
+import { vFieldLabel } from '../lib/fieldLabel';
 import PageState from '../components/PageState.vue';
 import { useLeaveGuard } from '../components/useLeaveGuard';
 const items = ref<Question[]>([]),
@@ -60,7 +61,9 @@ const topicDialog = ref(false),
   topicSaving = ref(false),
   topicError = ref(''),
   topicForm = ref({ name: '', subject: 'MATH', grade: 1, objective: '' });
+let generation = 0;
 async function load() {
+  const seq = ++generation;
   loading.value = true;
   error.value = '';
   try {
@@ -71,13 +74,14 @@ async function load() {
       ),
       api('/portal/catalog'),
     ]);
+    if (seq !== generation) return;
     items.value = data.list || [];
     total.value = data.total;
-    topics.value = catalog;
+    topics.value = catalog || [];
   } catch (e) {
-    error.value = message(e);
+    if (seq === generation) error.value = message(e);
   } finally {
-    loading.value = false;
+    if (seq === generation) loading.value = false;
   }
 }
 function edit(q?: Question) {
@@ -90,6 +94,7 @@ async function close() {
   if (await guard.confirm()) dialog.value = false;
 }
 async function save() {
+  if (saving.value) return;
   if (!form.value.stemText.trim() || !form.value.answer.trim()) {
     formError.value = '请填写题目和正确答案';
     return;
@@ -187,6 +192,9 @@ function searchNow() {
   load();
 }
 watch(subject, searchNow);
+onBeforeUnmount(() => {
+  generation++;
+});
 onMounted(load);
 </script>
 <template>
@@ -297,16 +305,16 @@ onMounted(load);
       @cancel="close"
     >
       <a-alert v-if="formError" type="error" class="mb-24">{{ formError }}</a-alert>
-      <a-form :model="form" layout="vertical" @submit="save">
+      <a-form :model="form" layout="vertical" :disabled="saving" @submit="save">
         <div class="two-fields">
-          <a-form-item field="subject" label="学科">
+          <a-form-item v-field-label="'学科'" field="subject" label="学科">
             <a-select
               v-model="form.subject"
               :options="subjects.map((s) => ({ value: s.value, label: s.label }))"
               @change="form.objectiveId = ''"
             />
           </a-form-item>
-          <a-form-item field="grade" label="年级">
+          <a-form-item v-field-label="'年级'" field="grade" label="年级">
             <a-input-number
               v-model="form.grade"
               :min="1"
@@ -315,13 +323,13 @@ onMounted(load);
             />
           </a-form-item>
         </div>
-        <a-form-item field="objectiveId" label="知识点">
+        <a-form-item v-field-label="'知识点'" field="objectiveId" label="知识点">
           <a-select
             v-model="form.objectiveId"
             :options="[{ label: '综合练习（未分类）', value: '' }, ...objectives]"
           />
         </a-form-item>
-        <a-form-item field="type" label="题型">
+        <a-form-item v-field-label="'题型'" field="type" label="题型">
           <a-select
             v-model="form.type"
             :options="[
@@ -350,7 +358,7 @@ onMounted(load);
             "
           />
         </a-form-item>
-        <a-form-item field="stemText" label="题目内容" required>
+        <a-form-item v-field-label="'题目内容'" field="stemText" label="题目内容" required>
           <a-textarea v-model="form.stemText" :auto-size="{ minRows: 3, maxRows: 8 }" />
         </a-form-item>
         <template v-if="['MULTIPLE_CHOICE', 'MULTIPLE_SELECT', 'TRUE_FALSE'].includes(form.type)">
@@ -370,7 +378,7 @@ onMounted(load);
         >
           <a-input v-model="form.answer" />
         </a-form-item>
-        <a-form-item field="hint" label="解题说明">
+        <a-form-item v-field-label="'解题说明'" field="hint" label="解题说明">
           <a-textarea v-model="form.hint" :auto-size="{ minRows: 2, maxRows: 8 }" />
         </a-form-item>
         <div class="dialog-actions">
@@ -389,21 +397,21 @@ onMounted(load);
     >
       <a-alert v-if="topicError" type="error">{{ topicError }}</a-alert>
       <a-form :model="topicForm" layout="vertical">
-        <a-form-item field="name" label="主题名称" required>
+        <a-form-item v-field-label="'主题名称'" field="name" label="主题名称" required>
           <a-input v-model="topicForm.name" placeholder="例如：数与数量" />
         </a-form-item>
         <div class="two-fields">
-          <a-form-item field="subject" label="学科">
+          <a-form-item v-field-label="'学科'" field="subject" label="学科">
             <a-select
               v-model="topicForm.subject"
               :options="subjects.map((s) => ({ value: s.value, label: s.label }))"
             />
           </a-form-item>
-          <a-form-item field="grade" label="年级">
+          <a-form-item v-field-label="'年级'" field="grade" label="年级">
             <a-input-number v-model="topicForm.grade" :min="1" :max="12" />
           </a-form-item>
         </div>
-        <a-form-item field="objective" label="第一个知识点" required>
+        <a-form-item v-field-label="'第一个知识点'" field="objective" label="第一个知识点" required>
           <a-input v-model="topicForm.objective" placeholder="例如：认识 1–5 的数量" />
         </a-form-item>
       </a-form>
@@ -417,7 +425,7 @@ onMounted(load);
     >
       <a-alert v-if="objectiveError" type="error">{{ objectiveError }}</a-alert>
       <a-form :model="objectiveForm" layout="vertical">
-        <a-form-item field="topicId" label="所属主题" required>
+        <a-form-item v-field-label="'所属主题'" field="topicId" label="所属主题" required>
           <a-select
             v-model="objectiveForm.topicId"
             :options="
@@ -430,7 +438,7 @@ onMounted(load);
             "
           />
         </a-form-item>
-        <a-form-item field="name" label="知识点名称" required>
+        <a-form-item v-field-label="'知识点名称'" field="name" label="知识点名称" required>
           <a-input v-model="objectiveForm.name" />
         </a-form-item>
       </a-form>

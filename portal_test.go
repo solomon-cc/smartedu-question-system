@@ -95,6 +95,61 @@ func TestPortalProgressPersistsAndDoesNotLeak(t *testing.T) {
 	_, out := portalRequest(t, r, tokens["outsider"], "GET", "/progress", nil)
 	require.NotContains(t, string(out["data"]), "lesson")
 }
+func TestPortalProgressIncludesEligibleCourseLessonSummaries(t *testing.T) {
+	r, tokens := portalTestRouter(t)
+	portalCourseFixture(t)
+	require.NoError(t, DB.Create(&TrainingLesson{ID: "lesson2", CourseID: "private", Title: "第二节", Kind: "video", UploadID: "protected-upload", Duration: 120, SortOrder: 1}).Error)
+	for _, course := range []TrainingCourse{
+		{ID: "public", OwnerID: "trainer", Title: "公开培训", Audience: "teacher", Visibility: "all", Published: true, Lessons: []TrainingLesson{{ID: "public-lesson", Title: "公开章节", Kind: "text", Text: "公开课程正文仍不在进度接口返回"}}},
+		{ID: "other-private", OwnerID: "trainer", Title: "其他学员的指定课程", Audience: "parent", Visibility: "assigned", UserIDs: []string{"outsider"}, Published: true, Lessons: []TrainingLesson{{ID: "other-lesson", Title: "其他学员章节", Kind: "text", Text: "不可见正文"}}},
+		{ID: "draft", OwnerID: "trainer", Title: "未发布课程", Audience: "parent", Visibility: "all", Published: false, Lessons: []TrainingLesson{{ID: "draft-lesson", Title: "草稿章节", Kind: "text", Text: "草稿正文"}}},
+	} {
+		require.NoError(t, DB.Create(&course).Error)
+	}
+	require.NoError(t, DB.Create(&TrainingProgress{UserID: "parent", LessonID: "lesson", Position: 45, Completed: true}).Error)
+	w, out := portalRequest(t, r, tokens["parent"], "GET", "/progress", nil)
+	require.Equal(t, 200, w.Code)
+	var result struct {
+		Courses []struct {
+			ID      string           `json:"id"`
+			Lessons []map[string]any `json:"lessons"`
+		} `json:"courses"`
+		Progress []TrainingProgress `json:"progress"`
+	}
+	require.NoError(t, json.Unmarshal(out["data"], &result))
+	require.Len(t, result.Courses, 2)
+	var raw struct {
+		Courses []map[string]json.RawMessage `json:"courses"`
+	}
+	require.NoError(t, json.Unmarshal(out["data"], &raw))
+	for _, course := range raw.Courses {
+		for _, field := range []string{"id", "title", "summary", "audience", "instructor", "ownerId", "published", "visibility", "userIds", "updatedAt", "lessons"} {
+			require.Contains(t, course, field)
+		}
+		require.JSONEq(t, "true", string(course["published"]))
+		require.JSONEq(t, "null", string(course["userIds"]))
+	}
+	byCourse := map[string][]map[string]any{}
+	for _, course := range result.Courses {
+		byCourse[course.ID] = course.Lessons
+	}
+	require.Contains(t, byCourse, "public")
+	require.Contains(t, byCourse, "private")
+	require.NotContains(t, byCourse, "other-private")
+	require.NotContains(t, byCourse, "draft")
+	require.Equal(t, []map[string]any{
+		{"id": "lesson", "title": "第一节", "kind": "text", "duration": float64(0)},
+		{"id": "lesson2", "title": "第二节", "kind": "video", "duration": float64(120)},
+	}, byCourse["private"])
+	require.Len(t, result.Progress, 1)
+	require.Equal(t, byCourse["private"][0]["id"], result.Progress[0].LessonID)
+	require.True(t, result.Progress[0].Completed)
+	require.NotContains(t, string(out["data"]), "学习正文")
+	require.NotContains(t, string(out["data"]), "公开课程正文")
+	require.NotContains(t, string(out["data"]), "protected-upload")
+	require.NotContains(t, string(out["data"]), "\"text\":")
+	require.NotContains(t, string(out["data"]), "\"uploadId\":")
+}
 func TestPortalPracticeServerScoringAndPreview(t *testing.T) {
 	r, tokens := portalTestRouter(t)
 	require.NoError(t, DB.Create(&Question{ID: "q", Subject: "MATH", Grade: 1, StemText: "1+1", Answer: "2", Hint: "把两个1合在一起", Type: "FILL_BLANK"}).Error)

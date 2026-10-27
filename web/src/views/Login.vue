@@ -132,7 +132,8 @@ async function submit() {
               v-model="username"
               size="large"
               placeholder="输入账号"
-              autocomplete="username"
+              :disabled="loading"
+              :input-attrs="{ 'aria-label': '账号', autocomplete: 'username' }"
             />
           </a-form-item>
           <a-form-item
@@ -144,7 +145,8 @@ async function submit() {
               v-model="password"
               size="large"
               placeholder="输入密码"
-              autocomplete="current-password"
+              :disabled="loading"
+              :input-attrs="{ 'aria-label': '密码', autocomplete: 'current-password' }"
             />
           </a-form-item>
           <a-button type="primary" size="large" long html-type="submit" :loading="loading">

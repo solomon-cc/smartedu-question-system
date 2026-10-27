@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -50,6 +49,8 @@ func registerPortalRoutes(api *gin.RouterGroup) {
 	a.Use(AuthMiddleware())
 	registerPortalTools(a)
 	registerPortalAssessments(p, a)
+	a.GET("/assessment-presentation", portalRoles(RoleAdmin, RoleTeacher), PortalAssessmentPresentation)
+	a.GET("/assessment-assets/:file", portalRoles(RoleAdmin, RoleTeacher), PortalAssessmentAsset)
 	a.GET("/courses/:id", PortalCourse)
 	a.PUT("/progress/:id", PortalSaveProgress)
 	a.GET("/progress", PortalProgress)
@@ -170,10 +171,11 @@ func PortalAnswer(c *gin.Context) {
 		return
 	}
 	var b struct {
-		Answer string `json:"answer"`
+		Answer    string `json:"answer"`
+		RequestID string `json:"requestId"`
 	}
-	if c.ShouldBindJSON(&b) != nil || len(b.Answer) > 2000 || strings.TrimSpace(b.Answer) == "" {
-		portalFail(c, 400, "请先作答")
+	if c.ShouldBindJSON(&b) != nil || len(b.Answer) > 2000 || strings.TrimSpace(b.Answer) == "" || len(b.RequestID) > 128 {
+		portalFail(c, 400, "请检查作答内容后重试")
 		return
 	}
 	var q Question
@@ -185,30 +187,47 @@ func PortalAnswer(c *gin.Context) {
 		portalFail(c, 403, "题目不属于此练习目标")
 		return
 	}
-	normalize := func(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
-	answer, expected := normalize(b.Answer), normalize(q.Answer)
-	if q.Type == "MULTIPLE_SELECT" {
-		a := strings.Split(answer, ",")
-		b := strings.Split(expected, ",")
-		sort.Strings(a)
-		sort.Strings(b)
-		answer = strings.Join(a, ",")
-		expected = strings.Join(b, ",")
-	}
-	ok := answer == expected
+	ok := normalizePortalAnswer(b.Answer, q.Type) == normalizePortalAnswer(q.Answer, q.Type)
+	var reward *portalPracticeReward
 	if c.GetString("role") == string(RoleStudent) || c.GetString("role") == string(RoleParent) && plan != nil {
 		studentID := c.GetString("userId")
 		if plan != nil {
 			studentID = plan.StudentID
 		}
-		v := PortalAttempt{ID: portalID(), UserID: studentID, ActorID: c.GetString("userId"), QuestionID: q.ID, QuestionTitle: q.StemText, Subject: q.Subject, Grade: q.Grade, ObjectiveID: q.ObjectiveID, Answer: b.Answer, Correct: ok}
-		if DB.Create(&v).Error != nil {
-			portalFail(c, 500, "学习记录保存失败，请重试")
-			return
+		id := portalID()
+		if b.RequestID != "" {
+			id = portalRequestAttemptID(c.GetString("userId"), b.RequestID)
 		}
+		v := PortalAttempt{ID: id, UserID: studentID, ActorID: c.GetString("userId"), QuestionID: q.ID, QuestionTitle: q.StemText, Subject: q.Subject, Grade: q.Grade, ObjectiveID: q.ObjectiveID, Answer: b.Answer, Correct: ok}
+		existing := PortalAttempt{}
+		if DB.First(&existing, "id = ?", id).Error == nil {
+			if existing.UserID != studentID || existing.QuestionID != q.ID || existing.Answer != b.Answer {
+				portalFail(c, 409, "本次提交已记录，请刷新后开始新的作答")
+				return
+			}
+			v = existing
+			ok = v.Correct
+		} else {
+			if DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&v).Error != nil {
+				portalFail(c, 500, "学习记录保存失败，请重试")
+				return
+			}
+			if DB.First(&existing, "id = ?", id).Error != nil {
+				portalFail(c, 500, "学习记录确认失败，请重试")
+				return
+			}
+			if existing.UserID != studentID || existing.QuestionID != q.ID || existing.Answer != b.Answer {
+				portalFail(c, 409, "本次提交已记录，请刷新后开始新的作答")
+				return
+			}
+			v = existing
+			ok = v.Correct
+		}
+		reward = portalRewardForAttempt(DB, v)
 	}
-	SendJSON(c, 0, "", gin.H{"correct": ok, "answer": q.Answer, "hint": q.Hint, "preview": c.GetString("role") != string(RoleStudent) && c.GetString("role") != string(RoleParent)})
+	SendJSON(c, 0, "", gin.H{"correct": ok, "answer": q.Answer, "hint": q.Hint, "preview": c.GetString("role") != string(RoleStudent) && c.GetString("role") != string(RoleParent), "reward": reward})
 }
+
 func PortalAttempts(c *gin.Context) {
 	v := []PortalAttempt{}
 	if DB.Where("user_id = ?", c.GetString("userId")).Order("created_at DESC").Limit(500).Find(&v).Error != nil {
@@ -240,12 +259,22 @@ func PortalSaveQuestion(c *gin.Context) {
 			portalFail(c, 400, "至少填写两个选项")
 			return
 		}
-		for _, a := range strings.Split(q.Answer, ",") {
-			if !values[strings.TrimSpace(a)] {
-				portalFail(c, 400, "答案必须对应选项编号")
+		answers := strings.Split(strings.ReplaceAll(q.Answer, "，", ","), ",")
+		if q.Type != "MULTIPLE_SELECT" && len(answers) != 1 {
+			portalFail(c, 400, "单选题和判断题只能设置一个正确答案")
+			return
+		}
+		seen := map[string]bool{}
+		for i, a := range answers {
+			a = strings.TrimSpace(a)
+			if !values[a] || seen[a] {
+				portalFail(c, 400, "答案必须对应不重复的选项编号")
 				return
 			}
+			seen[a] = true
+			answers[i] = a
 		}
+		q.Answer = strings.Join(answers, ",")
 	}
 	if q.ObjectiveID != "" {
 		var objective SkillObjective
@@ -380,17 +409,34 @@ func PortalCourse(c *gin.Context) {
 	SendJSON(c, 0, "", v)
 }
 func PortalProgress(c *gin.Context) {
+	type lessonSummary struct {
+		ID       string  `json:"id"`
+		Title    string  `json:"title"`
+		Kind     string  `json:"kind"`
+		Duration float64 `json:"duration"`
+	}
+	type progressCourse struct {
+		TrainingCourse
+		Lessons []lessonSummary `json:"lessons"`
+	}
 	progress := []TrainingProgress{}
-	courses := []TrainingCourse{}
+	courses := []progressCourse{}
 	var all []TrainingCourse
-	if DB.Where("published = ?", true).Order("updated_at DESC").Find(&all).Error != nil {
+	if DB.Preload("Lessons", func(d *gorm.DB) *gorm.DB {
+		return d.Select("id", "course_id", "title", "kind", "duration", "sort_order").Order("sort_order ASC")
+	}).Where("published = ?", true).Order("updated_at DESC").Find(&all).Error != nil {
 		portalFail(c, 500, "课程加载失败")
 		return
 	}
 	for _, v := range all {
 		if portalCanLearn(c.GetString("userId"), c.GetString("role"), v) {
 			v.UserIDs = nil
-			courses = append(courses, v)
+			lessons := make([]lessonSummary, 0, len(v.Lessons))
+			for _, l := range v.Lessons {
+				lessons = append(lessons, lessonSummary{ID: l.ID, Title: l.Title, Kind: l.Kind, Duration: l.Duration})
+			}
+			v.Lessons = nil
+			courses = append(courses, progressCourse{TrainingCourse: v, Lessons: lessons})
 		}
 	}
 	if DB.Where("user_id = ?", c.GetString("userId")).Find(&progress).Error != nil {
